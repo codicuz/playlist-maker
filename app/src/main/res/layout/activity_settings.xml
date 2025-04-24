@@ -51,18 +51,30 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/layout1">
 
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/sc_switch_light_night_mode"
+<!--        Оставлено на задания с ночной темой -->
+<!--        <com.google.android.material.switchmaterial.SwitchMaterial-->
+<!--            android:id="@+id/sc_switch_light_night_mode"-->
+<!--            android:layout_width="match_parent"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_centerVertical="true"-->
+<!--            android:layout_marginStart="16dp"-->
+<!--            android:layout_marginEnd="16dp"-->
+<!--            android:text="@string/dark_theme"-->
+<!--            android:textSize="16sp"-->
+<!--            android:thumb="@drawable/ic_switch_thumb"-->
+<!--            app:track="@drawable/ic_switch_track"-->
+<!--            app:useMaterialThemeColors="false"-->
+<!--            tools:ignore="UseSwitchCompatOrMaterialXml" />-->
+
+        <Switch
+            android:id="@+id/night_theme_switch"
+            android:text="@string/dark_theme"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:text="@string/dark_theme"
+            android:layout_marginEnd="6dp"
             android:textSize="16sp"
-            android:thumb="@drawable/ic_switch_thumb"
-            app:track="@drawable/ic_switch_track"
-            app:useMaterialThemeColors="false"
             tools:ignore="UseSwitchCompatOrMaterialXml" />
     </RelativeLayout>
 
