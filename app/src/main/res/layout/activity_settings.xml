@@ -51,15 +51,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/layout1">
 
-        <Switch
-            android:id="@+id/switch1"
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/sc_switch_light_night_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="16dp"
-            android:layout_marginEnd="6dp"
+            android:layout_marginEnd="16dp"
             android:text="@string/dark_theme"
             android:textSize="16sp"
+            android:thumb="@drawable/ic_switch_thumb"
+            app:track="@drawable/ic_switch_track"
+            app:useMaterialThemeColors="false"
             tools:ignore="UseSwitchCompatOrMaterialXml" />
     </RelativeLayout>
 
@@ -156,87 +159,4 @@
             android:src="@drawable/agreement"
             app:tint="@color/gray" />
     </RelativeLayout>
-
-    <LinearLayout
-        android:id="@+id/tab_bar"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:layout_alignParentBottom="true"
-        android:background="@color/white"
-        android:elevation="8dp"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
-            android:id="@+id/elemSearchMain"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/elemSearchIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/search"
-                app:tint="@color/black" />
-
-            <TextView
-                android:id="@+id/elemSearchText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/search"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/elemMediaMain"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/elemMediaIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/media"
-                app:tint="@color/black" />
-
-            <TextView
-                android:id="@+id/elemMediaText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/media"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/elemSettingsMain"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:orientation="vertical">
-
-            <ImageView
-                android:id="@+id/elemSettingsIcon"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/settings"
-                app:tint="@color/black" />
-
-            <TextView
-                android:id="@+id/elemSettingsText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/settings"
-                android:textColor="@color/black"
-                android:textSize="12sp" />
-        </LinearLayout>
-    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
