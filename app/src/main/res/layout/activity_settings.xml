@@ -103,8 +103,8 @@
 
         <ImageView
             android:id="@+id/shareIcon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="16dp"
+            android:layout_height="18dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:contentDescription="@string/app_share"
@@ -134,8 +134,8 @@
 
         <ImageView
             android:id="@+id/helpdeskIcon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="20dp"
+            android:layout_height="18dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:contentDescription="@string/helpdesk"
@@ -163,7 +163,7 @@
 
         <ImageView
             android:id="@+id/agreementIcon"
-            android:layout_width="24dp"
+            android:layout_width="8dp"
             android:layout_height="24dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
