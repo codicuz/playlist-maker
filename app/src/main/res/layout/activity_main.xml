@@ -1,16 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    style="@style/MainView"
-
-    >
+    style="@style/MainView">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:layout_marginBottom="24dp"
-
-        >
+        android:layout_marginBottom="24dp">
 
         <TextView
             android:id="@+id/mainHeader"
@@ -24,8 +20,7 @@
         android:id="@+id/buttonSearch"
         style="@style/MainButtons"
         android:text="@string/search"
-        app:icon="@drawable/search"
-        />
+        app:icon="@drawable/search" />
 
     <Button
         android:id="@+id/buttonMedia"
