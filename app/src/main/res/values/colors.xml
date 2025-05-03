@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <color name="colorPrimary">#FFFFFFFF</color>
+    <color name="colorOnPrimary">#FF000000</color>
+
+    <color name="colorSecondary">#FF000000</color>
+    <color name="colorOnSecondary">#FFFFFFFF</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="gray">#AEAFB4</color>
