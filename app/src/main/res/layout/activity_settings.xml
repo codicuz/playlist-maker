@@ -13,7 +13,7 @@
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/night_theme_switch"
-        style="@style/SettingsButtons"
+        style="@style/SwitchButtons"
         android:text="@string/dark_theme" />
 
     <TextView

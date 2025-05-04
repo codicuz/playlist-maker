@@ -62,6 +62,19 @@
         <item name="android:textColor">@color/black</item>
     </style>
 
+    <style name="SwitchButtonsBase" parent="SettingsButtonsBase">
+        <item name="android:paddingEnd">3dp</item>
+        <item name="switchMinWidth">40dp</item>
+    </style>
+
+    <style name="SwitchButtons" parent="SwitchButtonsBase">
+        <item name="drawableTint">@color/gray</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="thumbTint">@color/gray</item>
+        <item name="trackTint">@color/gray_light</item>
+        <item name="minWidth">50dp</item>
+    </style>
+
     <style name="BaseHWMatchParent">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">match_parent</item>
@@ -72,7 +85,8 @@
     </style>
 
     <style name="MainView" parent="MainViewBase">
-        <item name="android:background">@color/blue</item>
+        <item name="android:background">@color/blue
+        </item>
     </style>
 
     <style name="SecondaryViews" parent="BaseHWMatchParent">
