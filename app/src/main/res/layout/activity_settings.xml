@@ -8,8 +8,7 @@
         android:id="@+id/settingsHeader"
         style="@style/ActivityTitlesSecondary"
         android:text="@string/settings"
-        app:drawableStartCompat="@drawable/back"
-        />
+        app:drawableStartCompat="@drawable/back" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/night_theme_switch"
@@ -17,19 +16,19 @@
         android:text="@string/dark_theme" />
 
     <TextView
-        android:id="@+id/shareText"
+        android:id="@+id/shareApp"
         style="@style/SettingsButtons"
         android:text="@string/app_share"
         app:drawableEndCompat="@drawable/share" />
 
     <TextView
-        android:id="@+id/helpdeskText"
+        android:id="@+id/sendToHelpdesk"
         style="@style/SettingsButtons"
         android:text="@string/helpdesk"
         app:drawableEndCompat="@drawable/helpdesk" />
 
     <TextView
-        android:id="@+id/agreementText"
+        android:id="@+id/practicumOffer"
         style="@style/SettingsButtons"
         android:text="@string/agreement"
         app:drawableEndCompat="@drawable/agreement" />

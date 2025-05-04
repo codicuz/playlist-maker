@@ -71,7 +71,7 @@
         <item name="drawableTint">@color/gray</item>
         <item name="android:textColor">@color/black</item>
         <item name="thumbTint">@color/gray</item>
-        <item name="trackTint">@color/gray_light</item>
+        <item name="trackTint">@color/light_gray</item>
         <item name="minWidth">50dp</item>
     </style>
 
