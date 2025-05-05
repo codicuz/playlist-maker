@@ -30,4 +30,15 @@
         <item name="thumbTint">@color/blue</item>
         <item name="trackTint">@color/light_blue</item>
     </style>
+
+    <style name="EditTextView">
+        <item name="android:backgroundTint">@color/white</item>
+        <item name="android:drawableTint">@color/black</item>
+        <item name="android:textColor">@color/black</item>
+        <item name="android:textColorHint">@color/black</item>
+    </style>
+
+    <style name="ClearButton">
+        <item name="android:background">@color/black</item>
+    </style>
 </resources>
