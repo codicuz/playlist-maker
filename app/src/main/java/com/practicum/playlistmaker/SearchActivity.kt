@@ -44,6 +44,8 @@ class SearchActivity : AppCompatActivity() {
         clearButton.setOnClickListener {
             inputEditText.text?.clear()
             inputEditText.clearFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.hideSoftInputFromWindow(inputEditText.windowToken, 0)
         }
 
         buttonBack.setOnClickListener {
@@ -57,8 +59,6 @@ class SearchActivity : AppCompatActivity() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 clearButton.visibility = clearButtonVisibility(s)
-                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.hideSoftInputFromWindow(inputEditText.windowToken, 0)
                 searchText = s.toString()
             }
 

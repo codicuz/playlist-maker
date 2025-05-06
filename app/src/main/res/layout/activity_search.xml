@@ -23,7 +23,8 @@
             android:autofillHints=""
             android:background="@drawable/rounded_edittext_background"
             android:drawableStart="@drawable/search"
-            android:drawablePadding="4dp"
+            android:drawablePadding="9dp"
+            android:paddingHorizontal="13dp"
             android:hint="@string/search"
             android:inputType="text"
             android:maxLength="200"
@@ -31,13 +32,13 @@
 
         <ImageButton
             android:id="@+id/clearButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
+            style="@style/ClearButton"
+            android:layout_width="12dp"
+            android:layout_height="12dp"
             android:layout_gravity="end|center_vertical"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginEnd="30dp"
             android:contentDescription="@string/todo"
-            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:src="@drawable/clear_button"
             android:visibility="gone" />
 
     </FrameLayout>

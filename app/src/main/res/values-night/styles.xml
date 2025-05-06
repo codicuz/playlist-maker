@@ -39,6 +39,6 @@
     </style>
 
     <style name="ClearButton">
-        <item name="android:background">@color/black</item>
+        <item name="tint">@color/black</item>
     </style>
 </resources>

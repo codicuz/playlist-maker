@@ -18,8 +18,6 @@
     <string name="email">ra@gmail.com</string>
     <string name="email_text">Спасибо разработчикам и разработчицам за крутое приложение!</string>
     <string name="email_subject">Сообщение разработчикам и разработчицам приложения Playlist Maker</string>
-    <string name="send_to">mailto:</string>
-    <string name="text_plain">text/plain</string>
     <string name="https_practicum_yandex_ru_android_developer">Посмотрите этот курс по Андроид-разработке в Практикуме: https://practicum.yandex.ru/android-developer/</string>
     <string name="todo">TODO</string>
 </resources>

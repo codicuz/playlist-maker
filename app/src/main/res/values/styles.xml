@@ -35,10 +35,11 @@
 
     <style name="ActivityTitlesSecondaryBase" parent="ActivityTitles">
         <item name="android:layout_height">56dp</item>
-        <item name="android:drawablePadding">8dp</item>
+        <item name="android:drawablePadding">28dp</item>
         <item name="android:gravity">center_vertical</item>
-        <item name="android:paddingStart">16dp</item>
-        <item name="android:paddingEnd">16dp</item>
+        <item name="android:layout_marginHorizontal">20dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+
     </style>
 
     <style name="ActivityTitlesSecondary" parent="ActivityTitlesSecondaryBase">
@@ -91,7 +92,6 @@
 
     <style name="SecondaryViews" parent="BaseHWMatchParent">
         <item name="android:orientation">vertical</item>
-        <item name="android:paddingVertical">16dp</item>
     </style>
 
     <style name="EditTextView">
@@ -102,6 +102,6 @@
     </style>
 
     <style name="ClearButton">
-        <item name="android:background">@color/light_gray</item>
+        <item name="tint">@color/gray</item>
     </style>
 </resources>
