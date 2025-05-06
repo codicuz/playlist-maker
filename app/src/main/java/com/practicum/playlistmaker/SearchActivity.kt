@@ -1,39 +1,50 @@
 package com.practicum.playlistmaker
 
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 
 class SearchActivity : AppCompatActivity() {
+    private var searchText: String = SEARCH_TEXT
 
-    private lateinit var inputEditText: EditText
-    private var clearDrawable: Drawable? = null
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(SEARCH_KEY, searchText)
+    }
 
+    companion object {
+        const val SEARCH_KEY = "SEARCH_KEY"
+        const val SEARCH_TEXT = ""
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        searchText = savedInstanceState.getString(SEARCH_KEY, SEARCH_TEXT)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
 
         val buttonBack = findViewById<TextView>(R.id.searchHeader)
-        inputEditText = findViewById<EditText>(R.id.inputEditText)
-        clearDrawable =
-            ContextCompat.getDrawable(this, android.R.drawable.ic_menu_close_clear_cancel)
-        clearDrawable?.setBounds(
-            0,
-            0,
-            clearDrawable!!.intrinsicWidth,
-            clearDrawable!!.intrinsicHeight
-        )
+        val clearButton = findViewById<ImageView>(R.id.clearButton)
+        val inputEditText = findViewById<EditText>(R.id.inputEditText)
+
+        if (savedInstanceState != null) {
+            searchText = savedInstanceState.getString(SEARCH_KEY, SEARCH_TEXT)
+        }
+
+        clearButton.setOnClickListener {
+            inputEditText.text?.clear()
+            inputEditText.clearFocus()
+        }
 
         buttonBack.setOnClickListener {
             finish()
@@ -45,7 +56,10 @@ class SearchActivity : AppCompatActivity() {
             }
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                updateClearIconVisibility(s)
+                clearButton.visibility = clearButtonVisibility(s)
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.hideSoftInputFromWindow(inputEditText.windowToken, 0)
+                searchText = s.toString()
             }
 
             override fun afterTextChanged(s: Editable?) {
@@ -53,50 +67,13 @@ class SearchActivity : AppCompatActivity() {
             }
         }
         inputEditText.addTextChangedListener(simpleTextWatcher)
-
-        inputEditText.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_UP) {
-                val drawableEnd = inputEditText.compoundDrawables[2]
-                if (drawableEnd != null) {
-                    val drawableStartX =
-                        inputEditText.width - inputEditText.paddingEnd - drawableEnd.bounds.width()
-                    if (event.x >= drawableStartX) {
-                        inputEditText.text?.clear()
-                        hideKeyboard()
-                        return@setOnTouchListener true
-                    }
-                }
-            }
-            false
-        }
     }
 
-    private fun updateClearIconVisibility(s: CharSequence?) {
-        val drawables = if (!s.isNullOrEmpty()) {
-            arrayOf(
-                inputEditText.compoundDrawables[0],
-                null,
-                clearDrawable,
-                null
-            )
+    private fun clearButtonVisibility(s: CharSequence?): Int {
+        return if (s.isNullOrEmpty()) {
+            View.GONE
         } else {
-            arrayOf(
-                inputEditText.compoundDrawables[0],
-                null,
-                null,
-                null
-            )
+            View.VISIBLE
         }
-        inputEditText.setCompoundDrawables(
-            drawables[0],
-            drawables[1],
-            drawables[2],
-            drawables[3]
-        )
-    }
-
-    private fun hideKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(inputEditText.windowToken, 0)
     }
 }
