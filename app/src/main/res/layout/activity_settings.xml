@@ -1,76 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/white"
-    android:paddingVertical="16dp">
+    android:id="@+id/settings_view"
+    style="@style/SecondaryViews">
 
     <TextView
         android:id="@+id/settingsHeader"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:drawablePadding="8dp"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        style="@style/ActivityTitlesSecondary"
         android:text="@string/settings"
-        android:textColor="@color/black"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:fontFamily="@font/ys_display"
         app:drawableStartCompat="@drawable/back" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/night_theme_switch"
-        android:layout_width="match_parent"
-        android:layout_height="61dp"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:text="@string/dark_theme"
-        android:textSize="16sp" />
+        style="@style/SwitchButtons"
+        android:text="@string/dark_theme" />
 
     <TextView
-        android:id="@+id/shareText"
-        android:layout_width="match_parent"
-        android:layout_height="61dp"
-        android:gravity="center_vertical"
-        android:drawablePadding="8dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:id="@+id/shareApp"
+        style="@style/SettingsButtons"
         android:text="@string/app_share"
-        android:textColor="@color/black"
-        android:textSize="16sp"
-        app:drawableEndCompat="@drawable/share"
-        android:fontFamily="@font/ys_display" />
+        app:drawableEndCompat="@drawable/share" />
 
     <TextView
-        android:id="@+id/helpdeskText"
-        android:layout_width="match_parent"
-        android:layout_height="61dp"
-        android:gravity="center_vertical"
-        android:drawablePadding="8dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:id="@+id/sendToHelpdesk"
+        style="@style/SettingsButtons"
         android:text="@string/helpdesk"
-        android:textColor="@color/black"
-        android:textSize="16sp"
         app:drawableEndCompat="@drawable/helpdesk" />
 
     <TextView
-        android:id="@+id/agreementText"
-        android:layout_width="match_parent"
-        android:layout_height="61dp"
-        android:gravity="center_vertical"
-        android:drawablePadding="8dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
+        android:id="@+id/practicumOffer"
+        style="@style/SettingsButtons"
         android:text="@string/agreement"
-        android:textColor="@color/black"
-        android:textSize="16sp"
         app:drawableEndCompat="@drawable/agreement" />
-
 </LinearLayout>
