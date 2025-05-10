@@ -11,7 +11,7 @@
         android:layout_width="45dp"
         android:layout_height="45dp"
         android:layout_marginVertical="8dp"
-        android:layout_marginStart="13dp"
+        android:layout_marginStart="12dp"
         android:layout_marginEnd="8dp"
         android:src="@drawable/ic_no_artwork_image"
         android:contentDescription="@string/todo" />
@@ -59,9 +59,9 @@
             <ImageView
                 android:id="@+id/point_image"
                 style="@style/RcDelimiterTimeButton"
-                android:layout_width="3dp"
-                android:layout_height="3dp"
-                android:layout_margin="5dp"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_margin="8dp"
                 android:background="@drawable/ic_artists_time_delimiter"
                 android:contentDescription="@string/todo" />
 
