@@ -20,4 +20,7 @@
     <string name="email_subject">Сообщение разработчикам и разработчицам приложения Playlist Maker</string>
     <string name="https_practicum_yandex_ru_android_developer">Посмотрите этот курс по Андроид-разработке в Практикуме: https://practicum.yandex.ru/android-developer/</string>
     <string name="todo">TODO</string>
+    <string name="track_name">Track Name</string>
+    <string name="artist_name">Artist Name</string>
+    <string name="track_time">3:55</string>
 </resources>

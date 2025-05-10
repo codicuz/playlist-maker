@@ -18,13 +18,14 @@
 
     <style name="MainButtons" parent="MainButtonsBase">
         <item name="android:backgroundTint">@color/white</item>
-        <item name="android:textColor">@color/black</item>
-        <item name="android:iconTint">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
+        <item name="android:iconTint">@color/app_black</item>
     </style>
 
     <style name="ActivityTitlesBase">
         <item name="android:layout_width">match_parent</item>
-        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_height">56dp</item>
+        <item name="android:layout_marginBottom">24dp</item>
         <item name="android:fontFamily">@font/ys_display_medium</item>
         <item name="android:textSize">22sp</item>
     </style>
@@ -43,8 +44,8 @@
     </style>
 
     <style name="ActivityTitlesSecondary" parent="ActivityTitlesSecondaryBase">
-        <item name="android:textColor">@color/black</item>
-        <item name="android:drawableTint">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
+        <item name="android:drawableTint">@color/app_black</item>
     </style>
 
     <style name="SettingsButtonsBase">
@@ -60,7 +61,7 @@
 
     <style name="SettingsButtons" parent="SettingsButtonsBase">
         <item name="drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
     </style>
 
     <style name="SwitchButtonsBase" parent="SettingsButtonsBase">
@@ -70,7 +71,7 @@
 
     <style name="SwitchButtons" parent="SwitchButtonsBase">
         <item name="drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
         <item name="thumbTint">@color/gray</item>
         <item name="trackTint">@color/light_gray</item>
         <item name="minWidth">50dp</item>
@@ -97,11 +98,24 @@
     <style name="EditTextView">
         <item name="android:backgroundTint">@color/light_gray</item>
         <item name="android:drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
         <item name="android:textColorHint">@color/gray</item>
     </style>
 
     <style name="ClearButton">
         <item name="tint">@color/gray</item>
     </style>
+
+    <style name="RcTrackTitle">
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="RcArtistsNameTrackTime">
+        <item name="android:textColor">@color/gray</item>
+    </style>
+
+    <style name="RcDelimiterTimeButton">
+        <item name="android:backgroundTint">@color/gray</item>
+    </style>
+
 </resources>

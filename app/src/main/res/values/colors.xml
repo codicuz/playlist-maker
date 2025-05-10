@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="colorPrimary">#FFFFFFFF</color>
-    <color name="colorOnPrimary">#FF000000</color>
+    <color name="colorOnPrimary">#1A1B22</color>
 
-    <color name="colorSecondary">#FF000000</color>
+    <color name="colorSecondary">#1A1B22</color>
     <color name="colorOnSecondary">#FFFFFFFF</color>
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="app_black">#1A1B22</color>
+    <color name="app_white">#AEAFB4</color>
+
     <color name="gray">#AEAFB4</color>
     <color name="light_gray">#E6E8EB</color>
     <color name="blue">#3772E7</color>
