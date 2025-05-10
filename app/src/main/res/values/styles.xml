@@ -18,8 +18,8 @@
 
     <style name="MainButtons" parent="MainButtonsBase">
         <item name="android:backgroundTint">@color/white</item>
-        <item name="android:textColor">@color/black</item>
-        <item name="android:iconTint">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
+        <item name="android:iconTint">@color/app_black</item>
     </style>
 
     <style name="ActivityTitlesBase">
@@ -44,8 +44,8 @@
     </style>
 
     <style name="ActivityTitlesSecondary" parent="ActivityTitlesSecondaryBase">
-        <item name="android:textColor">@color/black</item>
-        <item name="android:drawableTint">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
+        <item name="android:drawableTint">@color/app_black</item>
     </style>
 
     <style name="SettingsButtonsBase">
@@ -61,7 +61,7 @@
 
     <style name="SettingsButtons" parent="SettingsButtonsBase">
         <item name="drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
     </style>
 
     <style name="SwitchButtonsBase" parent="SettingsButtonsBase">
@@ -71,7 +71,7 @@
 
     <style name="SwitchButtons" parent="SwitchButtonsBase">
         <item name="drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
         <item name="thumbTint">@color/gray</item>
         <item name="trackTint">@color/light_gray</item>
         <item name="minWidth">50dp</item>
@@ -98,7 +98,7 @@
     <style name="EditTextView">
         <item name="android:backgroundTint">@color/light_gray</item>
         <item name="android:drawableTint">@color/gray</item>
-        <item name="android:textColor">@color/black</item>
+        <item name="android:textColor">@color/app_black</item>
         <item name="android:textColorHint">@color/gray</item>
     </style>
 
