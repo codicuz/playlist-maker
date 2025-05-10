@@ -20,15 +20,16 @@
             android:layout_width="match_parent"
             android:layout_height="36dp"
             android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="16dp"
             android:autofillHints=""
             android:background="@drawable/rounded_edittext_background"
             android:drawableStart="@drawable/search"
             android:drawablePadding="9dp"
-            android:paddingHorizontal="13dp"
             android:hint="@string/search"
             android:inputType="text"
             android:maxLength="200"
-            android:maxLines="1" />
+            android:maxLines="1"
+            android:paddingHorizontal="13dp" />
 
         <ImageButton
             android:id="@+id/clearButton"
@@ -42,5 +43,10 @@
             android:visibility="gone" />
 
     </FrameLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcTrackData"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
 </LinearLayout>

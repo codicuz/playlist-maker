@@ -10,6 +10,8 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 
 class SearchActivity : AppCompatActivity() {
     private var searchText: String = SEARCH_TEXT
@@ -36,6 +38,7 @@ class SearchActivity : AppCompatActivity() {
         val buttonBack = findViewById<TextView>(R.id.searchHeader)
         val clearButton = findViewById<ImageView>(R.id.clearButton)
         val inputEditText = findViewById<EditText>(R.id.inputEditText)
+        val trackRcView = findViewById<RecyclerView>(R.id.rcTrackData)
 
         if (savedInstanceState != null) {
             searchText = savedInstanceState.getString(SEARCH_KEY, SEARCH_TEXT)
@@ -67,6 +70,9 @@ class SearchActivity : AppCompatActivity() {
             }
         }
         inputEditText.addTextChangedListener(simpleTextWatcher)
+
+        trackRcView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
+        trackRcView.adapter = TrackAdapter(Track.getMockTrackList())
     }
 
     private fun clearButtonVisibility(s: CharSequence?): Int {

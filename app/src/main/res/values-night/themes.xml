@@ -3,6 +3,6 @@
     <style name="Base.Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/colorSecondary</item>
         <item name="colorOnPrimary">@color/colorOnSecondary</item>
-        <item name="android:backgroundTint">@color/black</item>
+        <item name="android:backgroundTint">@color/app_black</item>
     </style>
 </resources>
