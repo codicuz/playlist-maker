@@ -105,4 +105,17 @@
     <style name="ClearButton">
         <item name="tint">@color/gray</item>
     </style>
+
+    <style name="RcTrackTitle">
+        <item name="android:textColor">@color/black</item>
+    </style>
+
+    <style name="RcArtistsNameTrackTime">
+        <item name="android:textColor">@color/gray</item>
+    </style>
+
+    <style name="RcDelimiterTimeButton">
+        <item name="android:backgroundTint">@color/gray</item>
+    </style>
+
 </resources>
