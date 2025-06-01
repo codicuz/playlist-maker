@@ -10,6 +10,9 @@ appcompat = "1.7.0"
 material = "1.12.0"
 activity = "1.9.3"
 constraintlayout = "2.1.4"
+retrofit2 = "2.9.0"
+gson = "2.10"
+cgson = "2.9.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -21,6 +24,9 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit2" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+cgson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "cgson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
