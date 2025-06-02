@@ -26,10 +26,12 @@
             android:drawableStart="@drawable/search"
             android:drawablePadding="9dp"
             android:hint="@string/search"
+            android:imeOptions="actionDone"
             android:inputType="text"
             android:maxLength="200"
             android:maxLines="1"
-            android:paddingHorizontal="13dp" />
+            android:paddingHorizontal="13dp"
+            android:singleLine="true" />
 
         <ImageButton
             android:id="@+id/clearButton"
@@ -38,6 +40,7 @@
             android:layout_height="12dp"
             android:layout_gravity="end|center_vertical"
             android:layout_marginEnd="30dp"
+            android:layout_marginBottom="8dp"
             android:contentDescription="@string/todo"
             android:src="@drawable/clear_button"
             android:visibility="gone" />
@@ -49,4 +52,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <include
+        android:id="@+id/stubNoInternet"
+        layout="@layout/no_internet"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/stubEmptySearch"
+        layout="@layout/empty_search"
+        android:visibility="gone" />
 </LinearLayout>

@@ -20,6 +20,7 @@ class TrackViewHolder(parent: ViewGroup) : RecyclerView.ViewHolder(
 
     fun bind(item: Track) {
         trackName.text = item.trackName
+        artistsName.setText("")
         artistsName.text = item.artistsName
         trackTime.text = item.trackTime
 
