@@ -1,21 +1,16 @@
 package com.practicum.playlistmaker
 
-import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 
 class SettingsActivity : AppCompatActivity() {
     companion object {
-        const val PREFS_NAME = "settings"
-        const val DARK_MODE_KEY = "dark_mode"
         const val MAIL_TO = "mailto:"
         const val MIME_TYPE_TEXT_PLAIN = "text/plain"
     }
@@ -34,7 +29,8 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun intentHandleError() {
-        Toast.makeText(this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG
+        Toast.makeText(
+            this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG
         ).show()
     }
 
@@ -60,8 +56,10 @@ class SettingsActivity : AppCompatActivity() {
     private fun callShareApp() {
         val shareApp = Intent(Intent.ACTION_SEND)
         shareApp.type = MIME_TYPE_TEXT_PLAIN
-        shareApp.putExtra(Intent.EXTRA_TEXT,
-            getString(R.string.https_practicum_yandex_ru_android_developer))
+        shareApp.putExtra(
+            Intent.EXTRA_TEXT,
+            getString(R.string.https_practicum_yandex_ru_android_developer)
+        )
 
         if (canHandleIntent(shareApp)) startActivity(shareApp) else intentHandleError()
     }
@@ -71,23 +69,15 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settings)
 
         val buttonBack = findViewById<TextView>(R.id.settingsHeader)
-        val switch = findViewById<SwitchCompat>(R.id.night_theme_switch)
         val practicumOfferBtn = findViewById<TextView>(R.id.practicumOffer)
         val sendToHelpdesk = findViewById<TextView>(R.id.sendToHelpdesk)
         val shareApp = findViewById<TextView>(R.id.shareApp)
 
-        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val isDark = prefs.getBoolean(DARK_MODE_KEY, false)
-        switch.isChecked = isDark
-        AppCompatDelegate.setDefaultNightMode(
-            if (isDark) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-        )
+        val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
+        themeSwitcher.isChecked = (applicationContext as ThemeSwitcher).isDarkMode()
 
-        switch.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit().putBoolean("dark_mode", isChecked).apply()
-            AppCompatDelegate.setDefaultNightMode(
-                if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-            )
+        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            (applicationContext as ThemeSwitcher).switchTheme(isChecked)
             restartWithTheme()
         }
 
@@ -103,7 +93,7 @@ class SettingsActivity : AppCompatActivity() {
             callSendToHelpdesk()
         }
 
-        shareApp.setOnClickListener{
+        shareApp.setOnClickListener {
             callShareApp()
         }
     }
