@@ -105,7 +105,31 @@ class SearchActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
                 currentQuery = s.toString()
-                updateSearchHistoryVisibility()
+
+                val history = searchHistory.getHistory()
+                if (history.isNotEmpty() && currentQuery.isNotEmpty()) {
+                    searchHistoryView.visibility = View.VISIBLE
+                    historyRecyclerView.visibility = View.VISIBLE
+                    clearHistoryButton.visibility = View.VISIBLE
+                    trackRecyclerView.visibility = View.GONE
+                    stubEmptySearch.visibility = View.GONE
+                    stubServerError.visibility = View.GONE
+                } else if (currentQuery.isEmpty()) {
+                    if (history.isNotEmpty()) {
+                        searchHistoryView.visibility = View.VISIBLE
+                        historyRecyclerView.visibility = View.VISIBLE
+                        clearHistoryButton.visibility = View.VISIBLE
+                        trackRecyclerView.visibility = View.GONE
+                        stubEmptySearch.visibility = View.GONE
+                        stubServerError.visibility = View.GONE
+                    } else {
+                        searchHistoryView.visibility = View.GONE
+                    }
+                } else {
+                    searchHistoryView.visibility = View.GONE
+                    historyRecyclerView.visibility = View.GONE
+                    clearHistoryButton.visibility = View.GONE
+                }
             }
         })
 
@@ -155,11 +179,22 @@ class SearchActivity : AppCompatActivity() {
     private fun clearSearch() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
-        hideAllResults()
-        updateSearchHistoryVisibility()
+
+        val history = searchHistory.getHistory()
+        if (history.isNotEmpty()) {
+            searchHistoryView.visibility = View.VISIBLE
+            historyRecyclerView.visibility = View.VISIBLE
+            clearHistoryButton.visibility = View.VISIBLE
+        } else {
+            searchHistoryView.visibility = View.GONE
+        }
+
+        trackRecyclerView.visibility = View.GONE
+        stubEmptySearch.visibility = View.GONE
+        stubServerError.visibility = View.GONE
+
         tracks.clear()
         adapter.notifyDataSetChanged()
-        searchEditText.clearFocus()
         hideKeyboard()
     }
 
@@ -175,8 +210,10 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun searchTrack(query: String) {
-        hideAllResults()
         searchHistoryView.visibility = View.GONE
+        stubServerError.visibility = View.GONE
+        stubEmptySearch.visibility = View.GONE
+        trackRecyclerView.visibility = View.GONE
 
         iTunesService.findSong(query).enqueue(object : Callback<ITunesResponse> {
             override fun onResponse(call: Call<ITunesResponse>, response: Response<ITunesResponse>) {
@@ -193,7 +230,6 @@ class SearchActivity : AppCompatActivity() {
                     }
 
                     if (query.isNotBlank() && tracks.isNotEmpty()) {
-                        searchHistory.addTrack(tracks[0])
                         updateSearchHistoryVisibility()
                     }
                 } else {
