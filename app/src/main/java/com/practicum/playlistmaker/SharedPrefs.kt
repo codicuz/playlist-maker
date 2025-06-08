@@ -2,7 +2,8 @@ package com.practicum.playlistmaker
 
 class SharedPrefs {
     companion object {
-        const val PREFS_NAME = "settings"
+        const val PREFS_SETTINGS = "settings"
         const val DARK_MODE_KEY = "dark_mode"
+        const val PREFS_SEARCH_HISTORY = "search_history"
     }
 }

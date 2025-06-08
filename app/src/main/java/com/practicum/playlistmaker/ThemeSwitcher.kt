@@ -10,7 +10,7 @@ class ThemeSwitcher : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        prefs = getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE)
+        prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
         val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
         applyTheme(isDarkMode)
     }

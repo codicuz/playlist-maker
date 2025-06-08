@@ -7,7 +7,7 @@ import com.google.gson.reflect.TypeToken
 class SearchHistory(private val sharedPreferences: SharedPreferences) {
 
     private val gson = Gson()
-    private val historyKey = SharedPrefs.PREFS_NAME
+    private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY
     private val maxHistorySize = 10
 
     fun getHistory(): List<Track> {

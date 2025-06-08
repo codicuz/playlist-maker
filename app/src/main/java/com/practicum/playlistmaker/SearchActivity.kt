@@ -1,6 +1,7 @@
 package com.practicum.playlistmaker
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -27,8 +28,8 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var refreshButton: Button
     private lateinit var clearHistoryButton: Button
     private lateinit var searchHistoryView: View
-
     private lateinit var searchHistory: SearchHistory
+    private lateinit var sharedPrefs: SharedPreferences
 
     private val tracks = mutableListOf<Track>()
     private var currentQuery = ""
@@ -40,6 +41,14 @@ class SearchActivity : AppCompatActivity() {
             .build()
             .create(ITunesApi::class.java)
     }
+
+    private val preferenceChangeListener =
+        SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+            if (key == SharedPrefs.PREFS_SEARCH_HISTORY) {
+                historyAdapter.submitList(ArrayList(searchHistory.getHistory()))
+                updateSearchHistoryVisibility()
+            }
+        }
 
     companion object {
         private const val SEARCH_KEY = "SEARCH_KEY"
@@ -53,11 +62,18 @@ class SearchActivity : AppCompatActivity() {
         setupAdapters()
         setupListeners()
 
+        sharedPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+
         currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
         if (currentQuery.isNotEmpty()) {
             searchEditText.setText(currentQuery)
             searchTrack(currentQuery)
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -78,16 +94,16 @@ class SearchActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
 
-        val sharedPrefs = getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE)
+        sharedPrefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
         searchHistory = SearchHistory(sharedPrefs)
     }
 
     private fun setupAdapters() {
-        adapter = TrackAdapter(tracks, getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE))
+        adapter = TrackAdapter(tracks, sharedPrefs)
         trackRecyclerView.layoutManager = LinearLayoutManager(this)
         trackRecyclerView.adapter = adapter
 
-        historyAdapter = TrackAdapter(searchHistory.getHistory(), getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE))
+        historyAdapter = TrackAdapter(searchHistory.getHistory(), sharedPrefs)
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
     }
