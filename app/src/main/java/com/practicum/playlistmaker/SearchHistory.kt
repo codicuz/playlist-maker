@@ -35,7 +35,8 @@ class SearchHistory(private val sharedPreferences: SharedPreferences) {
     }
 
     private fun saveHistory(history: List<Track>) {
-        val json = gson.toJson(history)
+        val limitedHistory = if (history.size > maxHistorySize) history.subList(0, maxHistorySize) else history
+        val json = gson.toJson(limitedHistory)
         sharedPreferences.edit().putString(historyKey, json).apply()
     }
 }

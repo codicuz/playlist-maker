@@ -87,16 +87,15 @@ class SearchActivity : AppCompatActivity() {
         trackRecyclerView.layoutManager = LinearLayoutManager(this)
         trackRecyclerView.adapter = adapter
 
-        val history = searchHistory.getHistory()
-        historyAdapter = TrackAdapter(history, getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE))
+        historyAdapter = TrackAdapter(searchHistory.getHistory(), getSharedPreferences(SharedPrefs.PREFS_NAME, MODE_PRIVATE))
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
-        historyAdapter.submitList(history)
     }
 
     private fun setupListeners() {
         clearButton.setOnClickListener {
             clearSearch()
+            setupAdapters()
         }
 
         searchEditText.addTextChangedListener(object : TextWatcher {
@@ -104,17 +103,14 @@ class SearchActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val isEmpty = s.isNullOrEmpty()
-                clearButton.visibility = if (isEmpty) View.GONE else View.VISIBLE
+                clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
                 currentQuery = s.toString()
-
-                searchHistoryView.visibility = if (searchEditText.hasFocus() && isEmpty) View.VISIBLE else View.GONE
+                updateSearchHistoryVisibility()
             }
         })
 
-        searchEditText.setOnFocusChangeListener { _, hasFocus ->
-            val isEmpty = searchEditText.text.isEmpty()
-            searchHistoryView.visibility = if (hasFocus && isEmpty) View.VISIBLE else View.GONE
+        searchEditText.setOnFocusChangeListener { _, _ ->
+            updateSearchHistoryVisibility()
         }
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
@@ -136,8 +132,23 @@ class SearchActivity : AppCompatActivity() {
 
         clearHistoryButton.setOnClickListener {
             searchHistory.clear()
-            historyAdapter.submitList(emptyList())
+            updateSearchHistoryVisibility()
+        }
+    }
+
+    private fun updateSearchHistoryVisibility() {
+        val history = searchHistory.getHistory()
+        historyAdapter.submitList(ArrayList(history))
+
+        val isEmptyQuery = searchEditText.text.isEmpty()
+        if (searchEditText.hasFocus() && isEmptyQuery && history.isNotEmpty()) {
+            searchHistoryView.visibility = View.VISIBLE
+            historyRecyclerView.visibility = View.VISIBLE
+            clearHistoryButton.visibility = View.VISIBLE
+        } else {
+            searchHistoryView.visibility = View.GONE
             historyRecyclerView.visibility = View.GONE
+            clearHistoryButton.visibility = View.GONE
         }
     }
 
@@ -145,7 +156,7 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
         hideAllResults()
-        searchHistoryView.visibility = if (searchEditText.hasFocus()) View.VISIBLE else View.GONE
+        updateSearchHistoryVisibility()
         tracks.clear()
         adapter.notifyDataSetChanged()
         searchEditText.clearFocus()
@@ -179,6 +190,11 @@ class SearchActivity : AppCompatActivity() {
                         trackRecyclerView.visibility = View.GONE
                     } else {
                         trackRecyclerView.visibility = View.VISIBLE
+                    }
+
+                    if (query.isNotBlank() && tracks.isNotEmpty()) {
+                        searchHistory.addTrack(tracks[0])
+                        updateSearchHistoryVisibility()
                     }
                 } else {
                     showServerErrorPlaceholder()
