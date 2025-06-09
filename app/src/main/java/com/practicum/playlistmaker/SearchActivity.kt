@@ -5,7 +5,6 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -44,7 +43,7 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private val preferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { sharedPreferences, key ->
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == SharedPrefs.PREFS_SEARCH_HISTORY) {
                 historyAdapter.submitList(ArrayList(searchHistory.getHistory()))
                 updateSearchHistoryVisibility()
@@ -212,14 +211,7 @@ class SearchActivity : AppCompatActivity() {
         stubServerError.visibility = View.GONE
 
         tracks.clear()
-        adapter.notifyDataSetChanged()
         hideKeyboard()
-    }
-
-    private fun hideAllResults() {
-        stubServerError.visibility = View.GONE
-        stubEmptySearch.visibility = View.GONE
-        trackRecyclerView.visibility = View.GONE
     }
 
     private fun hideKeyboard() {
