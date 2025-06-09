@@ -5,15 +5,15 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 
 class TrackAdapter(
-    private val items: List<Track>,
     sharedPreferences: SharedPreferences
 ) : RecyclerView.Adapter<TrackViewHolder>() {
 
+    private val items = mutableListOf<Track>()
     private val searchHistory = SearchHistory(sharedPreferences)
 
     fun submitList(newList: List<Track>) {
-//        items.clear()
-//        items.addAll(newList)
+        items.clear()
+        items.addAll(newList)
         notifyDataSetChanged()
     }
 

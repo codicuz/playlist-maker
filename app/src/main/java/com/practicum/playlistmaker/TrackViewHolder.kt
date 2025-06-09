@@ -1,7 +1,6 @@
 package com.practicum.playlistmaker
 
 import android.content.Context
-import android.util.Log
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -36,10 +35,6 @@ class TrackViewHolder(
             .into(artworkImage)
 
         itemView.setOnClickListener {
-            Log.d(
-                "TrackClick",
-                "Нажали на трек: ${item.trackId} - ${item.trackName} - ${item.artistsName} - ${item.trackTime}"
-            )
             searchHistory.addTrack(item)
         }
     }

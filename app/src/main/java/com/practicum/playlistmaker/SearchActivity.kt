@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -59,10 +60,11 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         initViews()
-        setupAdapters()
-        setupListeners()
 
         sharedPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+
+        setupAdapters()
+        setupListeners()
 
         currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
         if (currentQuery.isNotEmpty()) {
@@ -99,11 +101,12 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun setupAdapters() {
-        adapter = TrackAdapter(tracks, sharedPrefs)
+        adapter = TrackAdapter(sharedPrefs)
+        adapter.submitList(tracks.toList())
         trackRecyclerView.layoutManager = LinearLayoutManager(this)
         trackRecyclerView.adapter = adapter
 
-        historyAdapter = TrackAdapter(searchHistory.getHistory(), sharedPrefs)
+        historyAdapter = TrackAdapter(sharedPrefs)
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
     }
@@ -111,7 +114,6 @@ class SearchActivity : AppCompatActivity() {
     private fun setupListeners() {
         clearButton.setOnClickListener {
             clearSearch()
-            setupAdapters()
         }
 
         searchEditText.addTextChangedListener(object : TextWatcher {
@@ -236,17 +238,14 @@ class SearchActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     tracks.clear()
                     response.body()?.results?.let { tracks.addAll(it) }
-                    adapter.notifyDataSetChanged()
+                    adapter.submitList(tracks.toList())
 
                     if (tracks.isEmpty()) {
                         stubEmptySearch.visibility = View.VISIBLE
                         trackRecyclerView.visibility = View.GONE
                     } else {
+                        stubEmptySearch.visibility = View.GONE
                         trackRecyclerView.visibility = View.VISIBLE
-                    }
-
-                    if (query.isNotBlank() && tracks.isNotEmpty()) {
-                        updateSearchHistoryVisibility()
                     }
                 } else {
                     showServerErrorPlaceholder()
