@@ -15,7 +15,7 @@
         android:layout_height="wrap_content">
 
         <EditText
-            android:id="@+id/inputEditText"
+            android:id="@+id/searchEditText"
             style="@style/EditTextView"
             android:layout_width="match_parent"
             android:layout_height="36dp"
@@ -50,7 +50,7 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rcTrackData"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content" />
 
     <include
         android:id="@+id/stubNoInternet"
@@ -60,5 +60,10 @@
     <include
         android:id="@+id/stubEmptySearch"
         layout="@layout/empty_search"
+        android:visibility="gone" />
+
+    <include
+        android:id="@+id/stubSearchHistory"
+        layout="@layout/search_history"
         android:visibility="gone" />
 </LinearLayout>
