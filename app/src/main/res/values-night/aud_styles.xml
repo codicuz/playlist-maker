@@ -47,7 +47,7 @@
 
 
 
-    <style name="TrackDetailsValues" parent="AudTrackDetailsValuesBase">
+    <style name="AudTrackDetailsValues" parent="AudTrackDetailsValuesBase">
         <item name="android:textColor">@color/white</item>
     </style>
 
