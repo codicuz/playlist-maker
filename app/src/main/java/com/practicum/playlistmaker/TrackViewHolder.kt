@@ -1,6 +1,7 @@
 package com.practicum.playlistmaker
 
 import android.content.Context
+import android.content.Intent
 import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -31,19 +32,23 @@ class TrackViewHolder(
             .load(item.artworkUrl100)
             .placeholder(R.drawable.ic_no_artwork_image)
             .fitCenter()
-            .transform(RoundedCorners(dpToPx(2f, itemView.context)))
+            .transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
             .into(artworkImage)
 
         itemView.setOnClickListener {
             searchHistory.addTrack(item)
+            val context = itemView.context
+            val intent = Intent(context, AudioPlayerActivity::class.java).apply {
+                putExtra("trackName", item.trackName)
+                putExtra("artistName", item.trackName)
+                putExtra("collectionName", item.collectionName)
+                putExtra("releaseDate", item.releaseYear)
+                putExtra("primaryGenreName", item.primaryGenreName)
+                putExtra("trackTime", item.trackTime)
+                putExtra("country", item.country)
+                putExtra("artworkUrl100", item.getConvertArtwork())
+            }
+            context.startActivity(intent)
         }
-    }
-
-    private fun dpToPx(dp: Float, context: Context): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            dp,
-            context.resources.displayMetrics
-        ).toInt()
     }
 }

@@ -1,240 +1,249 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
 
-    <ImageButton
-        android:id="@+id/audBackButton"
-        style="@style/AudButtonBack"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="4dp"
-        android:layout_marginTop="4dp"
-        android:background="@color/white"
-        android:contentDescription="@string/todo"
-        android:src="@drawable/back"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageView
-        android:id="@+id/songPoster"
+    <androidx.constraintlayout.widget.ConstraintLayout xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
-        android:layout_height="312dp"
-        android:layout_marginHorizontal="24dp"
-        android:layout_marginTop="12dp"
-        android:contentDescription="@string/todo"
-        app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
-        app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audBackButton"
-        tools:src="@drawable/ic_no_artwork_image" />
+        android:layout_height="wrap_content">
 
-    <TextView
-        android:id="@+id/mainAlbumText"
-        style="@style/AudMainText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
-        app:layout_constraintTop_toBottomOf="@+id/songPoster"
-        tools:text="Yesterday (Remastered 2009)" />
+        <ImageButton
+            android:id="@+id/audBackButton"
+            style="@style/AudButtonBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="4dp"
+            android:background="@color/white"
+            android:contentDescription="@string/todo"
+            android:src="@drawable/back"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/artistName"
-        style="@style/AudArtistName"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
-        app:layout_constraintTop_toBottomOf="@+id/mainAlbumText"
-        tools:text="The Beatles" />
+        <ImageView
+            android:id="@+id/songPoster"
+            android:layout_width="match_parent"
+            android:layout_height="312dp"
+            android:layout_marginHorizontal="24dp"
+            android:layout_marginTop="12dp"
+            android:contentDescription="@string/todo"
+            app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
+            app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audBackButton"
+            tools:src="@drawable/ic_no_artwork_image" />
 
-    <ImageButton
-        android:id="@+id/audPlayButton"
-        style="@style/AudBtnPlay"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginTop="30dp"
-        android:contentDescription="@string/todo"
-        app:layout_constraintEnd_toEndOf="@+id/songPoster"
-        app:layout_constraintStart_toStartOf="@+id/songPoster"
-        app:layout_constraintTop_toBottomOf="@+id/artistName" />
+        <TextView
+            android:id="@+id/mainAlbumText"
+            style="@style/AudMainText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
+            app:layout_constraintTop_toBottomOf="@+id/songPoster"
+            tools:text="Yesterday (Remastered 2009)" />
 
-    <ImageButton
-        android:id="@+id/audAddTrackButton"
-        style="@style/AudButtonAdd"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:contentDescription="@string/todo"
-        app:layout_constraintBottom_toBottomOf="@+id/audPlayButton"
-        app:layout_constraintEnd_toStartOf="@+id/audPlayButton"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
-        app:layout_constraintTop_toTopOf="@+id/audPlayButton" />
+        <TextView
+            android:id="@+id/artistName"
+            style="@style/AudArtistName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
+            app:layout_constraintTop_toBottomOf="@+id/mainAlbumText"
+            tools:text="The Beatles" />
 
-    <ImageButton
-        android:id="@+id/audLikeButton"
-        style="@style/AudButtonLike"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:contentDescription="@string/todo"
-        app:layout_constraintBottom_toBottomOf="@+id/audPlayButton"
-        app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintStart_toEndOf="@+id/audPlayButton"
-        app:layout_constraintTop_toTopOf="@+id/audPlayButton" />
+        <ImageButton
+            android:id="@+id/audPlayButton"
+            style="@style/AudBtnPlay"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="30dp"
+            android:contentDescription="@string/todo"
+            app:layout_constraintEnd_toEndOf="@+id/songPoster"
+            app:layout_constraintStart_toStartOf="@+id/songPoster"
+            app:layout_constraintTop_toBottomOf="@+id/artistName" />
 
-    <TextView
-        android:id="@+id/currentTrackTime"
-        style="@style/AudCurrentTrackTime"
-        android:layout_width="32dp"
-        android:layout_height="15dp"
-        android:layout_marginTop="4dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textSize="14sp"
-        app:layout_constraintEnd_toEndOf="@+id/audPlayButton"
-        app:layout_constraintStart_toStartOf="@+id/audPlayButton"
-        app:layout_constraintTop_toBottomOf="@+id/audPlayButton"
-        tools:text="0:30" />
+        <ImageButton
+            android:id="@+id/audAddTrackButton"
+            style="@style/AudButtonAdd"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:contentDescription="@string/todo"
+            app:layout_constraintBottom_toBottomOf="@+id/audPlayButton"
+            app:layout_constraintEnd_toStartOf="@+id/audPlayButton"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintStart_toStartOf="@+id/leftAudContentBorder"
+            app:layout_constraintTop_toTopOf="@+id/audPlayButton" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/leftTrackDescrBorder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_begin="16dp" />
+        <ImageButton
+            android:id="@+id/audLikeButton"
+            style="@style/AudButtonLike"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:contentDescription="@string/todo"
+            app:layout_constraintBottom_toBottomOf="@+id/audPlayButton"
+            app:layout_constraintEnd_toStartOf="@+id/rightAudContentBorder"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toEndOf="@+id/audPlayButton"
+            app:layout_constraintTop_toTopOf="@+id/audPlayButton" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/rightTrackDescrBorder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_end="16dp" />
+        <TextView
+            android:id="@+id/currentTrackTime"
+            style="@style/AudCurrentTrackTime"
+            android:layout_width="32dp"
+            android:layout_height="15dp"
+            android:layout_marginTop="4dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:textSize="14sp"
+            app:layout_constraintEnd_toEndOf="@+id/audPlayButton"
+            app:layout_constraintStart_toStartOf="@+id/audPlayButton"
+            app:layout_constraintTop_toBottomOf="@+id/audPlayButton"
+            tools:text="0:30" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/leftAudContentBorder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_begin="24dp" />
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/leftTrackDescrBorder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_begin="16dp" />
 
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/rightAudContentBorder"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_end="24dp" />
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/rightTrackDescrBorder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_end="16dp" />
 
-    <TextView
-        android:id="@+id/audTrackTimeKey"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textColor="@color/gray"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/currentTrackTime"
-        tools:text="Длительность" />
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/leftAudContentBorder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_begin="24dp" />
 
-    <TextView
-        android:id="@+id/audTrackTimeValue"
-        style="@style/TrackDetailsValues"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/currentTrackTime"
-        tools:text="5:35" />
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/rightAudContentBorder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_end="24dp" />
 
-    <TextView
-        android:id="@+id/audAlbumNameKey"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textColor="@color/gray"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audTrackTimeKey"
-        tools:text="Альбом" />
+        <TextView
+            android:id="@+id/audTrackTimeKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:text="@string/play_time"
+            android:textColor="@color/gray"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/currentTrackTime" />
 
-    <TextView
-        android:id="@+id/audAlbumNameValue"
-        style="@style/TrackDetailsValues"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audTrackTimeValue"
-        tools:text="Yesterday (Remastered 2009)" />
+        <TextView
+            android:id="@+id/audTrackTimeValue"
+            style="@style/TrackDetailsValues"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/currentTrackTime"
+            tools:text="5:35" />
 
-    <TextView
-        android:id="@+id/audYearKey"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textColor="@color/gray"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audAlbumNameKey"
-        tools:text="Год" />
+        <TextView
+            android:id="@+id/audAlbumNameKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:text="@string/album"
+            android:textColor="@color/gray"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audTrackTimeKey"
+            app:layout_goneMarginTop="20dp" />
 
-    <TextView
-        android:id="@+id/audYearValue"
-        style="@style/TrackDetailsValues"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audAlbumNameValue"
-        tools:text="1965" />
+        <TextView
+            android:id="@+id/audAlbumNameValue"
+            style="@style/TrackDetailsValues"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audTrackTimeValue"
+            app:layout_goneMarginTop="20dp"
+            tools:text="Yesterday (Remastered 2009)" />
 
-    <TextView
-        android:id="@+id/audGenreKey"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textColor="@color/gray"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audYearKey"
-        tools:text="Жанр" />
+        <TextView
+            android:id="@+id/audYearKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:text="@string/aud_year"
+            android:textColor="@color/gray"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audAlbumNameKey"
+            app:layout_goneMarginTop="20dp" />
 
-    <TextView
-        android:id="@+id/audGenreValue"
-        style="@style/TrackDetailsValues"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audYearValue"
-        tools:text="Rock" />
+        <TextView
+            android:id="@+id/audYearValue"
+            style="@style/TrackDetailsValues"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audAlbumNameValue"
+            app:layout_goneMarginTop="20dp"
+            tools:text="1965" />
 
-    <TextView
-        android:id="@+id/audCoutnryKey"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:fontFamily="@font/ys_display_medium"
-        android:textColor="@color/gray"
-        android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audGenreKey"
-        tools:text="Страна" />
+        <TextView
+            android:id="@+id/audGenreKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:text="@string/aud_genre"
+            android:textColor="@color/gray"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audYearKey" />
 
-    <TextView
-        android:id="@+id/audCountryValue"
-        style="@style/TrackDetailsValues"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
-        app:layout_constraintTop_toBottomOf="@+id/audGenreValue"
-        tools:text="Великобритания" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/audGenreValue"
+            style="@style/TrackDetailsValues"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audYearValue"
+            tools:text="Rock" />
+
+        <TextView
+            android:id="@+id/audCoutnryKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:fontFamily="@font/ys_display_medium"
+            android:text="@string/aud_country"
+            android:textColor="@color/gray"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@+id/leftTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audGenreKey" />
+
+        <TextView
+            android:id="@+id/audCountryValue"
+            style="@style/TrackDetailsValues"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            app:layout_constraintEnd_toStartOf="@+id/rightTrackDescrBorder"
+            app:layout_constraintTop_toBottomOf="@+id/audGenreValue"
+            tools:text="Великобритания" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
