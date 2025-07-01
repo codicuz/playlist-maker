@@ -11,8 +11,7 @@ class ThemeSwitcher : Application() {
     override fun onCreate() {
         super.onCreate()
         prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
-        val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
-        applyTheme(isDarkMode)
+        applyThemeAccordingToUserOrSystem()
     }
 
     fun switchTheme(darkMode: Boolean) {
@@ -22,12 +21,31 @@ class ThemeSwitcher : Application() {
 
     private fun applyTheme(darkMode: Boolean) {
         AppCompatDelegate.setDefaultNightMode(
-            if (darkMode) AppCompatDelegate.MODE_NIGHT_YES
-            else AppCompatDelegate.MODE_NIGHT_NO
+            if (darkMode)
+                AppCompatDelegate.MODE_NIGHT_YES
+            else
+                AppCompatDelegate.MODE_NIGHT_NO
         )
     }
 
     fun isDarkMode(): Boolean {
-        return prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+        return if (prefs.contains(SharedPrefs.DARK_MODE_KEY)) {
+            prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+        } else {
+            (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES
+        }
+    }
+
+    private fun applyThemeAccordingToUserOrSystem() {
+        if (prefs.contains(SharedPrefs.DARK_MODE_KEY)) {
+            val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+            applyTheme(isDarkMode)
+        } else {
+            val isSystemDark =
+                (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                        android.content.res.Configuration.UI_MODE_NIGHT_YES
+            applyTheme(isSystemDark)
+        }
     }
 }
