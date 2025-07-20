@@ -22,6 +22,8 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var currentTrackTime: TextView
     private var updateTimeRunnable: Runnable? = null
 
+    private var track: Track? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.audio_player)
@@ -63,7 +65,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         setVisibilityBasedOnText(collectionNameTextView, collectionNameTextViewKey, collectionName)
         setVisibilityBasedOnText(releaseDateTextView, releaseDateTextViewKey, releaseDate)
 
-        currentTrackTime.text = "00:00"
+        currentTrackTime.text = formatTime(0)
 
         Glide.with(this).load(artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
             .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
@@ -84,7 +86,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         } else {
             playButton.isEnabled = false
             Log.d("AudioPlayer", "Нет ссылки для воспроизведения произведения")
-            currentTrackTime.text = "-----" // Оставлено на случай, если по каким-то причинам previewUrl не пришел из интернета. Реализовал так для сигнализации пустого previewUrl.
+            currentTrackTime.text = getString(R.string.no_preview_url)
         }
 
         playButton.setOnClickListener {
@@ -143,8 +145,10 @@ class AudioPlayerActivity : AppCompatActivity() {
                 currentTrackTime.text = formatTime(currentPosition)
                 handler.postDelayed(this, 500)
             }
+        }.let {
+            handler.post(it)
+            it
         }
-        handler.post(updateTimeRunnable!!)
     }
 
     private fun stopUpdatingTime() {

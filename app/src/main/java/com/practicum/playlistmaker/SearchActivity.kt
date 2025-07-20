@@ -87,6 +87,7 @@ class SearchActivity : AppCompatActivity() {
         super.onDestroy()
         sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
         handler.removeCallbacksAndMessages(null)
+        searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
