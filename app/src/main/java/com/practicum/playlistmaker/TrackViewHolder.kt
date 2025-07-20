@@ -47,6 +47,7 @@ class TrackViewHolder(
                 putExtra("trackTime", item.trackTime)
                 putExtra("country", item.country)
                 putExtra("artworkUrl100", item.getConvertArtwork())
+                putExtra("previewUrl", item.previewUrl)
             }
             context.startActivity(intent)
         }

@@ -3,6 +3,8 @@ package com.practicum.playlistmaker
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
@@ -30,9 +32,18 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var searchHistoryView: View
     private lateinit var searchHistory: SearchHistory
     private lateinit var sharedPrefs: SharedPreferences
+    private lateinit var progressBar: ProgressBar
 
     private val tracks = mutableListOf<Track>()
     private var currentQuery = ""
+
+    private val handler = Handler(Looper.getMainLooper())
+
+    private var searchRunnableOnDone: Runnable? = null
+    private val debounceDelayDone = 500L
+
+    private var searchRunnableOnTextChanged: Runnable? = null
+    private val debounceDelayTextChanged = 2000L
 
     private val iTunesService by lazy {
         Retrofit.Builder()
@@ -75,6 +86,8 @@ class SearchActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
+        handler.removeCallbacksAndMessages(null)
+        searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -92,6 +105,7 @@ class SearchActivity : AppCompatActivity() {
         refreshButton = findViewById(R.id.buttonRetry)
         clearHistoryButton = findViewById(R.id.buttonClearSearchHistory)
         searchHistoryView = findViewById(R.id.stubSearchHistory)
+        progressBar = findViewById(R.id.progressBar)
 
         findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
 
@@ -121,17 +135,30 @@ class SearchActivity : AppCompatActivity() {
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
-                currentQuery = s.toString()
+                val query = s.toString().trim()
+
+                if (query != currentQuery) {
+                    currentQuery = query
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    if (query.isNotEmpty()) {
+                        searchRunnableOnTextChanged = Runnable {
+                            searchHistoryView.visibility = View.GONE
+                            searchTrack(query)
+                            hideKeyboard()
+                        }
+                        handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
+                    }
+                }
 
                 val history = searchHistory.getHistory()
-                if (history.isNotEmpty() && currentQuery.isNotEmpty()) {
+                if (history.isNotEmpty() && query.isNotEmpty()) {
                     searchHistoryView.visibility = View.VISIBLE
                     historyRecyclerView.visibility = View.VISIBLE
                     clearHistoryButton.visibility = View.VISIBLE
                     trackRecyclerView.visibility = View.GONE
                     stubEmptySearch.visibility = View.GONE
                     stubServerError.visibility = View.GONE
-                } else if (currentQuery.isEmpty()) {
+                } else if (query.isEmpty()) {
                     if (history.isNotEmpty()) {
                         searchHistoryView.visibility = View.VISIBLE
                         historyRecyclerView.visibility = View.VISIBLE
@@ -158,10 +185,14 @@ class SearchActivity : AppCompatActivity() {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 val query = searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
-                    currentQuery = query
-                    searchHistoryView.visibility = View.GONE
-                    searchTrack(query)
-                    hideKeyboard()
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone = Runnable {
+                        searchHistoryView.visibility = View.GONE
+                        searchTrack(query)
+                        hideKeyboard()
+                    }
+                    handler.postDelayed(searchRunnableOnDone!!, debounceDelayDone)
                 }
                 true
             } else false
@@ -225,8 +256,12 @@ class SearchActivity : AppCompatActivity() {
         stubEmptySearch.visibility = View.GONE
         trackRecyclerView.visibility = View.GONE
 
+        progressBar.visibility = View.VISIBLE
+
         iTunesService.findSong(query).enqueue(object : Callback<ITunesResponse> {
             override fun onResponse(call: Call<ITunesResponse>, response: Response<ITunesResponse>) {
+                progressBar.visibility = View.GONE
+
                 if (response.isSuccessful) {
                     tracks.clear()
                     response.body()?.results?.let { tracks.addAll(it) }
@@ -245,6 +280,7 @@ class SearchActivity : AppCompatActivity() {
             }
 
             override fun onFailure(call: Call<ITunesResponse>, t: Throwable) {
+                progressBar.visibility = View.GONE
                 showServerErrorPlaceholder()
             }
         })
@@ -256,3 +292,5 @@ class SearchActivity : AppCompatActivity() {
         trackRecyclerView.visibility = View.GONE
     }
 }
+
+

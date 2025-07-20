@@ -1,21 +1,25 @@
 package com.practicum.playlistmaker
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
+import kotlinx.parcelize.Parcelize
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Parcelize
 data class Track(
     val trackId: Int?,
     val trackName: String?,
     @SerializedName("artistName") val artistsName: String?,
     private val trackTimeMillis: Long?,
     val artworkUrl100: String?,
+    val previewUrl: String?,
     val collectionName: String?,
     val releaseDate: String?,
     val primaryGenreName: String?,
     val country: String?
-) {
+) : Parcelable {
     val trackTime: String?
         get() = trackTimeMillis?.let {
             SimpleDateFormat("mm:ss", Locale.getDefault()).format(Date(it))
