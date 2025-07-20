@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -275,12 +276,24 @@ class SearchActivity : AppCompatActivity() {
                         trackRecyclerView.visibility = View.VISIBLE
                     }
                 } else {
-                    showServerErrorPlaceholder()
+                    // Добавлена обработка 404 от сервера.
+                    // https://itunes.apple.com/search?term=my - это возвращает 404, а не
+                    // ожидаемый формат ответа
+                    if (response.code() == 404) {
+                        Log.e("SearchActivity", "Response error: ${response.code()} ${response.message()}")
+                        stubEmptySearch.visibility = View.VISIBLE
+                        trackRecyclerView.visibility = View.GONE
+                        stubServerError.visibility = View.GONE
+                    } else {
+                        Log.e("SearchActivity","Response error: ${response.code()} ${response.message()}")
+                        showServerErrorPlaceholder()
+                    }
                 }
             }
 
             override fun onFailure(call: Call<ITunesResponse>, t: Throwable) {
                 progressBar.visibility = View.GONE
+                Log.e("SearchActivity", "Network failure: ${t.message}")
                 showServerErrorPlaceholder()
             }
         })
