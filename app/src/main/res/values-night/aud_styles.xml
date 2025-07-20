@@ -27,7 +27,7 @@
 
 
     <style name="AudBtnPlay" parent="AudBtnPlayBase">
-        <item name="android:src">@drawable/btn_aud_play_night</item>
+        <item name="android:src">@drawable/btn_aud_play</item>
     </style>
 
 

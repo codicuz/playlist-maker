@@ -1,69 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/secondarySearch"
-    style="@style/SecondaryViews">
+    android:id="@+id/rootFrame"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/searchHeader"
-        style="@style/ActivityTitlesSecondary"
-        android:text="@string/search"
-        app:drawableStartCompat="@drawable/back" />
+    <LinearLayout
+        android:id="@+id/secondarySearch"
+        style="@style/SecondaryViews">
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/searchHeader"
+            style="@style/ActivityTitlesSecondary"
+            android:text="@string/search"
+            app:drawableStartCompat="@drawable/back" />
 
-        <EditText
-            android:id="@+id/searchEditText"
-            style="@style/EditTextView"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="16dp"
-            android:autofillHints=""
-            android:background="@drawable/rounded_edittext_background"
-            android:drawableStart="@drawable/search"
-            android:drawablePadding="9dp"
-            android:hint="@string/search"
-            android:imeOptions="actionDone"
-            android:inputType="text"
-            android:maxLength="200"
-            android:maxLines="1"
-            android:paddingHorizontal="13dp"
-            android:singleLine="true" />
+            android:layout_height="wrap_content">
 
-        <ImageButton
-            android:id="@+id/clearButton"
-            style="@style/ClearButton"
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="30dp"
-            android:layout_marginBottom="8dp"
-            android:contentDescription="@string/todo"
-            android:src="@drawable/clear_button"
+            <EditText
+                android:id="@+id/searchEditText"
+                style="@style/EditTextView"
+                android:layout_width="match_parent"
+                android:layout_height="36dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="16dp"
+                android:autofillHints=""
+                android:background="@drawable/rounded_edittext_background"
+                android:drawableStart="@drawable/search"
+                android:drawablePadding="9dp"
+                android:hint="@string/search"
+                android:imeOptions="actionDone"
+                android:inputType="text"
+                android:maxLength="200"
+                android:maxLines="1"
+                android:paddingHorizontal="13dp"
+                android:singleLine="true" />
+
+            <ImageButton
+                android:id="@+id/clearButton"
+                style="@style/ClearButton"
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="30dp"
+                android:layout_marginBottom="8dp"
+                android:contentDescription="@string/todo"
+                android:src="@drawable/clear_button"
+                android:visibility="gone" />
+
+        </FrameLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rcTrackData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <include
+            android:id="@+id/stubNoInternet"
+            layout="@layout/no_internet"
             android:visibility="gone" />
 
-    </FrameLayout>
+        <include
+            android:id="@+id/stubEmptySearch"
+            layout="@layout/empty_search"
+            android:visibility="gone" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rcTrackData"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        <include
+            android:id="@+id/stubSearchHistory"
+            layout="@layout/search_history"
+            android:visibility="gone" />
+    </LinearLayout>
 
-    <include
-        android:id="@+id/stubNoInternet"
-        layout="@layout/no_internet"
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleLarge"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
         android:visibility="gone" />
-
-    <include
-        android:id="@+id/stubEmptySearch"
-        layout="@layout/empty_search"
-        android:visibility="gone" />
-
-    <include
-        android:id="@+id/stubSearchHistory"
-        layout="@layout/search_history"
-        android:visibility="gone" />
-</LinearLayout>
+</FrameLayout>
