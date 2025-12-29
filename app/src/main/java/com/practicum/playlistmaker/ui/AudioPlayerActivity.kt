@@ -1,5 +1,6 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.ui
 
+import android.annotation.SuppressLint
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
@@ -13,6 +14,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.util.Useful
 
 class AudioPlayerActivity : AppCompatActivity() {
     private var mediaPlayer: MediaPlayer? = null
@@ -21,8 +24,6 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var playButton: ImageButton
     private lateinit var currentTrackTime: TextView
     private var updateTimeRunnable: Runnable? = null
-
-    private var track: Track? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -128,6 +129,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         stopUpdatingTime()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun stopPlayer() {
         mediaPlayer?.seekTo(0)
         mediaPlayer?.pause()
@@ -155,6 +157,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         updateTimeRunnable?.let { handler.removeCallbacks(it) }
     }
 
+    @SuppressLint("DefaultLocale")
     private fun formatTime(ms: Int): String {
         val seconds = ms / 1000
         val minutes = seconds / 60

@@ -1,5 +1,6 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.ui
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -7,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
@@ -15,6 +15,13 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.Creator
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.util.SharedPrefs
+import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.data.network.ITunesApi
+import com.practicum.playlistmaker.domain.api.TracksInteractor
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -46,13 +53,7 @@ class SearchActivity : AppCompatActivity() {
     private var searchRunnableOnTextChanged: Runnable? = null
     private val debounceDelayTextChanged = 2000L
 
-    private val iTunesService by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://itunes.apple.com")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ITunesApi::class.java)
-    }
+    private val tracksInteractor = Creator.provideTracksInteractor()
 
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -256,16 +257,14 @@ class SearchActivity : AppCompatActivity() {
         stubServerError.visibility = View.GONE
         stubEmptySearch.visibility = View.GONE
         trackRecyclerView.visibility = View.GONE
-
         progressBar.visibility = View.VISIBLE
 
-        iTunesService.findSong(query).enqueue(object : Callback<ITunesResponse> {
-            override fun onResponse(call: Call<ITunesResponse>, response: Response<ITunesResponse>) {
-                progressBar.visibility = View.GONE
-
-                if (response.isSuccessful) {
+        tracksInteractor.searchTracks(query, object : TracksInteractor.TracksConsumer {
+            override fun consume(foundTracks: List<Track>) {
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
                     tracks.clear()
-                    response.body()?.results?.let { tracks.addAll(it) }
+                    tracks.addAll(foundTracks)
                     adapter.submitList(tracks.toList())
 
                     if (tracks.isEmpty()) {
@@ -275,35 +274,8 @@ class SearchActivity : AppCompatActivity() {
                         stubEmptySearch.visibility = View.GONE
                         trackRecyclerView.visibility = View.VISIBLE
                     }
-                } else {
-                    // Добавлена обработка 404 от сервера.
-                    // https://itunes.apple.com/search?term=my - это возвращает 404, а не
-                    // ожидаемый формат ответа
-                    if (response.code() == 404) {
-                        Log.e("SearchActivity", "Response error: ${response.code()} ${response.message()}")
-                        stubEmptySearch.visibility = View.VISIBLE
-                        trackRecyclerView.visibility = View.GONE
-                        stubServerError.visibility = View.GONE
-                    } else {
-                        Log.e("SearchActivity","Response error: ${response.code()} ${response.message()}")
-                        showServerErrorPlaceholder()
-                    }
                 }
-            }
-
-            override fun onFailure(call: Call<ITunesResponse>, t: Throwable) {
-                progressBar.visibility = View.GONE
-                Log.e("SearchActivity", "Network failure: ${t.message}")
-                showServerErrorPlaceholder()
             }
         })
     }
-
-    private fun showServerErrorPlaceholder() {
-        stubServerError.visibility = View.VISIBLE
-        stubEmptySearch.visibility = View.GONE
-        trackRecyclerView.visibility = View.GONE
-    }
 }
-
-
