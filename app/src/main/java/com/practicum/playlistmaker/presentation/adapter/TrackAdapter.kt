@@ -5,7 +5,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
-import com.practicum.playlistmaker.ui.SearchHistory
+import com.practicum.playlistmaker.presentation.ui.SearchHistory
 
 class TrackAdapter(
     sharedPreferences: SharedPreferences

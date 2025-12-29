@@ -1,6 +1,5 @@
-package com.practicum.playlistmaker.ui
+package com.practicum.playlistmaker.presentation.ui
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -15,9 +14,9 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.Creator
+import com.practicum.playlistmaker.di.Creator
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.util.SharedPrefs
+import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.domain.api.TracksInteractor
@@ -50,7 +49,7 @@ class SearchActivity : AppCompatActivity() {
     private var searchRunnableOnTextChanged: Runnable? = null
     private val debounceDelayTextChanged = 2000L
 
-    private val tracksInteractor = Creator.provideTracksInteractor()
+    private val searchTracksUseCase = Creator.provideSearchTracksUseCase()
 
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -256,23 +255,23 @@ class SearchActivity : AppCompatActivity() {
         trackRecyclerView.visibility = View.GONE
         progressBar.visibility = View.VISIBLE
 
-        tracksInteractor.searchTracks(query, object : TracksInteractor.TracksConsumer {
-            override fun consume(foundTracks: List<Track>) {
-                runOnUiThread {
-                    progressBar.visibility = View.GONE
-                    tracks.clear()
-                    tracks.addAll(foundTracks)
-                    adapter.submitList(tracks.toList())
+        Thread {
+            val result = searchTracksUseCase.execute(query)
 
-                    if (tracks.isEmpty()) {
-                        stubEmptySearch.visibility = View.VISIBLE
-                        trackRecyclerView.visibility = View.GONE
-                    } else {
-                        stubEmptySearch.visibility = View.GONE
-                        trackRecyclerView.visibility = View.VISIBLE
-                    }
+            runOnUiThread {
+                progressBar.visibility = View.GONE
+                tracks.clear()
+                tracks.addAll(result)
+                adapter.submitList(tracks.toList())
+
+                if (tracks.isEmpty()) {
+                    stubEmptySearch.visibility = View.VISIBLE
+                    trackRecyclerView.visibility = View.GONE
+                } else {
+                    stubEmptySearch.visibility = View.GONE
+                    trackRecyclerView.visibility = View.VISIBLE
                 }
             }
-        })
+        }.start()
     }
 }

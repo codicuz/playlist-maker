@@ -10,9 +10,9 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.model.Track
-import com.practicum.playlistmaker.ui.AudioPlayerActivity
-import com.practicum.playlistmaker.ui.SearchHistory
-import com.practicum.playlistmaker.util.Useful
+import com.practicum.playlistmaker.presentation.ui.AudioPlayerActivity
+import com.practicum.playlistmaker.presentation.ui.SearchHistory
+import com.practicum.playlistmaker.presentation.util.Useful
 
 class TrackViewHolder(
     parent: ViewGroup,
