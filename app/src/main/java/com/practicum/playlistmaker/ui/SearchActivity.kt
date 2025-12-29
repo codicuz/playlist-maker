@@ -20,10 +20,7 @@ import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.util.SharedPrefs
 import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
-import com.practicum.playlistmaker.data.network.ITunesApi
 import com.practicum.playlistmaker.domain.api.TracksInteractor
-import retrofit2.*
-import retrofit2.converter.gson.GsonConverterFactory
 
 class SearchActivity : AppCompatActivity() {
 
