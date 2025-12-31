@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.presentation.ui
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -14,8 +14,12 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import retrofit2.*
-import retrofit2.converter.gson.GsonConverterFactory
+import com.practicum.playlistmaker.di.Creator
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.domain.api.TracksInteractor
 
 class SearchActivity : AppCompatActivity() {
 
@@ -45,13 +49,7 @@ class SearchActivity : AppCompatActivity() {
     private var searchRunnableOnTextChanged: Runnable? = null
     private val debounceDelayTextChanged = 2000L
 
-    private val iTunesService by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://itunes.apple.com")
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(ITunesApi::class.java)
-    }
+    private val searchTracksUseCase = Creator.provideSearchTracksUseCase()
 
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
@@ -255,42 +253,25 @@ class SearchActivity : AppCompatActivity() {
         stubServerError.visibility = View.GONE
         stubEmptySearch.visibility = View.GONE
         trackRecyclerView.visibility = View.GONE
-
         progressBar.visibility = View.VISIBLE
 
-        iTunesService.findSong(query).enqueue(object : Callback<ITunesResponse> {
-            override fun onResponse(call: Call<ITunesResponse>, response: Response<ITunesResponse>) {
+        Thread {
+            val result = searchTracksUseCase.execute(query)
+
+            runOnUiThread {
                 progressBar.visibility = View.GONE
+                tracks.clear()
+                tracks.addAll(result)
+                adapter.submitList(tracks.toList())
 
-                if (response.isSuccessful) {
-                    tracks.clear()
-                    response.body()?.results?.let { tracks.addAll(it) }
-                    adapter.submitList(tracks.toList())
-
-                    if (tracks.isEmpty()) {
-                        stubEmptySearch.visibility = View.VISIBLE
-                        trackRecyclerView.visibility = View.GONE
-                    } else {
-                        stubEmptySearch.visibility = View.GONE
-                        trackRecyclerView.visibility = View.VISIBLE
-                    }
+                if (tracks.isEmpty()) {
+                    stubEmptySearch.visibility = View.VISIBLE
+                    trackRecyclerView.visibility = View.GONE
                 } else {
-                    showServerErrorPlaceholder()
+                    stubEmptySearch.visibility = View.GONE
+                    trackRecyclerView.visibility = View.VISIBLE
                 }
             }
-
-            override fun onFailure(call: Call<ITunesResponse>, t: Throwable) {
-                progressBar.visibility = View.GONE
-                showServerErrorPlaceholder()
-            }
-        })
-    }
-
-    private fun showServerErrorPlaceholder() {
-        stubServerError.visibility = View.VISIBLE
-        stubEmptySearch.visibility = View.GONE
-        trackRecyclerView.visibility = View.GONE
+        }.start()
     }
 }
-
-

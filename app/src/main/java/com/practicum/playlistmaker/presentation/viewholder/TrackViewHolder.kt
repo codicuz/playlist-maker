@@ -1,8 +1,6 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.presentation.viewholder
 
-import android.content.Context
 import android.content.Intent
-import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -10,6 +8,11 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.presentation.ui.AudioPlayerActivity
+import com.practicum.playlistmaker.presentation.ui.SearchHistory
+import com.practicum.playlistmaker.presentation.util.Useful
 
 class TrackViewHolder(
     parent: ViewGroup,
@@ -24,7 +27,6 @@ class TrackViewHolder(
 
     fun bind(item: Track) {
         trackName.text = item.trackName
-        artistsName.setText("")
         artistsName.text = item.artistsName
         trackTime.text = item.trackTime
 
@@ -40,7 +42,7 @@ class TrackViewHolder(
             val context = itemView.context
             val intent = Intent(context, AudioPlayerActivity::class.java).apply {
                 putExtra("trackName", item.trackName)
-                putExtra("artistName", item.trackName)
+                putExtra("artistName", item.artistsName)
                 putExtra("collectionName", item.collectionName)
                 putExtra("releaseDate", item.releaseYear)
                 putExtra("primaryGenreName", item.primaryGenreName)

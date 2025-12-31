@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.data.storage
 
 class SharedPrefs {
     companion object {

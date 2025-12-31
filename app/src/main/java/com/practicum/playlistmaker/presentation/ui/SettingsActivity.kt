@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker
+package com.practicum.playlistmaker.presentation.ui
 
 import android.app.ActivityOptions
 import android.content.Intent
@@ -8,6 +8,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.presentation.util.ThemeSwitcher
 
 class SettingsActivity : AppCompatActivity() {
     companion object {
