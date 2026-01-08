@@ -7,11 +7,13 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
-import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.domain.theme.ThemeSwitcher
 import androidx.core.net.toUri
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import androidx.core.content.edit
 
 class SettingsActivity : AppCompatActivity() {
+
     companion object {
         const val MAIL_TO = "mailto:"
         const val MIME_TYPE_TEXT_PLAIN = "text/plain"
@@ -31,9 +33,7 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun intentHandleError() {
-        Toast.makeText(
-            this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG
-        ).show()
+        Toast.makeText(this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG).show()
     }
 
     private fun callPracticumOfferIntent() {
@@ -50,7 +50,6 @@ class SettingsActivity : AppCompatActivity() {
         sendToHelpdesk.putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.email)))
         sendToHelpdesk.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.email_subject))
         sendToHelpdesk.putExtra(Intent.EXTRA_TEXT, getString(R.string.email_text))
-
         startActivity(sendToHelpdesk)
     }
 
@@ -60,11 +59,20 @@ class SettingsActivity : AppCompatActivity() {
         shareApp.putExtra(
             Intent.EXTRA_TEXT, getString(R.string.https_practicum_yandex_ru_android_developer)
         )
-
         if (canHandleIntent(shareApp)) startActivity(shareApp) else intentHandleError()
     }
 
+    private fun applySavedTheme() {
+        val prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
+        val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+            else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
 
@@ -73,28 +81,22 @@ class SettingsActivity : AppCompatActivity() {
         val sendToHelpdesk = findViewById<TextView>(R.id.sendToHelpdesk)
         val shareApp = findViewById<TextView>(R.id.shareApp)
 
-        val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
-        themeSwitcher.isChecked = (applicationContext as ThemeSwitcher).isDarkMode()
+        val themeSwitch = findViewById<SwitchCompat>(R.id.themeSwitcher)
+        val prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
+        themeSwitch.isChecked = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
 
-        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
-            (applicationContext as ThemeSwitcher).switchTheme(isChecked)
+        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
+            prefs.edit { putBoolean(SharedPrefs.DARK_MODE_KEY, isChecked) }
+            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+                if (isChecked) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+            )
             restartWithTheme()
         }
 
-        buttonBack.setOnClickListener {
-            finish()
-        }
-
-        practicumOfferBtn.setOnClickListener {
-            callPracticumOfferIntent()
-        }
-
-        sendToHelpdesk.setOnClickListener {
-            callSendToHelpdesk()
-        }
-
-        shareApp.setOnClickListener {
-            callShareApp()
-        }
+        buttonBack.setOnClickListener { finish() }
+        practicumOfferBtn.setOnClickListener { callPracticumOfferIntent() }
+        sendToHelpdesk.setOnClickListener { callSendToHelpdesk() }
+        shareApp.setOnClickListener { callShareApp() }
     }
 }
