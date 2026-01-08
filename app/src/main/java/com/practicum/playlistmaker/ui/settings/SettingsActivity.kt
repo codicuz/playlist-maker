@@ -9,10 +9,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.net.toUri
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.data.storage.SharedPrefs
-import androidx.core.content.edit
+import com.practicum.playlistmaker.presentation.settings.ThemeViewModel
 
 class SettingsActivity : AppCompatActivity() {
+    private lateinit var themeViewModel: ThemeViewModel
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
 
     companion object {
         const val MAIL_TO = "mailto:"
@@ -62,36 +66,28 @@ class SettingsActivity : AppCompatActivity() {
         if (canHandleIntent(shareApp)) startActivity(shareApp) else intentHandleError()
     }
 
-    private fun applySavedTheme() {
-        val prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
-        val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
-        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-            if (isDarkMode) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-            else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
-        )
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        applySavedTheme()
         super.onCreate(savedInstanceState)
+
+        themeViewModel = Creator.provideThemeViewModel(application)
+
         setContentView(R.layout.activity_settings)
 
+        val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
         val buttonBack = findViewById<TextView>(R.id.settingsHeader)
         val practicumOfferBtn = findViewById<TextView>(R.id.practicumOffer)
         val sendToHelpdesk = findViewById<TextView>(R.id.sendToHelpdesk)
         val shareApp = findViewById<TextView>(R.id.shareApp)
 
-        val themeSwitch = findViewById<SwitchCompat>(R.id.themeSwitcher)
-        val prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
-        themeSwitch.isChecked = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+        themeViewModel.isDarkModeLiveData.observe(this) { isDark ->
+            themeSwitcher.isChecked = isDark
+        }
 
-        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            prefs.edit { putBoolean(SharedPrefs.DARK_MODE_KEY, isChecked) }
-            androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
-                if (isChecked) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
-                else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
-            )
-            restartWithTheme()
+        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked != themeViewModel.isDarkModeLiveData.value) {
+                themeViewModel.switchTheme(isChecked)
+                restartWithTheme()
+            }
         }
 
         buttonBack.setOnClickListener { finish() }
