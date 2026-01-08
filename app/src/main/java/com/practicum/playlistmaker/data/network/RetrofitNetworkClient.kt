@@ -10,16 +10,15 @@ class RetrofitNetworkClient : NetworkClient {
 
     private val iTunesBaseUrl = "https://itunes.apple.com"
 
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(iTunesBaseUrl)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val retrofit =
+        Retrofit.Builder().baseUrl(iTunesBaseUrl).addConverterFactory(GsonConverterFactory.create())
+            .build()
 
-    private val ITunesService = retrofit.create(ITunesApi::class.java)
+    private val iTunesService = retrofit.create(ITunesApi::class.java)
 
     override fun doRequest(dto: Any): Response {
         if (dto is TracksSearchRequest) {
-            val resp = ITunesService.findSong(dto.expression).execute()
+            val resp = iTunesService.findSong(dto.expression).execute()
 
             val body = resp.body() ?: Response()
 

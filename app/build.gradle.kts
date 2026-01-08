@@ -50,4 +50,6 @@ dependencies {
     implementation(libs.retrofit2)
     implementation(libs.gson)
     implementation(libs.cgson)
+
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 }

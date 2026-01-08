@@ -1,6 +1,6 @@
 package com.practicum.playlistmaker.ui.search
 
-import android.content.SharedPreferences
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -15,16 +15,24 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.creator.Creator
+import com.practicum.playlistmaker.data.history.SearchHistoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
-import com.practicum.playlistmaker.ui.search.SearchHistory
+import com.practicum.playlistmaker.presentation.search.SearchViewModel
+import com.practicum.playlistmaker.ui.player.AudioPlayerActivity
 
 class SearchActivity : AppCompatActivity() {
+
+    private lateinit var searchViewModel: SearchViewModel
 
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
@@ -37,30 +45,16 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var refreshButton: Button
     private lateinit var clearHistoryButton: Button
     private lateinit var searchHistoryView: View
-    private lateinit var searchHistory: SearchHistory
-    private lateinit var sharedPrefs: SharedPreferences
     private lateinit var progressBar: ProgressBar
 
     private val tracks = mutableListOf<Track>()
     private var currentQuery = ""
 
     private val handler = Handler(Looper.getMainLooper())
-
     private var searchRunnableOnDone: Runnable? = null
     private val debounceDelayDone = 500L
-
     private var searchRunnableOnTextChanged: Runnable? = null
     private val debounceDelayTextChanged = 2000L
-
-    private val searchTracksUseCase = Creator.provideSearchTracksUseCase()
-
-    private val preferenceChangeListener =
-        SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == SharedPrefs.Companion.PREFS_SEARCH_HISTORY) {
-                historyAdapter.submitList(ArrayList(searchHistory.getHistory()))
-                updateSearchHistoryVisibility()
-            }
-        }
 
     companion object {
         private const val SEARCH_KEY = "SEARCH_KEY"
@@ -72,23 +66,32 @@ class SearchActivity : AppCompatActivity() {
 
         initViews()
 
-        sharedPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+        val prefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
+        val historyRepository = SearchHistoryImpl(prefs)
+        val getHistoryUseCase = GetSearchHistoryUseCase(historyRepository)
+        val addTrackUseCase = AddTrackToHistoryUseCase(historyRepository)
+        val clearHistoryUseCase = ClearSearchHistoryUseCase(historyRepository)
+
+        searchViewModel = SearchViewModel(
+            searchTracksUseCase = Creator.provideSearchTracksUseCase(),
+            getHistoryUseCase = getHistoryUseCase,
+            addTrackUseCase = addTrackUseCase,
+            clearHistoryUseCase = clearHistoryUseCase
+        )
 
         setupAdapters()
         setupListeners()
+
+        searchViewModel.historyLiveData.observe(this, Observer { history ->
+            historyAdapter.submitList(ArrayList(history))
+            updateSearchHistoryVisibility()
+        })
 
         currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
         if (currentQuery.isNotEmpty()) {
             searchEditText.setText(currentQuery)
             searchTrack(currentQuery)
         }
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        sharedPrefs.unregisterOnSharedPreferenceChangeListener(preferenceChangeListener)
-        handler.removeCallbacksAndMessages(null)
-        searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -109,35 +112,34 @@ class SearchActivity : AppCompatActivity() {
         progressBar = findViewById(R.id.progressBar)
 
         findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
-
-        sharedPrefs = getSharedPreferences(SharedPrefs.Companion.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
-        searchHistory = SearchHistory(sharedPrefs)
     }
 
     private fun setupAdapters() {
-        adapter = TrackAdapter(sharedPrefs)
+        adapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
         adapter.submitList(tracks.toList())
         trackRecyclerView.layoutManager = LinearLayoutManager(this)
         trackRecyclerView.adapter = adapter
 
-        historyAdapter = TrackAdapter(sharedPrefs)
+        historyAdapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
     }
 
     private fun setupListeners() {
-        clearButton.setOnClickListener {
-            clearSearch()
-        }
+        clearButton.setOnClickListener { clearSearch() }
 
         searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {}
-
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
                 val query = s.toString().trim()
-
                 if (query != currentQuery) {
                     currentQuery = query
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
@@ -150,37 +152,10 @@ class SearchActivity : AppCompatActivity() {
                         handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
                     }
                 }
-
-                val history = searchHistory.getHistory()
-                if (history.isNotEmpty() && query.isNotEmpty()) {
-                    searchHistoryView.visibility = View.VISIBLE
-                    historyRecyclerView.visibility = View.VISIBLE
-                    clearHistoryButton.visibility = View.VISIBLE
-                    trackRecyclerView.visibility = View.GONE
-                    stubEmptySearch.visibility = View.GONE
-                    stubServerError.visibility = View.GONE
-                } else if (query.isEmpty()) {
-                    if (history.isNotEmpty()) {
-                        searchHistoryView.visibility = View.VISIBLE
-                        historyRecyclerView.visibility = View.VISIBLE
-                        clearHistoryButton.visibility = View.VISIBLE
-                        trackRecyclerView.visibility = View.GONE
-                        stubEmptySearch.visibility = View.GONE
-                        stubServerError.visibility = View.GONE
-                    } else {
-                        searchHistoryView.visibility = View.GONE
-                    }
-                } else {
-                    searchHistoryView.visibility = View.GONE
-                    historyRecyclerView.visibility = View.GONE
-                    clearHistoryButton.visibility = View.GONE
-                }
             }
         })
 
-        searchEditText.setOnFocusChangeListener { _, _ ->
-            updateSearchHistoryVisibility()
-        }
+        searchEditText.setOnFocusChangeListener { _, _ -> updateSearchHistoryVisibility() }
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -204,13 +179,12 @@ class SearchActivity : AppCompatActivity() {
         }
 
         clearHistoryButton.setOnClickListener {
-            searchHistory.clear()
-            updateSearchHistoryVisibility()
+            searchViewModel.clearHistory()
         }
     }
 
     private fun updateSearchHistoryVisibility() {
-        val history = searchHistory.getHistory()
+        val history = searchViewModel.getHistory()
         historyAdapter.submitList(ArrayList(history))
 
         val isEmptyQuery = searchEditText.text.isEmpty()
@@ -229,7 +203,7 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
 
-        val history = searchHistory.getHistory()
+        val history = searchViewModel.getHistory()
         if (history.isNotEmpty()) {
             searchHistoryView.visibility = View.VISIBLE
             historyRecyclerView.visibility = View.VISIBLE
@@ -259,7 +233,7 @@ class SearchActivity : AppCompatActivity() {
         progressBar.visibility = View.VISIBLE
 
         Thread {
-            val result = searchTracksUseCase.execute(query)
+            val result = searchViewModel.searchTracks(query)
 
             runOnUiThread {
                 progressBar.visibility = View.GONE
@@ -267,14 +241,16 @@ class SearchActivity : AppCompatActivity() {
                 tracks.addAll(result)
                 adapter.submitList(tracks.toList())
 
-                if (tracks.isEmpty()) {
-                    stubEmptySearch.visibility = View.VISIBLE
-                    trackRecyclerView.visibility = View.GONE
-                } else {
-                    stubEmptySearch.visibility = View.GONE
-                    trackRecyclerView.visibility = View.VISIBLE
-                }
+                stubEmptySearch.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
+                trackRecyclerView.visibility = if (tracks.isNotEmpty()) View.VISIBLE else View.GONE
             }
         }.start()
+    }
+
+    private fun openPlayer(track: Track) {
+        val intent = Intent(this, AudioPlayerActivity::class.java).apply {
+            putExtra("track", track)
+        }
+        startActivity(intent)
     }
 }

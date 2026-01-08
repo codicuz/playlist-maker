@@ -15,9 +15,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class AudioPlayerActivity : AppCompatActivity() {
+
     private var mediaPlayer: MediaPlayer? = null
     private var isPlaying = false
     private val handler = Handler(Looper.getMainLooper())
@@ -25,22 +27,24 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var currentTrackTime: TextView
     private var updateTimeRunnable: Runnable? = null
 
+    private lateinit var track: Track
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.audio_player)
 
-        val trackName = intent.getStringExtra("trackName") ?: ""
-        val artistName = intent.getStringExtra("artistName") ?: ""
-        val collectionName = intent.getStringExtra("collectionName") ?: ""
-        val releaseDate = intent.getStringExtra("releaseDate") ?: ""
-        val primaryGenreName = intent.getStringExtra("primaryGenreName") ?: ""
-        val country = intent.getStringExtra("country") ?: ""
-        val trackTime = intent.getStringExtra("trackTime") ?: ""
-        val artworkUrl100 = intent.getStringExtra("artworkUrl100") ?: ""
-        val previewUrl = intent.getStringExtra("previewUrl") ?: ""
+        track = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("track", Track::class.java)
+        } else {
+            @Suppress("DEPRECATION") intent.getParcelableExtra<Track>("track")
+        } ?: run {
+            finish()
+            return
+        }
 
-        findViewById<ImageView>(R.id.audBackButton).setOnClickListener { finish() }
 
+        currentTrackTime = findViewById(R.id.currentTrackTime)
+        playButton = findViewById(R.id.audPlayButton)
         val trackNameTextView: TextView = findViewById(R.id.mainAlbumText)
         val artistNameTextView: TextView = findViewById(R.id.artistName)
         val collectionNameTextView: TextView = findViewById(R.id.audAlbumNameValue)
@@ -51,58 +55,53 @@ class AudioPlayerActivity : AppCompatActivity() {
         val countryTextView: TextView = findViewById(R.id.audCountryValue)
         val trackTimeTextView: TextView = findViewById(R.id.audTrackTimeValue)
         val artworkImageView: ImageView = findViewById(R.id.songPoster)
+        val backButton: ImageView = findViewById(R.id.audBackButton)
 
-        currentTrackTime = findViewById(R.id.currentTrackTime)
-        playButton = findViewById(R.id.audPlayButton)
+        backButton.setOnClickListener { finish() }
 
-        trackNameTextView.text = trackName
-        artistNameTextView.text = artistName
-        collectionNameTextView.text = collectionName
-        releaseDateTextView.text = releaseDate
-        genreTextView.text = primaryGenreName
-        countryTextView.text = country
-        trackTimeTextView.text = trackTime
+        trackNameTextView.text = track.trackName
+        artistNameTextView.text = track.artistsName
+        collectionNameTextView.text = track.collectionName
+        releaseDateTextView.text = track.releaseYear
+        genreTextView.text = track.primaryGenreName
+        countryTextView.text = track.country
+        trackTimeTextView.text = track.trackTime
 
-        setVisibilityBasedOnText(collectionNameTextView, collectionNameTextViewKey, collectionName)
-        setVisibilityBasedOnText(releaseDateTextView, releaseDateTextViewKey, releaseDate)
+        setVisibilityBasedOnText(
+            collectionNameTextView, collectionNameTextViewKey, track.collectionName
+        )
+        setVisibilityBasedOnText(releaseDateTextView, releaseDateTextViewKey, track.releaseYear)
 
         currentTrackTime.text = formatTime(0)
 
-        Glide.with(this).load(artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
-            .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this))).into(artworkImageView)
+        Glide.with(this).load(track.getConvertArtwork()).placeholder(R.drawable.ic_no_artwork_image)
+            .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
 
-        if (previewUrl.isNotEmpty()) {
+        val previewUrl = track.previewUrl
+        if (!previewUrl.isNullOrEmpty()) {
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(previewUrl)
                 prepareAsync()
                 setOnPreparedListener {
-                    Log.d("AudioPlayer", "MediaPlayer готов к воспроизведению")
+                    Log.d("AudioPlayer", getString(R.string.mp_not_ready_to_play))
                     playButton.isEnabled = true
                 }
-                setOnCompletionListener {
-                    stopPlayer()
-                }
+                setOnCompletionListener { stopPlayer() }
             }
             playButton.isEnabled = false
         } else {
             playButton.isEnabled = false
-            Log.d("AudioPlayer", "Нет ссылки для воспроизведения произведения")
+            Log.d("AudioPlayer", getString(R.string.no_url_to_play))
             currentTrackTime.text = getString(R.string.no_preview_url)
         }
 
         playButton.setOnClickListener {
-            Log.d("AudioPlayer", "Preview URL: $previewUrl")
-            Log.d("AudioPlayer", "Play button clicked")
-            if (isPlaying) {
-                pausePlayer()
-            } else {
-                startPlayer()
-            }
+            if (isPlaying) pausePlayer() else startPlayer()
         }
     }
 
-    private fun setVisibilityBasedOnText(valueView: View, keyView: View, text: String) {
-        if (text.isBlank()) {
+    private fun setVisibilityBasedOnText(valueView: View, keyView: View, text: String?) {
+        if (text.isNullOrBlank()) {
             valueView.visibility = View.GONE
             keyView.visibility = View.GONE
         } else {
@@ -113,7 +112,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
     private fun startPlayer() {
         if (mediaPlayer == null) {
-            Toast.makeText(this, "MediaPlayer не готов", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.mp_not_ready), Toast.LENGTH_SHORT).show()
             return
         }
         mediaPlayer?.start()
@@ -143,14 +142,10 @@ class AudioPlayerActivity : AppCompatActivity() {
         updateTimeRunnable = object : Runnable {
             override fun run() {
                 val currentPosition = mediaPlayer?.currentPosition ?: 0
-                Log.d("AudioPlayer", "Updating time: $currentPosition ms")
                 currentTrackTime.text = formatTime(currentPosition)
                 handler.postDelayed(this, 500)
             }
-        }.let {
-            handler.post(it)
-            it
-        }
+        }.also { handler.post(it) }
     }
 
     private fun stopUpdatingTime() {
@@ -167,15 +162,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        Log.d("AudioPlayerActivity", "onPause: приложение уходит в фон")
-        if (isPlaying) {
-            pausePlayer()
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        Log.d("AudioPlayerActivity", "Приложение вернулось из фона, аудиоплеер активен")
+        if (isPlaying) pausePlayer()
     }
 
     override fun onDestroy() {
@@ -183,45 +170,5 @@ class AudioPlayerActivity : AppCompatActivity() {
         mediaPlayer?.release()
         mediaPlayer = null
         stopUpdatingTime()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("trackName", findViewById<TextView>(R.id.mainAlbumText).text.toString())
-        outState.putString("artistName", findViewById<TextView>(R.id.artistName).text.toString())
-        outState.putString(
-            "collectionName", findViewById<TextView>(R.id.audAlbumNameValue).text.toString()
-        )
-        outState.putString("releaseDate", findViewById<TextView>(R.id.audYearValue).text.toString())
-        outState.putString(
-            "primaryGenreName", findViewById<TextView>(R.id.audGenreValue).text.toString()
-        )
-        outState.putString("country", findViewById<TextView>(R.id.audCountryValue).text.toString())
-        outState.putString(
-            "trackTime", findViewById<TextView>(R.id.audTrackTimeValue).text.toString()
-        )
-        outState.putString("artworkUrl100", intent.getStringExtra("artworkUrl100"))
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-
-        findViewById<TextView>(R.id.mainAlbumText).text = savedInstanceState.getString("trackName")
-        findViewById<TextView>(R.id.artistName).text = savedInstanceState.getString("artistName")
-        findViewById<TextView>(R.id.audAlbumNameValue).text =
-            savedInstanceState.getString("collectionName")
-        findViewById<TextView>(R.id.audYearValue).text = savedInstanceState.getString("releaseDate")
-        findViewById<TextView>(R.id.audGenreValue).text =
-            savedInstanceState.getString("primaryGenreName")
-        findViewById<TextView>(R.id.audCountryValue).text = savedInstanceState.getString("country")
-        findViewById<TextView>(R.id.audTrackTimeValue).text =
-            savedInstanceState.getString("trackTime")
-
-        val artworkUrl100 = savedInstanceState.getString("artworkUrl100")
-        if (!artworkUrl100.isNullOrEmpty()) {
-            Glide.with(this).load(artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
-                .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this)))
-                .into(findViewById(R.id.songPoster))
-        }
     }
 }
