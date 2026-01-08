@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker.presentation.ui
+package com.practicum.playlistmaker.ui.player
 
 import android.annotation.SuppressLint
 import android.media.MediaPlayer
@@ -69,7 +69,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         currentTrackTime.text = formatTime(0)
 
         Glide.with(this).load(artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
-            .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
+            .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this))).into(artworkImageView)
 
         if (previewUrl.isNotEmpty()) {
             mediaPlayer = MediaPlayer().apply {
@@ -220,7 +220,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         val artworkUrl100 = savedInstanceState.getString("artworkUrl100")
         if (!artworkUrl100.isNullOrEmpty()) {
             Glide.with(this).load(artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
-                .transform(RoundedCorners(Useful.dpToPx(8f, this)))
+                .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this)))
                 .into(findViewById(R.id.songPoster))
         }
     }

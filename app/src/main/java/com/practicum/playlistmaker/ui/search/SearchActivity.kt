@@ -1,6 +1,5 @@
-package com.practicum.playlistmaker.presentation.ui
+package com.practicum.playlistmaker.ui.search
 
-import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.Handler
@@ -10,16 +9,20 @@ import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.di.Creator
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.model.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
-import com.practicum.playlistmaker.domain.api.TracksInteractor
+import com.practicum.playlistmaker.ui.search.SearchHistory
 
 class SearchActivity : AppCompatActivity() {
 
@@ -53,7 +56,7 @@ class SearchActivity : AppCompatActivity() {
 
     private val preferenceChangeListener =
         SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-            if (key == SharedPrefs.PREFS_SEARCH_HISTORY) {
+            if (key == SharedPrefs.Companion.PREFS_SEARCH_HISTORY) {
                 historyAdapter.submitList(ArrayList(searchHistory.getHistory()))
                 updateSearchHistoryVisibility()
             }
@@ -107,7 +110,7 @@ class SearchActivity : AppCompatActivity() {
 
         findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
 
-        sharedPrefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
+        sharedPrefs = getSharedPreferences(SharedPrefs.Companion.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
         searchHistory = SearchHistory(sharedPrefs)
     }
 
@@ -244,7 +247,7 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun hideKeyboard() {
-        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
     }
 

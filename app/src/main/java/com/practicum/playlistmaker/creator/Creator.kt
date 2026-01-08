@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker.di
+package com.practicum.playlistmaker.creator
 
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
