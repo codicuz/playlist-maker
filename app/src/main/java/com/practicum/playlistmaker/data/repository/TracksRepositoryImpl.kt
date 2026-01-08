@@ -3,8 +3,8 @@ package com.practicum.playlistmaker.data.repository
 import com.practicum.playlistmaker.data.NetworkClient
 import com.practicum.playlistmaker.data.dto.TracksSearchRequest
 import com.practicum.playlistmaker.data.dto.TracksSearchResponse
-import com.practicum.playlistmaker.domain.api.TracksRepository
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.domain.track.Track
 import java.util.Objects
 
 class TracksRepositoryImpl(private val networkClient: NetworkClient) : TracksRepository {

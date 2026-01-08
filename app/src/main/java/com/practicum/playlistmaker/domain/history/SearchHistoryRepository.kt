@@ -1,8 +1,8 @@
 package com.practicum.playlistmaker.domain.history
 
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.track.Track
 
-interface SearchHistory {
+interface SearchHistoryRepository {
 
     fun getHistory(): List<Track>
 

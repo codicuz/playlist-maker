@@ -1,7 +1,4 @@
-package com.practicum.playlistmaker.domain.usecase
-
-import com.practicum.playlistmaker.domain.api.TracksRepository
-import com.practicum.playlistmaker.domain.model.Track
+package com.practicum.playlistmaker.domain.track
 
 class SearchTracksUseCase(
     private val repository: TracksRepository

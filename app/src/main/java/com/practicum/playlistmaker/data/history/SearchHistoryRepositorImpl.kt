@@ -5,10 +5,10 @@ import androidx.core.content.edit
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.practicum.playlistmaker.data.storage.SharedPrefs
-import com.practicum.playlistmaker.domain.history.SearchHistory
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.track.Track
 
-class SearchHistoryImpl(private val sharedPreferences: SharedPreferences) : SearchHistory {
+class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreferences) : SearchHistoryRepository {
 
     private val gson = Gson()
     private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY

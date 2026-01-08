@@ -2,8 +2,8 @@ package com.practicum.playlistmaker.creator
 
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
-import com.practicum.playlistmaker.domain.api.TracksRepository
-import com.practicum.playlistmaker.domain.usecase.SearchTracksUseCase
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
 
 object Creator {
 

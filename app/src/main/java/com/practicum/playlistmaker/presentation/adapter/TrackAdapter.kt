@@ -3,7 +3,7 @@ package com.practicum.playlistmaker.presentation.adapter
 import android.annotation.SuppressLint
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
 
 class TrackAdapter(

@@ -1,0 +1,1052 @@
+==== ./playlistmaker/ui/settings/SettingsActivity.kt ====
+package com.practicum.playlistmaker.ui.settings
+
+import android.app.ActivityOptions
+import android.content.Intent
+import android.os.Bundle
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.theme.ThemeSwitcher
+import androidx.core.net.toUri
+
+class SettingsActivity : AppCompatActivity() {
+    companion object {
+        const val MAIL_TO = "mailto:"
+        const val MIME_TYPE_TEXT_PLAIN = "text/plain"
+    }
+
+    private fun AppCompatActivity.restartWithTheme() {
+        val intent = intent
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
+        startActivity(intent, options.toBundle())
+        finish()
+    }
+
+    private fun canHandleIntent(intent: Intent): Boolean {
+        val activities = packageManager.queryIntentActivities(intent, 0)
+        return activities.isNotEmpty()
+    }
+
+    private fun intentHandleError() {
+        Toast.makeText(
+            this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG
+        ).show()
+    }
+
+    private fun callPracticumOfferIntent() {
+        val practicumOffer = getString(R.string.practicum_license)
+        val agreement = Intent(Intent.ACTION_VIEW)
+        agreement.data = practicumOffer.toUri()
+
+        if (canHandleIntent(agreement)) startActivity(agreement) else intentHandleError()
+    }
+
+    private fun callSendToHelpdesk() {
+        val sendToHelpdesk = Intent(Intent.ACTION_SENDTO)
+        sendToHelpdesk.data = MAIL_TO.toUri()
+        sendToHelpdesk.putExtra(Intent.EXTRA_EMAIL, arrayOf(getString(R.string.email)))
+        sendToHelpdesk.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.email_subject))
+        sendToHelpdesk.putExtra(Intent.EXTRA_TEXT, getString(R.string.email_text))
+
+        startActivity(sendToHelpdesk)
+    }
+
+    private fun callShareApp() {
+        val shareApp = Intent(Intent.ACTION_SEND)
+        shareApp.type = MIME_TYPE_TEXT_PLAIN
+        shareApp.putExtra(
+            Intent.EXTRA_TEXT, getString(R.string.https_practicum_yandex_ru_android_developer)
+        )
+
+        if (canHandleIntent(shareApp)) startActivity(shareApp) else intentHandleError()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_settings)
+
+        val buttonBack = findViewById<TextView>(R.id.settingsHeader)
+        val practicumOfferBtn = findViewById<TextView>(R.id.practicumOffer)
+        val sendToHelpdesk = findViewById<TextView>(R.id.sendToHelpdesk)
+        val shareApp = findViewById<TextView>(R.id.shareApp)
+
+        val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
+        themeSwitcher.isChecked = (applicationContext as ThemeSwitcher).isDarkMode()
+
+        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            (applicationContext as ThemeSwitcher).switchTheme(isChecked)
+            restartWithTheme()
+        }
+
+        buttonBack.setOnClickListener {
+            finish()
+        }
+
+        practicumOfferBtn.setOnClickListener {
+            callPracticumOfferIntent()
+        }
+
+        sendToHelpdesk.setOnClickListener {
+            callSendToHelpdesk()
+        }
+
+        shareApp.setOnClickListener {
+            callShareApp()
+        }
+    }
+}==== ./playlistmaker/ui/media/MediaActivity.kt ====
+package com.practicum.playlistmaker.ui.media
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.practicum.playlistmaker.R
+
+class MediaActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_media)
+    }
+}==== ./playlistmaker/ui/search/SearchActivity.kt ====
+package com.practicum.playlistmaker.ui.search
+
+import android.content.Intent
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.creator.Creator
+import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.search.SearchViewModel
+import com.practicum.playlistmaker.ui.player.AudioPlayerActivity
+
+class SearchActivity : AppCompatActivity() {
+
+    private lateinit var searchViewModel: SearchViewModel
+
+    private lateinit var adapter: TrackAdapter
+    private lateinit var historyAdapter: TrackAdapter
+    private lateinit var searchEditText: EditText
+    private lateinit var clearButton: ImageView
+    private lateinit var trackRecyclerView: RecyclerView
+    private lateinit var historyRecyclerView: RecyclerView
+    private lateinit var stubEmptySearch: View
+    private lateinit var stubServerError: View
+    private lateinit var refreshButton: Button
+    private lateinit var clearHistoryButton: Button
+    private lateinit var searchHistoryView: View
+    private lateinit var progressBar: ProgressBar
+
+    private val tracks = mutableListOf<Track>()
+    private var currentQuery = ""
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var searchRunnableOnDone: Runnable? = null
+    private val debounceDelayDone = 500L
+    private var searchRunnableOnTextChanged: Runnable? = null
+    private val debounceDelayTextChanged = 2000L
+
+    companion object {
+        private const val SEARCH_KEY = "SEARCH_KEY"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_search)
+
+        initViews()
+
+        val prefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
+        val historyRepository = SearchHistoryRepositorImpl(prefs)
+        val getHistoryUseCase = GetSearchHistoryUseCase(historyRepository)
+        val addTrackUseCase = AddTrackToHistoryUseCase(historyRepository)
+        val clearHistoryUseCase = ClearSearchHistoryUseCase(historyRepository)
+
+        searchViewModel = SearchViewModel(
+            searchTracksUseCase = Creator.provideSearchTracksUseCase(),
+            getHistoryUseCase = getHistoryUseCase,
+            addTrackUseCase = addTrackUseCase,
+            clearHistoryUseCase = clearHistoryUseCase
+        )
+
+        setupAdapters()
+        setupListeners()
+
+        searchViewModel.historyLiveData.observe(this, Observer { history ->
+            historyAdapter.submitList(ArrayList(history))
+            updateSearchHistoryVisibility()
+        })
+
+        currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
+        if (currentQuery.isNotEmpty()) {
+            searchEditText.setText(currentQuery)
+            searchTrack(currentQuery)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(SEARCH_KEY, currentQuery)
+    }
+
+    private fun initViews() {
+        searchEditText = findViewById(R.id.searchEditText)
+        clearButton = findViewById(R.id.clearButton)
+        trackRecyclerView = findViewById(R.id.rcTrackData)
+        historyRecyclerView = findViewById(R.id.rcTrackDataHistory)
+        stubEmptySearch = findViewById(R.id.stubEmptySearch)
+        stubServerError = findViewById(R.id.stubNoInternet)
+        refreshButton = findViewById(R.id.buttonRetry)
+        clearHistoryButton = findViewById(R.id.buttonClearSearchHistory)
+        searchHistoryView = findViewById(R.id.stubSearchHistory)
+        progressBar = findViewById(R.id.progressBar)
+
+        findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
+    }
+
+    private fun setupAdapters() {
+        adapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+        adapter.submitList(tracks.toList())
+        trackRecyclerView.layoutManager = LinearLayoutManager(this)
+        trackRecyclerView.adapter = adapter
+
+        historyAdapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+        historyRecyclerView.layoutManager = LinearLayoutManager(this)
+        historyRecyclerView.adapter = historyAdapter
+    }
+
+    private fun setupListeners() {
+        clearButton.setOnClickListener { clearSearch() }
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+                val query = s.toString().trim()
+                if (query != currentQuery) {
+                    currentQuery = query
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    if (query.isNotEmpty()) {
+                        searchRunnableOnTextChanged = Runnable {
+                            searchHistoryView.visibility = View.GONE
+                            searchTrack(query)
+                            hideKeyboard()
+                        }
+                        handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
+                    }
+                }
+            }
+        })
+
+        searchEditText.setOnFocusChangeListener { _, _ -> updateSearchHistoryVisibility() }
+
+        searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val query = searchEditText.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone = Runnable {
+                        searchHistoryView.visibility = View.GONE
+                        searchTrack(query)
+                        hideKeyboard()
+                    }
+                    handler.postDelayed(searchRunnableOnDone!!, debounceDelayDone)
+                }
+                true
+            } else false
+        }
+
+        refreshButton.setOnClickListener {
+            if (currentQuery.isNotBlank()) searchTrack(currentQuery)
+        }
+
+        clearHistoryButton.setOnClickListener {
+            searchViewModel.clearHistory()
+        }
+    }
+
+    private fun updateSearchHistoryVisibility() {
+        val history = searchViewModel.getHistory()
+        historyAdapter.submitList(ArrayList(history))
+
+        val isEmptyQuery = searchEditText.text.isEmpty()
+        if (searchEditText.hasFocus() && isEmptyQuery && history.isNotEmpty()) {
+            searchHistoryView.visibility = View.VISIBLE
+            historyRecyclerView.visibility = View.VISIBLE
+            clearHistoryButton.visibility = View.VISIBLE
+        } else {
+            searchHistoryView.visibility = View.GONE
+            historyRecyclerView.visibility = View.GONE
+            clearHistoryButton.visibility = View.GONE
+        }
+    }
+
+    private fun clearSearch() {
+        searchEditText.text?.clear()
+        clearButton.visibility = View.GONE
+
+        val history = searchViewModel.getHistory()
+        if (history.isNotEmpty()) {
+            searchHistoryView.visibility = View.VISIBLE
+            historyRecyclerView.visibility = View.VISIBLE
+            clearHistoryButton.visibility = View.VISIBLE
+        } else {
+            searchHistoryView.visibility = View.GONE
+        }
+
+        trackRecyclerView.visibility = View.GONE
+        stubEmptySearch.visibility = View.GONE
+        stubServerError.visibility = View.GONE
+
+        tracks.clear()
+        hideKeyboard()
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
+    }
+
+    private fun searchTrack(query: String) {
+        searchHistoryView.visibility = View.GONE
+        stubServerError.visibility = View.GONE
+        stubEmptySearch.visibility = View.GONE
+        trackRecyclerView.visibility = View.GONE
+        progressBar.visibility = View.VISIBLE
+
+        Thread {
+            val result = searchViewModel.searchTracks(query)
+
+            runOnUiThread {
+                progressBar.visibility = View.GONE
+                tracks.clear()
+                tracks.addAll(result)
+                adapter.submitList(tracks.toList())
+
+                stubEmptySearch.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
+                trackRecyclerView.visibility = if (tracks.isNotEmpty()) View.VISIBLE else View.GONE
+            }
+        }.start()
+    }
+
+    private fun openPlayer(track: Track) {
+        val intent = Intent(this, AudioPlayerActivity::class.java).apply {
+            putExtra("track", track)
+        }
+        startActivity(intent)
+    }
+}
+==== ./playlistmaker/ui/main/MainActivity.kt ====
+package com.practicum.playlistmaker.ui.main
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.ui.media.MediaActivity
+import com.practicum.playlistmaker.ui.search.SearchActivity
+import com.practicum.playlistmaker.ui.settings.SettingsActivity
+
+class MainActivity : AppCompatActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        val buttonSearch = findViewById<Button>(R.id.buttonSearch)
+        val buttonMedia = findViewById<Button>(R.id.buttonMedia)
+        val buttonSettings = findViewById<Button>(R.id.buttonSettings)
+
+        val buttonSearchClickListener: View.OnClickListener = View.OnClickListener {
+            val searchActivityIntent = Intent(this@MainActivity, SearchActivity::class.java)
+            startActivity(searchActivityIntent)
+        }
+
+        buttonSearch.setOnClickListener(buttonSearchClickListener)
+
+        buttonMedia.setOnClickListener {
+            val mediaActivityIntent = Intent(this, MediaActivity::class.java)
+            startActivity(mediaActivityIntent)
+        }
+
+        buttonSettings.setOnClickListener {
+            val displaySettingsIntent = Intent(this, SettingsActivity::class.java)
+            startActivity(displaySettingsIntent)
+        }
+    }
+}==== ./playlistmaker/ui/player/AudioPlayerActivity.kt ====
+package com.practicum.playlistmaker.ui.player
+
+import android.annotation.SuppressLint
+import android.media.MediaPlayer
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import android.view.View
+import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.Useful
+
+class AudioPlayerActivity : AppCompatActivity() {
+
+    private var mediaPlayer: MediaPlayer? = null
+    private var isPlaying = false
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var playButton: ImageButton
+    private lateinit var currentTrackTime: TextView
+    private var updateTimeRunnable: Runnable? = null
+
+    private lateinit var track: Track
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.audio_player)
+
+        track = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("track", Track::class.java)
+        } else {
+            @Suppress("DEPRECATION") intent.getParcelableExtra<Track>("track")
+        } ?: run {
+            finish()
+            return
+        }
+
+
+        currentTrackTime = findViewById(R.id.currentTrackTime)
+        playButton = findViewById(R.id.audPlayButton)
+        val trackNameTextView: TextView = findViewById(R.id.mainAlbumText)
+        val artistNameTextView: TextView = findViewById(R.id.artistName)
+        val collectionNameTextView: TextView = findViewById(R.id.audAlbumNameValue)
+        val collectionNameTextViewKey: TextView = findViewById(R.id.audAlbumNameKey)
+        val releaseDateTextView: TextView = findViewById(R.id.audYearValue)
+        val releaseDateTextViewKey: TextView = findViewById(R.id.audYearKey)
+        val genreTextView: TextView = findViewById(R.id.audGenreValue)
+        val countryTextView: TextView = findViewById(R.id.audCountryValue)
+        val trackTimeTextView: TextView = findViewById(R.id.audTrackTimeValue)
+        val artworkImageView: ImageView = findViewById(R.id.songPoster)
+        val backButton: ImageView = findViewById(R.id.audBackButton)
+
+        backButton.setOnClickListener { finish() }
+
+        trackNameTextView.text = track.trackName
+        artistNameTextView.text = track.artistsName
+        collectionNameTextView.text = track.collectionName
+        releaseDateTextView.text = track.releaseYear
+        genreTextView.text = track.primaryGenreName
+        countryTextView.text = track.country
+        trackTimeTextView.text = track.trackTime
+
+        setVisibilityBasedOnText(
+            collectionNameTextView, collectionNameTextViewKey, track.collectionName
+        )
+        setVisibilityBasedOnText(releaseDateTextView, releaseDateTextViewKey, track.releaseYear)
+
+        currentTrackTime.text = formatTime(0)
+
+        Glide.with(this).load(track.getConvertArtwork()).placeholder(R.drawable.ic_no_artwork_image)
+            .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
+
+        val previewUrl = track.previewUrl
+        if (!previewUrl.isNullOrEmpty()) {
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(previewUrl)
+                prepareAsync()
+                setOnPreparedListener {
+                    Log.d("AudioPlayer", getString(R.string.mp_not_ready_to_play))
+                    playButton.isEnabled = true
+                }
+                setOnCompletionListener { stopPlayer() }
+            }
+            playButton.isEnabled = false
+        } else {
+            playButton.isEnabled = false
+            Log.d("AudioPlayer", getString(R.string.no_url_to_play))
+            currentTrackTime.text = getString(R.string.no_preview_url)
+        }
+
+        playButton.setOnClickListener {
+            if (isPlaying) pausePlayer() else startPlayer()
+        }
+    }
+
+    private fun setVisibilityBasedOnText(valueView: View, keyView: View, text: String?) {
+        if (text.isNullOrBlank()) {
+            valueView.visibility = View.GONE
+            keyView.visibility = View.GONE
+        } else {
+            valueView.visibility = View.VISIBLE
+            keyView.visibility = View.VISIBLE
+        }
+    }
+
+    private fun startPlayer() {
+        if (mediaPlayer == null) {
+            Toast.makeText(this, getString(R.string.mp_not_ready), Toast.LENGTH_SHORT).show()
+            return
+        }
+        mediaPlayer?.start()
+        isPlaying = true
+        playButton.setImageResource(R.drawable.btn_aud_pause)
+        startUpdatingTime()
+    }
+
+    private fun pausePlayer() {
+        mediaPlayer?.pause()
+        isPlaying = false
+        playButton.setImageResource(R.drawable.btn_aud_play)
+        stopUpdatingTime()
+    }
+
+    @SuppressLint("SetTextI18n")
+    private fun stopPlayer() {
+        mediaPlayer?.seekTo(0)
+        mediaPlayer?.pause()
+        isPlaying = false
+        playButton.setImageResource(R.drawable.btn_aud_play)
+        currentTrackTime.text = "00:00"
+        stopUpdatingTime()
+    }
+
+    private fun startUpdatingTime() {
+        updateTimeRunnable = object : Runnable {
+            override fun run() {
+                val currentPosition = mediaPlayer?.currentPosition ?: 0
+                currentTrackTime.text = formatTime(currentPosition)
+                handler.postDelayed(this, 500)
+            }
+        }.also { handler.post(it) }
+    }
+
+    private fun stopUpdatingTime() {
+        updateTimeRunnable?.let { handler.removeCallbacks(it) }
+    }
+
+    @SuppressLint("DefaultLocale")
+    private fun formatTime(ms: Int): String {
+        val seconds = ms / 1000
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        return String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (isPlaying) pausePlayer()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
+        stopUpdatingTime()
+    }
+}
+==== ./playlistmaker/presentation/adapter/TrackAdapter.kt ====
+package com.practicum.playlistmaker.presentation.adapter
+
+import android.annotation.SuppressLint
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
+
+class TrackAdapter(
+    private val onTrackClick: (Track) -> Unit
+) : RecyclerView.Adapter<TrackViewHolder>() {
+    private val items = mutableListOf<Track>()
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun submitList(newList: List<Track>) {
+        items.clear()
+        items.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
+        return TrackViewHolder(parent, onTrackClick)
+    }
+
+    override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+}==== ./playlistmaker/presentation/util/Useful.kt ====
+package com.practicum.playlistmaker.presentation.util
+
+import android.content.Context
+import android.util.TypedValue
+
+class Useful {
+    companion object {
+        fun dpToPx(dp: Float, context: Context): Int {
+            return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, context.resources.displayMetrics
+            ).toInt()
+        }
+    }
+}==== ./playlistmaker/presentation/search/SearchViewModel.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+
+class SearchViewModel(
+    private val searchTracksUseCase: SearchTracksUseCase,
+    private val getHistoryUseCase: GetSearchHistoryUseCase,
+    private val clearHistoryUseCase: ClearSearchHistoryUseCase,
+    private val addTrackUseCase: AddTrackToHistoryUseCase,
+
+    ) : ViewModel() {
+
+    private val _historyLiveData = MutableLiveData<List<Track>>()
+    val historyLiveData: LiveData<List<Track>> = _historyLiveData
+
+    init {
+        refreshHistory()
+    }
+
+    fun searchTracks(query: String): List<Track> {
+        return searchTracksUseCase.execute(query)
+    }
+
+    fun getHistory(): List<Track> = getHistoryUseCase.execute()
+
+    fun addTrackToHistory(track: Track) {
+        addTrackUseCase.execute(track)
+        refreshHistory()
+    }
+
+    fun clearHistory() {
+        clearHistoryUseCase.execute()
+        refreshHistory()
+    }
+
+    private fun refreshHistory() {
+        _historyLiveData.value = getHistoryUseCase.execute()
+    }
+}
+==== ./playlistmaker/presentation/viewholder/TrackViewHolder.kt ====
+package com.practicum.playlistmaker.presentation.viewholder
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.Useful
+
+class TrackViewHolder(
+    parent: ViewGroup, private val onTrackClick: (Track) -> Unit
+) : RecyclerView.ViewHolder(
+    LayoutInflater.from(parent.context).inflate(R.layout.activity_record_item, parent, false)
+) {
+    private val trackName: TextView = itemView.findViewById(R.id.track_name)
+    private val artistsName: TextView = itemView.findViewById(R.id.artists_name)
+    private val trackTime: TextView = itemView.findViewById(R.id.trackTime)
+    private val artworkImage: ImageView = itemView.findViewById(R.id.artwork_image)
+
+    fun bind(item: Track) {
+        trackName.text = item.trackName
+        artistsName.text = item.artistsName
+        trackTime.text = item.trackTime
+
+        Glide.with(itemView).load(item.artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
+            .fitCenter().transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
+            .into(artworkImage)
+
+        itemView.setOnClickListener {
+            onTrackClick(item)
+        }
+    }
+}
+==== ./playlistmaker/domain/track/SearchTracksUseCase.kt ====
+package com.practicum.playlistmaker.domain.track
+
+class SearchTracksUseCase(
+    private val repository: TracksRepository
+) {
+
+    fun execute(searchText: String): List<Track> {
+        return repository.searchTrack(searchText)
+    }
+}==== ./playlistmaker/domain/track/Track.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Parcelize
+data class Track(
+    val trackId: Int?,
+    val trackName: String?,
+    val artistsName: String?,
+    private val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+) : Parcelable {
+    val trackTime: String?
+        get() = trackTimeMillis?.let {
+            SimpleDateFormat("mm:ss", Locale.getDefault()).format(Date(it))
+        }
+
+    val releaseYear: String?
+        get() = releaseDate?.let {
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date = inputFormat.parse(it)
+                val outputFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+                outputFormat.format(date!!)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    fun getConvertArtwork(): String {
+        return artworkUrl100?.replaceAfterLast("/", "512x512bb.jpg") ?: ""
+    }
+}==== ./playlistmaker/domain/track/TracksRepository.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import com.practicum.playlistmaker.domain.track.Track
+
+interface TracksRepository {
+    fun searchTrack(searchString: String): List<Track>
+}==== ./playlistmaker/domain/history/AddTrackToHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+
+class AddTrackToHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(track: Track) {
+        repository.addTrack(track)
+    }
+}
+==== ./playlistmaker/domain/history/ClearSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+
+class ClearSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute() {
+        repository.clearHistory()
+    }
+}
+==== ./playlistmaker/domain/history/GetSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+
+class GetSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(): List<Track> = repository.getHistory()
+}
+==== ./playlistmaker/domain/history/SearchHistoryRepository.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+
+interface SearchHistoryRepository {
+
+    fun getHistory(): List<Track>
+
+    fun addTrack(track: Track)
+
+    fun clearHistory()
+}==== ./playlistmaker/domain/theme/ThemeSwitcher.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+import android.app.Application
+import android.content.SharedPreferences
+import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import androidx.core.content.edit
+
+class ThemeSwitcher : Application() {
+
+    private lateinit var prefs: SharedPreferences
+
+    override fun onCreate() {
+        super.onCreate()
+        prefs = getSharedPreferences(SharedPrefs.PREFS_SETTINGS, MODE_PRIVATE)
+        applyThemeAccordingToUserOrSystem()
+    }
+
+    fun switchTheme(darkMode: Boolean) {
+        prefs.edit { putBoolean(SharedPrefs.DARK_MODE_KEY, darkMode) }
+        applyTheme(darkMode)
+    }
+
+    private fun applyTheme(darkMode: Boolean) {
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
+    }
+
+    fun isDarkMode(): Boolean {
+        return if (prefs.contains(SharedPrefs.DARK_MODE_KEY)) {
+            prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+        } else {
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+    }
+
+    private fun applyThemeAccordingToUserOrSystem() {
+        if (prefs.contains(SharedPrefs.DARK_MODE_KEY)) {
+            val isDarkMode = prefs.getBoolean(SharedPrefs.DARK_MODE_KEY, false)
+            applyTheme(isDarkMode)
+        } else {
+            val isSystemDark =
+                (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            applyTheme(isSystemDark)
+        }
+    }
+}==== ./playlistmaker/creator/Creator.kt ====
+package com.practicum.playlistmaker.creator
+
+import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
+import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+
+object Creator {
+
+    private fun getTracksRepository(): TracksRepository {
+        return TracksRepositoryImpl(RetrofitNetworkClient())
+    }
+
+    fun provideSearchTracksUseCase(): SearchTracksUseCase {
+        return SearchTracksUseCase(getTracksRepository())
+    }
+}==== ./playlistmaker/data/NetworkClient.kt ====
+package com.practicum.playlistmaker.data
+
+import com.practicum.playlistmaker.data.dto.Response
+
+interface NetworkClient {
+    fun doRequest(dto: Any): Response
+}==== ./playlistmaker/data/storage/SharedPrefs.kt ====
+package com.practicum.playlistmaker.data.storage
+
+class SharedPrefs {
+    companion object {
+        const val PREFS_SETTINGS = "settings"
+        const val DARK_MODE_KEY = "dark_mode"
+        const val PREFS_SEARCH_HISTORY = "search_history"
+    }
+}==== ./playlistmaker/data/network/RetrofitNetworkClient.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.Response
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+class RetrofitNetworkClient : NetworkClient {
+
+    private val iTunesBaseUrl = "https://itunes.apple.com"
+
+    private val retrofit =
+        Retrofit.Builder().baseUrl(iTunesBaseUrl).addConverterFactory(GsonConverterFactory.create())
+            .build()
+
+    private val iTunesService = retrofit.create(ITunesApi::class.java)
+
+    override fun doRequest(dto: Any): Response {
+        if (dto is TracksSearchRequest) {
+            val resp = iTunesService.findSong(dto.expression).execute()
+
+            val body = resp.body() ?: Response()
+
+            return body.apply { resultCode = resp.code() }
+        } else {
+            return Response().apply { resultCode = 400 }
+        }
+    }
+}==== ./playlistmaker/data/network/ITunesApi.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import retrofit2.Call
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface ITunesApi {
+    @GET("/search?entity=song")
+    fun findSong(@Query("term") text: String): Call<TracksSearchResponse>
+}==== ./playlistmaker/data/repository/TracksRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.repository
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.domain.track.Track
+import java.util.Objects
+
+class TracksRepositoryImpl(private val networkClient: NetworkClient) : TracksRepository {
+    override fun searchTrack(searchString: String): List<Track> {
+        val response = networkClient.doRequest(TracksSearchRequest(searchString))
+        if (response.resultCode == 200) {
+            return (response as TracksSearchResponse).results.filter { Objects.nonNull(it) }.map {
+                Track(
+                    it.trackId,
+                    it.trackName,
+                    it.artistsName,
+                    it.trackTimeMillis,
+                    it.artworkUrl100,
+                    it.previewUrl,
+                    it.collectionName,
+                    it.releaseDate,
+                    it.primaryGenreName,
+                    it.country
+                )
+            }
+        } else {
+            return emptyList()
+        }
+    }
+}==== ./playlistmaker/data/history/SearchHistoryRepositorImpl.kt ====
+package com.practicum.playlistmaker.data.history
+
+import android.content.SharedPreferences
+import androidx.core.content.edit
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.track.Track
+
+class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreferences) : SearchHistoryRepository {
+
+    private val gson = Gson()
+    private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY
+    private val maxHistorySize = 10
+
+    override fun getHistory(): List<Track> {
+        val json = sharedPreferences.getString(historyKey, null) ?: return emptyList()
+        val type = object : TypeToken<List<Track>>() {}.type
+        return gson.fromJson(json, type)
+    }
+
+    override fun addTrack(track: Track) {
+        val history = getHistory().toMutableList()
+
+        history.removeAll { it.trackId == track.trackId }
+
+        history.add(0, track)
+
+        if (history.size > maxHistorySize) {
+            history.subList(maxHistorySize, history.size).clear()
+        }
+
+        saveHistory(history)
+    }
+
+    override fun clearHistory() {
+        sharedPreferences.edit { remove(historyKey) }
+    }
+
+    private fun saveHistory(history: List<Track>) {
+        val limitedHistory =
+            if (history.size > maxHistorySize) history.subList(0, maxHistorySize) else history
+        val json = gson.toJson(limitedHistory)
+        sharedPreferences.edit { putString(historyKey, json) }
+    }
+}==== ./playlistmaker/data/dto/TrackDto.kt ====
+package com.practicum.playlistmaker.data.dto
+
+import com.google.gson.annotations.SerializedName
+
+data class TrackDto(
+    val trackId: Int?,
+    val trackName: String?,
+    @SerializedName("artistName") val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+)
+==== ./playlistmaker/data/dto/Response.kt ====
+package com.practicum.playlistmaker.data.dto
+
+open class Response() {
+    var resultCode = 0
+}==== ./playlistmaker/data/dto/TracksSearchResponse.kt ====
+package com.practicum.playlistmaker.data.dto
+
+class TracksSearchResponse(
+    val results: List<TrackDto>) : Response()==== ./playlistmaker/data/dto/TracksSearchRequest.kt ====
+package com.practicum.playlistmaker.data.dto
+
+data class TracksSearchRequest(val expression: String)

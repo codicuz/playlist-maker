@@ -20,12 +20,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.creator.Creator
-import com.practicum.playlistmaker.data.history.SearchHistoryImpl
+import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
 import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.presentation.search.SearchViewModel
 import com.practicum.playlistmaker.ui.player.AudioPlayerActivity
@@ -67,7 +67,7 @@ class SearchActivity : AppCompatActivity() {
         initViews()
 
         val prefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
-        val historyRepository = SearchHistoryImpl(prefs)
+        val historyRepository = SearchHistoryRepositorImpl(prefs)
         val getHistoryUseCase = GetSearchHistoryUseCase(historyRepository)
         val addTrackUseCase = AddTrackToHistoryUseCase(historyRepository)
         val clearHistoryUseCase = ClearSearchHistoryUseCase(historyRepository)

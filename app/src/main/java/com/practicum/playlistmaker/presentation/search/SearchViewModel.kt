@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
 import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
-import com.practicum.playlistmaker.domain.model.Track
-import com.practicum.playlistmaker.domain.usecase.SearchTracksUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
 
 class SearchViewModel(
     private val searchTracksUseCase: SearchTracksUseCase,
