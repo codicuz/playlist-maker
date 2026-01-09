@@ -15,7 +15,6 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.practicum.playlistmaker.R
@@ -77,17 +76,45 @@ class SearchActivity : AppCompatActivity() {
             searchTracksUseCase, getHistoryUseCase, addTrackUseCase, clearHistoryUseCase
         )
 
-        searchViewModel.historyLiveData.observe(this, Observer { history ->
-            historyAdapter.submitList(ArrayList(history))
-            updateSearchHistoryVisibility(history)
-        })
+        searchViewModel.state.observe(this) { state ->
+            if (!searchEditText.hasFocus()) return@observe
 
-        searchViewModel.tracksLiveData.observe(this, Observer { tracks ->
+            val query = searchEditText.text.toString()
+
+            if (query.isEmpty()) {
+                if (state.history.isNotEmpty()) {
+                    searchHistoryView.visibility = View.VISIBLE
+                    historyRecyclerView.visibility = View.VISIBLE
+                    clearHistoryButton.visibility = View.VISIBLE
+
+                    historyAdapter.submitList(state.history)
+                } else {
+                    searchHistoryView.visibility = View.GONE
+                    historyRecyclerView.visibility = View.GONE
+                    clearHistoryButton.visibility = View.GONE
+                }
+
+                trackRecyclerView.visibility = View.GONE
+                stubEmptySearch.visibility = View.GONE
+                progressBar.visibility = View.GONE
+                return@observe
+            }
+
+            searchHistoryView.visibility = View.GONE
+            historyRecyclerView.visibility = View.GONE
+            clearHistoryButton.visibility = View.GONE
+
             progressBar.visibility = View.GONE
-            adapter.submitList(tracks)
-            stubEmptySearch.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
-            trackRecyclerView.visibility = if (tracks.isNotEmpty()) View.VISIBLE else View.GONE
-        })
+
+            if (state.tracks.isNotEmpty()) {
+                adapter.submitList(state.tracks)
+                trackRecyclerView.visibility = View.VISIBLE
+                stubEmptySearch.visibility = View.GONE
+            } else {
+                trackRecyclerView.visibility = View.GONE
+                stubEmptySearch.visibility = View.VISIBLE
+            }
+        }
 
         setupListeners()
 
@@ -140,30 +167,46 @@ class SearchActivity : AppCompatActivity() {
         searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {}
+
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
-                val query = s.toString().trim()
+
+                val query = s?.toString()?.trim().orEmpty()
+
+                if (query.isEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchViewModel.clearSearchResults()
+
+                    return
+                }
+
                 if (query != currentQuery) {
                     currentQuery = query
+
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
-                    if (query.isNotEmpty()) {
-                        searchRunnableOnTextChanged = Runnable {
-                            searchHistoryView.visibility = View.GONE
-                            progressBar.visibility = View.VISIBLE
-                            searchViewModel.searchTracks(query)
-                            hideKeyboard()
-                        }
-                        handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
+
+                    searchRunnableOnTextChanged = Runnable {
+                        searchHistoryView.visibility = View.GONE
+                        progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
+                        hideKeyboard()
                     }
+
+                    handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
                 }
             }
         })
 
-        searchEditText.setOnFocusChangeListener { _, _ ->
-            searchViewModel.historyLiveData.value?.let {
-                updateSearchHistoryVisibility(it)
+        searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                searchViewModel.loadHistory()
+            } else {
+                hideAllContent()
             }
         }
+
+
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -195,6 +238,17 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
+    private fun hideAllContent() {
+        searchHistoryView.visibility = View.GONE
+        historyRecyclerView.visibility = View.GONE
+        clearHistoryButton.visibility = View.GONE
+
+        trackRecyclerView.visibility = View.GONE
+        stubEmptySearch.visibility = View.GONE
+        stubServerError.visibility = View.GONE
+        progressBar.visibility = View.GONE
+    }
+
     private fun updateSearchHistoryVisibility(history: List<Track>) {
         val isEmptyQuery = searchEditText.text.isEmpty()
         if (searchEditText.hasFocus() && isEmptyQuery && history.isNotEmpty()) {
@@ -211,7 +265,7 @@ class SearchActivity : AppCompatActivity() {
     private fun clearSearch() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
-        searchViewModel.historyLiveData.value?.let {
+        searchViewModel.state.value?.history?.let {
             updateSearchHistoryVisibility(it)
         }
         trackRecyclerView.visibility = View.GONE

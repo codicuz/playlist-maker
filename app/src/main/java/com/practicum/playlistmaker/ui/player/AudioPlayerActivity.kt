@@ -54,33 +54,32 @@ class AudioPlayerActivity : AppCompatActivity() {
 
         track?.let { viewModel.setTrack(it) } ?: run { finish() }
 
-        viewModel.trackLiveData.observe(this) { track ->
-            trackNameTextView.text = track.trackName ?: "-"
-            artistNameTextView.text = track.artistsName ?: "-"
-            albumNameTextView.text = track.collectionName ?: "-"
-            releaseYearTextView.text = track.releaseYear ?: "-"
-            genreTextView.text = track.primaryGenreName ?: "-"
-            countryTextView.text = track.country ?: "-"
+        viewModel.state.observe(this) { state ->
+            state.track?.let { track ->
+                trackNameTextView.text = track.trackName ?: "-"
+                artistNameTextView.text = track.artistsName ?: "-"
+                albumNameTextView.text = track.collectionName ?: "-"
+                releaseYearTextView.text = track.releaseYear ?: "-"
+                genreTextView.text = track.primaryGenreName ?: "-"
+                countryTextView.text = track.country ?: "-"
 
-            Glide.with(this).load(track.getConvertArtwork())
-                .placeholder(R.drawable.ic_no_artwork_image)
-                .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
+                Glide.with(this)
+                    .load(track.getConvertArtwork())
+                    .placeholder(R.drawable.ic_no_artwork_image)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, this)))
+                    .into(artworkImageView)
+            }
 
-            currentTrackTime.text = formatTime(0)
-        }
-
-        viewModel.currentPosition.observe(this) { pos ->
-            currentTrackTime.text = formatTime(pos)
-        }
-
-        viewModel.isPlaying.observe(this) { isPlaying ->
+            currentTrackTime.text = formatTime(state.currentPosition)
             playButton.setImageResource(
-                if (isPlaying) R.drawable.btn_aud_pause else R.drawable.btn_aud_play
+                if (state.isPlaying) R.drawable.btn_aud_pause
+                else R.drawable.btn_aud_play
             )
         }
 
         playButton.setOnClickListener {
-            if (viewModel.isPlaying.value == true) viewModel.pausePlayer()
+            val isPlaying = viewModel.state.value?.isPlaying ?: false
+            if (isPlaying) viewModel.pausePlayer()
             else viewModel.startPlayer()
         }
     }

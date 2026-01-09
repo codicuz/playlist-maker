@@ -10,49 +10,24 @@ import com.practicum.playlistmaker.domain.track.Track
 
 class AudioPlayerViewModel : ViewModel() {
 
+    private val _state = MutableLiveData(AudioPlayerScreenState())
+    val state: LiveData<AudioPlayerScreenState> = _state
+
     private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var updateTimeRunnable: Runnable? = null
-
-    private val _trackLiveData = MutableLiveData<Track>()
-    val trackLiveData: LiveData<Track> = _trackLiveData
-
-    private val _isPlaying = MutableLiveData(false)
-    val isPlaying: LiveData<Boolean> = _isPlaying
-
-    private val _currentPosition = MutableLiveData(0)
-    val currentPosition: LiveData<Int> = _currentPosition
-
     private var isPrepared = false
 
     fun setTrack(track: Track) {
-        _trackLiveData.value = track
+        _state.value = _state.value?.copy(track = track)
         initPlayer(track.previewUrl)
-    }
-
-    private fun initPlayer(previewUrl: String?) {
-        if (previewUrl.isNullOrEmpty()) return
-
-        releasePlayer()
-
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(previewUrl)
-            setOnPreparedListener {
-                isPrepared = true
-                _isPlaying.value = false
-            }
-            setOnCompletionListener {
-                stopPlayer()
-            }
-            prepareAsync()
-        }
     }
 
     fun startPlayer() {
         mediaPlayer?.let {
             if (isPrepared && !it.isPlaying) {
                 it.start()
-                _isPlaying.value = true
+                _state.value = _state.value?.copy(isPlaying = true)
                 startUpdatingTime()
             }
         }
@@ -62,19 +37,7 @@ class AudioPlayerViewModel : ViewModel() {
         mediaPlayer?.let {
             if (isPrepared && it.isPlaying) {
                 it.pause()
-                _isPlaying.value = false
-                stopUpdatingTime()
-            }
-        }
-    }
-
-    private fun stopPlayer() {
-        mediaPlayer?.let {
-            if (isPrepared) {
-                it.pause()
-                it.seekTo(0)
-                _isPlaying.value = false
-                _currentPosition.value = 0
+                _state.value = _state.value?.copy(isPlaying = false)
                 stopUpdatingTime()
             }
         }
@@ -83,7 +46,9 @@ class AudioPlayerViewModel : ViewModel() {
     private fun startUpdatingTime() {
         updateTimeRunnable = object : Runnable {
             override fun run() {
-                _currentPosition.value = mediaPlayer?.currentPosition ?: 0
+                _state.value = _state.value?.copy(
+                    currentPosition = mediaPlayer?.currentPosition ?: 0
+                )
                 handler.postDelayed(this, 500)
             }
         }.also { handler.post(it) }
@@ -91,6 +56,24 @@ class AudioPlayerViewModel : ViewModel() {
 
     private fun stopUpdatingTime() {
         updateTimeRunnable?.let { handler.removeCallbacks(it) }
+    }
+
+    private fun initPlayer(previewUrl: String?) {
+        if (previewUrl.isNullOrEmpty()) return
+        releasePlayer()
+
+        mediaPlayer = MediaPlayer().apply {
+            setDataSource(previewUrl)
+            setOnPreparedListener {
+                isPrepared = true
+                _state.value = _state.value?.copy(isPlaying = false)
+            }
+            setOnCompletionListener {
+                pausePlayer()
+                _state.value = _state.value?.copy(currentPosition = 0)
+            }
+            prepareAsync()
+        }
     }
 
     private fun releasePlayer() {
@@ -101,7 +84,7 @@ class AudioPlayerViewModel : ViewModel() {
     }
 
     override fun onCleared() {
-        super.onCleared()
         releasePlayer()
     }
 }
+

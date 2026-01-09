@@ -36,6 +36,7 @@
                 android:maxLength="200"
                 android:maxLines="1"
                 android:paddingHorizontal="13dp"
+                android:textCursorDrawable="@drawable/ic_cursor"
                 android:singleLine="true" />
 
             <ImageButton

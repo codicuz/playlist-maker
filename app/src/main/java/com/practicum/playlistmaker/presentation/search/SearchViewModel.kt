@@ -19,22 +19,30 @@ class SearchViewModel(
     private val clearHistoryUseCase: ClearSearchHistoryUseCase
 ) : ViewModel() {
 
-    private val _historyLiveData = MutableLiveData<List<Track>>()
-    val historyLiveData: LiveData<List<Track>> = _historyLiveData
+    private val _state = MutableLiveData(SearchScreenState())
+    val state: LiveData<SearchScreenState> = _state
 
-    private val _tracksLiveData = MutableLiveData<List<Track>>()
-    val tracksLiveData: LiveData<List<Track>> = _tracksLiveData
-
-    init {
-        refreshHistory()
-    }
+    private val _hasSearched = MutableLiveData(false)
 
     fun searchTracks(query: String) {
+        _hasSearched.postValue(true)
         viewModelScope.launch(Dispatchers.IO) {
-            val result = searchTracksUseCase.execute(query)
-            _tracksLiveData.postValue(result)
+            val tracks = searchTracksUseCase.execute(query)
+            _state.postValue(
+                _state.value?.copy(tracks = tracks)
+            )
         }
     }
+
+    fun loadHistory() {
+        val history = getHistoryUseCase.execute()
+        _state.value = _state.value?.copy(history = history)
+    }
+
+    fun clearSearchResults() {
+        _state.value = _state.value?.copy(tracks = emptyList())
+    }
+
 
     fun addTrackToHistory(track: Track) {
         addTrackUseCase.execute(track)
@@ -47,6 +55,7 @@ class SearchViewModel(
     }
 
     private fun refreshHistory() {
-        _historyLiveData.value = getHistoryUseCase.execute()
+        val history = getHistoryUseCase.execute()
+        _state.value = _state.value?.copy(history = history)
     }
 }
