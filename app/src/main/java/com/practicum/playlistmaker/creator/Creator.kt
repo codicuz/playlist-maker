@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
+import com.practicum.playlistmaker.data.network.ITunesApi
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
@@ -20,21 +21,13 @@ import com.practicum.playlistmaker.domain.track.TracksRepository
 import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModelFactory
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 object Creator {
 
     private var mediaPlayerInstance: MediaPlayer? = null
 
-    // TracksRepository через RetrofitNetworkClient
-    private fun getTracksRepository(): TracksRepository {
-        return TracksRepositoryImpl(RetrofitNetworkClient())
-    }
-
-    fun provideSearchTracksUseCase(): SearchTracksUseCase {
-        return SearchTracksUseCase(getTracksRepository())
-    }
-
-    // MediaPlayer
     fun provideMediaPlayer(): MediaPlayer {
         if (mediaPlayerInstance == null) {
             mediaPlayerInstance = MediaPlayer()
@@ -46,7 +39,6 @@ object Creator {
         return AudioPlayerViewModel(provideMediaPlayer())
     }
 
-    // ThemeViewModel
     fun provideThemeViewModel(application: Application): ThemeViewModel {
         val prefs = application.getSharedPreferences(
             SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE
@@ -76,5 +68,25 @@ object Creator {
 
     fun provideGetSearchHistoryUseCase(application: Application): GetSearchHistoryUseCase {
         return GetSearchHistoryUseCase(provideSearchHistoryRepository(application))
+    }
+
+    private const val ITUNES_BASE_URL = "https://itunes.apple.com"
+
+    fun provideRetrofit(): Retrofit {
+        return Retrofit.Builder().baseUrl(ITUNES_BASE_URL)
+            .addConverterFactory(GsonConverterFactory.create()).build()
+    }
+
+    fun provideITunesApi(): ITunesApi {
+        return provideRetrofit().create(ITunesApi::class.java)
+    }
+
+    fun provideTracksRepository(): TracksRepository {
+        val networkClient = RetrofitNetworkClient(provideITunesApi())
+        return TracksRepositoryImpl(networkClient)
+    }
+
+    fun provideSearchTracksUseCase(): SearchTracksUseCase {
+        return SearchTracksUseCase(provideTracksRepository())
     }
 }
