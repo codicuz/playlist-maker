@@ -8,7 +8,8 @@ import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
 import com.practicum.playlistmaker.domain.track.Track
 
-class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreferences) : SearchHistoryRepository {
+class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreferences) :
+    SearchHistoryRepository {
 
     private val gson = Gson()
     private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY

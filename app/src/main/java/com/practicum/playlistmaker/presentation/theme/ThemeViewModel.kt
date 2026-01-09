@@ -1,20 +1,21 @@
-package com.practicum.playlistmaker.presentation.settings
+package com.practicum.playlistmaker.presentation.theme
 
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
+import com.practicum.playlistmaker.presentation.settings.SingleLiveEvent
 
 class ThemeViewModel(
     private val switchThemeUseCase: SwitchThemeUseCase,
     private val getThemeUseCase: GetThemeUseCase
 ) : ViewModel() {
 
-    private val _isDarkMode = MutableLiveData<Boolean>()
+    private val _isDarkMode = SingleLiveEvent<Boolean>()
     val isDarkModeLiveData: LiveData<Boolean> = _isDarkMode
 
-    private val _uiEvent = MutableLiveData<SettingsUiEvent>()
+    private val _uiEvent = SingleLiveEvent<SettingsUiEvent>()
     val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
 
     init {
@@ -38,4 +39,3 @@ class ThemeViewModel(
         _uiEvent.value = SettingsUiEvent.ShareApp
     }
 }
-

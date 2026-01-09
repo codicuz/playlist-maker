@@ -33,9 +33,9 @@ import com.practicum.playlistmaker.ui.player.AudioPlayerActivity
 class SearchActivity : AppCompatActivity() {
 
     private lateinit var searchViewModel: SearchViewModel
-
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
+
     private lateinit var searchEditText: EditText
     private lateinit var clearButton: ImageView
     private lateinit var trackRecyclerView: RecyclerView
@@ -47,7 +47,6 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var searchHistoryView: View
     private lateinit var progressBar: ProgressBar
 
-    private val tracks = mutableListOf<Track>()
     private var currentQuery = ""
 
     private val handler = Handler(Looper.getMainLooper())
@@ -65,32 +64,37 @@ class SearchActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search)
 
         initViews()
+        setupAdapters()
 
         val prefs = getSharedPreferences(SharedPrefs.PREFS_SEARCH_HISTORY, MODE_PRIVATE)
         val historyRepository = SearchHistoryRepositorImpl(prefs)
         val getHistoryUseCase = GetSearchHistoryUseCase(historyRepository)
         val addTrackUseCase = AddTrackToHistoryUseCase(historyRepository)
         val clearHistoryUseCase = ClearSearchHistoryUseCase(historyRepository)
+        val searchTracksUseCase = Creator.provideSearchTracksUseCase()
 
         searchViewModel = SearchViewModel(
-            searchTracksUseCase = Creator.provideSearchTracksUseCase(),
-            getHistoryUseCase = getHistoryUseCase,
-            addTrackUseCase = addTrackUseCase,
-            clearHistoryUseCase = clearHistoryUseCase
+            searchTracksUseCase, getHistoryUseCase, addTrackUseCase, clearHistoryUseCase
         )
-
-        setupAdapters()
-        setupListeners()
 
         searchViewModel.historyLiveData.observe(this, Observer { history ->
             historyAdapter.submitList(ArrayList(history))
-            updateSearchHistoryVisibility()
+            updateSearchHistoryVisibility(history)
         })
+
+        searchViewModel.tracksLiveData.observe(this, Observer { tracks ->
+            progressBar.visibility = View.GONE
+            adapter.submitList(tracks)
+            stubEmptySearch.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
+            trackRecyclerView.visibility = if (tracks.isNotEmpty()) View.VISIBLE else View.GONE
+        })
+
+        setupListeners()
 
         currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
         if (currentQuery.isNotEmpty()) {
             searchEditText.setText(currentQuery)
-            searchTrack(currentQuery)
+            searchViewModel.searchTracks(currentQuery)
         }
     }
 
@@ -119,7 +123,6 @@ class SearchActivity : AppCompatActivity() {
             searchViewModel.addTrackToHistory(track)
             openPlayer(track)
         }
-        adapter.submitList(tracks.toList())
         trackRecyclerView.layoutManager = LinearLayoutManager(this)
         trackRecyclerView.adapter = adapter
 
@@ -146,7 +149,8 @@ class SearchActivity : AppCompatActivity() {
                     if (query.isNotEmpty()) {
                         searchRunnableOnTextChanged = Runnable {
                             searchHistoryView.visibility = View.GONE
-                            searchTrack(query)
+                            progressBar.visibility = View.VISIBLE
+                            searchViewModel.searchTracks(query)
                             hideKeyboard()
                         }
                         handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
@@ -155,7 +159,11 @@ class SearchActivity : AppCompatActivity() {
             }
         })
 
-        searchEditText.setOnFocusChangeListener { _, _ -> updateSearchHistoryVisibility() }
+        searchEditText.setOnFocusChangeListener { _, _ ->
+            searchViewModel.historyLiveData.value?.let {
+                updateSearchHistoryVisibility(it)
+            }
+        }
 
         searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
@@ -165,7 +173,8 @@ class SearchActivity : AppCompatActivity() {
                     searchRunnableOnDone?.let { handler.removeCallbacks(it) }
                     searchRunnableOnDone = Runnable {
                         searchHistoryView.visibility = View.GONE
-                        searchTrack(query)
+                        progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
                         hideKeyboard()
                     }
                     handler.postDelayed(searchRunnableOnDone!!, debounceDelayDone)
@@ -175,7 +184,10 @@ class SearchActivity : AppCompatActivity() {
         }
 
         refreshButton.setOnClickListener {
-            if (currentQuery.isNotBlank()) searchTrack(currentQuery)
+            if (currentQuery.isNotBlank()) {
+                progressBar.visibility = View.VISIBLE
+                searchViewModel.searchTracks(currentQuery)
+            }
         }
 
         clearHistoryButton.setOnClickListener {
@@ -183,10 +195,7 @@ class SearchActivity : AppCompatActivity() {
         }
     }
 
-    private fun updateSearchHistoryVisibility() {
-        val history = searchViewModel.getHistory()
-        historyAdapter.submitList(ArrayList(history))
-
+    private fun updateSearchHistoryVisibility(history: List<Track>) {
         val isEmptyQuery = searchEditText.text.isEmpty()
         if (searchEditText.hasFocus() && isEmptyQuery && history.isNotEmpty()) {
             searchHistoryView.visibility = View.VISIBLE
@@ -202,49 +211,19 @@ class SearchActivity : AppCompatActivity() {
     private fun clearSearch() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
-
-        val history = searchViewModel.getHistory()
-        if (history.isNotEmpty()) {
-            searchHistoryView.visibility = View.VISIBLE
-            historyRecyclerView.visibility = View.VISIBLE
-            clearHistoryButton.visibility = View.VISIBLE
-        } else {
-            searchHistoryView.visibility = View.GONE
+        searchViewModel.historyLiveData.value?.let {
+            updateSearchHistoryVisibility(it)
         }
-
         trackRecyclerView.visibility = View.GONE
         stubEmptySearch.visibility = View.GONE
         stubServerError.visibility = View.GONE
-
-        tracks.clear()
+        adapter.submitList(emptyList())
         hideKeyboard()
     }
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
-    }
-
-    private fun searchTrack(query: String) {
-        searchHistoryView.visibility = View.GONE
-        stubServerError.visibility = View.GONE
-        stubEmptySearch.visibility = View.GONE
-        trackRecyclerView.visibility = View.GONE
-        progressBar.visibility = View.VISIBLE
-
-        Thread {
-            val result = searchViewModel.searchTracks(query)
-
-            runOnUiThread {
-                progressBar.visibility = View.GONE
-                tracks.clear()
-                tracks.addAll(result)
-                adapter.submitList(tracks.toList())
-
-                stubEmptySearch.visibility = if (tracks.isEmpty()) View.VISIBLE else View.GONE
-                trackRecyclerView.visibility = if (tracks.isNotEmpty()) View.VISIBLE else View.GONE
-            }
-        }.start()
     }
 
     private fun openPlayer(track: Track) {

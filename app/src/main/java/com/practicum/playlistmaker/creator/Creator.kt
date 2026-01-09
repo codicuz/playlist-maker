@@ -7,9 +7,10 @@ import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
-import com.practicum.playlistmaker.domain.track.TracksRepository
 import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
-import com.practicum.playlistmaker.presentation.settings.ThemeViewModel
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModelFactory
 
 object Creator {
 
@@ -33,6 +34,7 @@ object Creator {
         val switchThemeUseCase = SwitchThemeUseCase(repository)
         val getThemeUseCase = GetThemeUseCase(repository)
 
-        return ThemeViewModel(switchThemeUseCase, getThemeUseCase)
+        val factory = ThemeViewModelFactory(switchThemeUseCase, getThemeUseCase)
+        return factory.create(ThemeViewModel::class.java)
     }
 }
