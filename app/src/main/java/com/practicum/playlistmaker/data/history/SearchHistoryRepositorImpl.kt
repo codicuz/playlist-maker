@@ -8,8 +8,9 @@ import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
 import com.practicum.playlistmaker.domain.track.Track
 
-class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreferences) :
-    SearchHistoryRepository {
+class SearchHistoryRepositorImpl(
+    private val sharedPreferences: SharedPreferences
+) : SearchHistoryRepository {
 
     private val gson = Gson()
     private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY
@@ -23,15 +24,11 @@ class SearchHistoryRepositorImpl(private val sharedPreferences: SharedPreference
 
     override fun addTrack(track: Track) {
         val history = getHistory().toMutableList()
-
         history.removeAll { it.trackId == track.trackId }
-
         history.add(0, track)
-
         if (history.size > maxHistorySize) {
             history.subList(maxHistorySize, history.size).clear()
         }
-
         saveHistory(history)
     }
 
