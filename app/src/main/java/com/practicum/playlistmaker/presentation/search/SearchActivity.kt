@@ -70,24 +70,23 @@ class SearchActivity : AppCompatActivity() {
 
         searchViewModel.state.observe(this) { state ->
 
-            // === РЕЗУЛЬТАТЫ ПОИСКА ===
             if (state.tracks.isNotEmpty()) {
                 adapter.submitList(state.tracks)
                 trackRecyclerView.visibility = View.VISIBLE
                 stubEmptySearch.visibility = View.GONE
             } else {
                 trackRecyclerView.visibility = View.GONE
-                stubEmptySearch.visibility = View.GONE
+
+                stubEmptySearch.visibility =
+                    if (state.hasSearched && !state.isError) View.VISIBLE
+                    else View.GONE
             }
 
-            // === ИСТОРИЯ ===
             historyAdapter.submitList(state.history)
             updateSearchHistoryVisibility(state.history)
 
-            // === ОШИБКА ===
             stubServerError.visibility = if (state.isError) View.VISIBLE else View.GONE
 
-            // === ПРОГРЕСС ===
             progressBar.visibility = View.GONE
         }
 

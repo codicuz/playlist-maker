@@ -22,24 +22,19 @@ class SearchViewModel(
     private val _state = MutableLiveData(SearchScreenState())
     val state: LiveData<SearchScreenState> = _state
 
-    private val _hasSearched = MutableLiveData(false)
-
     fun searchTracks(query: String) {
-        _hasSearched.postValue(true)
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val tracks = searchTracksUseCase.execute(query)
                 _state.postValue(
                     _state.value?.copy(
-                        tracks = tracks,
-                        isError = false
+                        tracks = tracks, isError = false, hasSearched = true
                     )
                 )
             } catch (e: Exception) {
                 _state.postValue(
                     _state.value?.copy(
-                        tracks = emptyList(),
-                        isError = true
+                        tracks = emptyList(), isError = true, hasSearched = true
                     )
                 )
             }
@@ -52,7 +47,9 @@ class SearchViewModel(
     }
 
     fun clearSearchResults() {
-        _state.value = _state.value?.copy(tracks = emptyList())
+        _state.value = _state.value?.copy(
+            tracks = emptyList(), hasSearched = false, isError = false
+        )
     }
 
 
