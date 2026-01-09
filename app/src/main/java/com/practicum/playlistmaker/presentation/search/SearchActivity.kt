@@ -69,43 +69,26 @@ class SearchActivity : AppCompatActivity() {
         )
 
         searchViewModel.state.observe(this) { state ->
-            if (!searchEditText.hasFocus()) return@observe
 
-            val query = searchEditText.text.toString()
-
-            if (query.isEmpty()) {
-                if (state.history.isNotEmpty()) {
-                    searchHistoryView.visibility = View.VISIBLE
-                    historyRecyclerView.visibility = View.VISIBLE
-                    clearHistoryButton.visibility = View.VISIBLE
-
-                    historyAdapter.submitList(state.history)
-                } else {
-                    searchHistoryView.visibility = View.GONE
-                    historyRecyclerView.visibility = View.GONE
-                    clearHistoryButton.visibility = View.GONE
-                }
-
-                trackRecyclerView.visibility = View.GONE
-                stubEmptySearch.visibility = View.GONE
-                progressBar.visibility = View.GONE
-                return@observe
-            }
-
-            searchHistoryView.visibility = View.GONE
-            historyRecyclerView.visibility = View.GONE
-            clearHistoryButton.visibility = View.GONE
-
-            progressBar.visibility = View.GONE
-
+            // === РЕЗУЛЬТАТЫ ПОИСКА ===
             if (state.tracks.isNotEmpty()) {
                 adapter.submitList(state.tracks)
                 trackRecyclerView.visibility = View.VISIBLE
                 stubEmptySearch.visibility = View.GONE
             } else {
                 trackRecyclerView.visibility = View.GONE
-                stubEmptySearch.visibility = View.VISIBLE
+                stubEmptySearch.visibility = View.GONE
             }
+
+            // === ИСТОРИЯ ===
+            historyAdapter.submitList(state.history)
+            updateSearchHistoryVisibility(state.history)
+
+            // === ОШИБКА ===
+            stubServerError.visibility = if (state.isError) View.VISIBLE else View.GONE
+
+            // === ПРОГРЕСС ===
+            progressBar.visibility = View.GONE
         }
 
         setupListeners()
@@ -243,7 +226,9 @@ class SearchActivity : AppCompatActivity() {
 
     private fun updateSearchHistoryVisibility(history: List<Track>) {
         val isEmptyQuery = searchEditText.text.isEmpty()
-        if (searchEditText.hasFocus() && isEmptyQuery && history.isNotEmpty()) {
+        val hasFocus = searchEditText.hasFocus()
+
+        if (hasFocus && isEmptyQuery && history.isNotEmpty()) {
             searchHistoryView.visibility = View.VISIBLE
             historyRecyclerView.visibility = View.VISIBLE
             clearHistoryButton.visibility = View.VISIBLE
@@ -257,13 +242,7 @@ class SearchActivity : AppCompatActivity() {
     private fun clearSearch() {
         searchEditText.text?.clear()
         clearButton.visibility = View.GONE
-        searchViewModel.state.value?.history?.let {
-            updateSearchHistoryVisibility(it)
-        }
-        trackRecyclerView.visibility = View.GONE
-        stubEmptySearch.visibility = View.GONE
-        stubServerError.visibility = View.GONE
-        adapter.submitList(emptyList())
+        searchViewModel.clearSearchResults()
         hideKeyboard()
     }
 

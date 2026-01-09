@@ -26,7 +26,7 @@ class TracksRepositoryImpl(private val networkClient: NetworkClient) : TracksRep
                 )
             }
         } else {
-            return emptyList()
+            throw RuntimeException("Network error")
         }
     }
 }

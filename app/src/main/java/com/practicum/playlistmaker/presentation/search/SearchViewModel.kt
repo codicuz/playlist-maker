@@ -27,10 +27,22 @@ class SearchViewModel(
     fun searchTracks(query: String) {
         _hasSearched.postValue(true)
         viewModelScope.launch(Dispatchers.IO) {
-            val tracks = searchTracksUseCase.execute(query)
-            _state.postValue(
-                _state.value?.copy(tracks = tracks)
-            )
+            try {
+                val tracks = searchTracksUseCase.execute(query)
+                _state.postValue(
+                    _state.value?.copy(
+                        tracks = tracks,
+                        isError = false
+                    )
+                )
+            } catch (e: Exception) {
+                _state.postValue(
+                    _state.value?.copy(
+                        tracks = emptyList(),
+                        isError = true
+                    )
+                )
+            }
         }
     }
 
