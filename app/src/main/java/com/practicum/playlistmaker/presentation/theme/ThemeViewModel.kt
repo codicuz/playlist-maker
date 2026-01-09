@@ -13,19 +13,19 @@ class ThemeViewModel(
     private val getThemeUseCase: GetThemeUseCase
 ) : ViewModel() {
 
-    private val _isDarkMode = MutableLiveData<Boolean>()
-    val isDarkModeLiveData: LiveData<Boolean> = _isDarkMode
+    private val _state = MutableLiveData(ThemeScreenState())
+    val state: LiveData<ThemeScreenState> = _state
 
     private val _uiEvent = SingleLiveEvent<SettingsUiEvent>()
     val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
 
     init {
-        _isDarkMode.value = getThemeUseCase.execute()
+        _state.value = ThemeScreenState(isDarkMode = getThemeUseCase.execute())
     }
 
     fun switchTheme(darkMode: Boolean) {
         switchThemeUseCase.execute(darkMode)
-        _isDarkMode.value = darkMode
+        _state.value = _state.value?.copy(isDarkMode = darkMode)
     }
 
     fun onPracticumOfferClicked() {

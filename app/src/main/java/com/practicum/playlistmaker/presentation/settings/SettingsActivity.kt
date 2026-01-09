@@ -35,15 +35,15 @@ class SettingsActivity : AppCompatActivity() {
         val shareAppBtn = findViewById<TextView>(R.id.shareApp)
 
 
-        themeViewModel.isDarkModeLiveData.observe(this) { isDark ->
+        themeViewModel.state.observe(this) { state ->
             if (!themeInitialized) {
-                themeSwitcher.isChecked = isDark
+                themeSwitcher.isChecked = state.isDarkMode
                 themeInitialized = true
             }
         }
 
         themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
-            if (themeInitialized && isChecked != themeViewModel.isDarkModeLiveData.value) {
+            if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
                 themeViewModel.switchTheme(isChecked)
                 restartWithTheme()
             }
