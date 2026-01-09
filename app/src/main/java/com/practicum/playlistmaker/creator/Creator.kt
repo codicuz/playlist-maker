@@ -1,6 +1,7 @@
 package com.practicum.playlistmaker.creator
 
 import android.app.Application
+import android.media.MediaPlayer
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
@@ -9,17 +10,30 @@ import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
 import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
 import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModelFactory
 
 object Creator {
 
+    private var mediaPlayerInstance: MediaPlayer? = null
     private fun getTracksRepository(): TracksRepository {
         return TracksRepositoryImpl(RetrofitNetworkClient())
     }
 
     fun provideSearchTracksUseCase(): SearchTracksUseCase {
         return SearchTracksUseCase(getTracksRepository())
+    }
+
+    fun provideMediaPlayer(): MediaPlayer {
+        if (mediaPlayerInstance == null) {
+            mediaPlayerInstance = MediaPlayer()
+        }
+        return mediaPlayerInstance!!
+    }
+
+    fun provideAudioPlayerViewModel(): AudioPlayerViewModel {
+        return AudioPlayerViewModel(provideMediaPlayer())
     }
 
     fun provideThemeViewModel(application: Application): ThemeViewModel {

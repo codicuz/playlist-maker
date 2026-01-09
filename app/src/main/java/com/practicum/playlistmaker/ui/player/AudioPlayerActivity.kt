@@ -4,18 +4,16 @@ import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class AudioPlayerActivity : AppCompatActivity() {
-
-    private val viewModel: AudioPlayerViewModel by viewModels()
 
     private lateinit var playButton: ImageButton
     private lateinit var currentTrackTime: TextView
@@ -27,6 +25,8 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var countryTextView: TextView
     private lateinit var artworkImageView: ImageView
     private lateinit var backButton: ImageButton
+    private lateinit var viewModel: AudioPlayerViewModel
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,6 +42,8 @@ class AudioPlayerActivity : AppCompatActivity() {
         countryTextView = findViewById(R.id.audCountryValue)
         artworkImageView = findViewById(R.id.songPoster)
         backButton = findViewById(R.id.audBackButton)
+
+        viewModel = Creator.provideAudioPlayerViewModel()
 
         backButton.setOnClickListener { finish() }
 
@@ -63,11 +65,9 @@ class AudioPlayerActivity : AppCompatActivity() {
                 genreTextView.text = track.primaryGenreName ?: "-"
                 countryTextView.text = track.country ?: "-"
 
-                Glide.with(this)
-                    .load(track.getConvertArtwork())
+                Glide.with(this).load(track.getConvertArtwork())
                     .placeholder(R.drawable.ic_no_artwork_image)
-                    .transform(RoundedCorners(Useful.dpToPx(8f, this)))
-                    .into(artworkImageView)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
             }
 
             currentTrackTime.text = formatTime(state.currentPosition)
@@ -89,5 +89,10 @@ class AudioPlayerActivity : AppCompatActivity() {
         val minutes = seconds / 60
         val remainingSeconds = seconds % 60
         return String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.pausePlayer()
     }
 }

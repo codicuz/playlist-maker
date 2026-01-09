@@ -13,7 +13,6 @@ constraintlayout = "2.1.4"
 retrofit2 = "2.9.0"
 gson = "2.10"
 cgson = "2.9.0"
-
 lifecycleViewmodelKtx = "2.10.0"
 
 [libraries]
@@ -29,10 +28,9 @@ androidx-constraintlayout = { group = "androidx.constraintlayout", name = "const
 retrofit2 = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit2" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 cgson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "cgson" }
-
 androidx-lifecycle-viewmodel-ktx = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-ktx", version.ref = "lifecycleViewmodelKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
+kotlin-parcelize = { id = "kotlin-parcelize" }

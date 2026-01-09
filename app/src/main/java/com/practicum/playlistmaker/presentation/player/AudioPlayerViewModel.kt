@@ -3,88 +3,85 @@ package com.practicum.playlistmaker.presentation.player
 import android.media.MediaPlayer
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.practicum.playlistmaker.domain.track.Track
 
-class AudioPlayerViewModel : ViewModel() {
+class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     private val _state = MutableLiveData(AudioPlayerScreenState())
     val state: LiveData<AudioPlayerScreenState> = _state
-
-    private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     private var updateTimeRunnable: Runnable? = null
     private var isPrepared = false
 
     fun setTrack(track: Track) {
         _state.value = _state.value?.copy(track = track)
-        initPlayer(track.previewUrl)
+        track.previewUrl?.let { initPlayer(it) }
     }
 
     fun startPlayer() {
-        mediaPlayer?.let {
-            if (isPrepared && !it.isPlaying) {
-                it.start()
-                _state.value = _state.value?.copy(isPlaying = true)
-                startUpdatingTime()
-            }
+        if (isPrepared && !mediaPlayer.isPlaying) {
+            mediaPlayer.start()
+            _state.value = _state.value?.copy(isPlaying = true)
+            startUpdatingTime()
         }
     }
 
     fun pausePlayer() {
-        mediaPlayer?.let {
-            if (isPrepared && it.isPlaying) {
-                it.pause()
-                _state.value = _state.value?.copy(isPlaying = false)
-                stopUpdatingTime()
-            }
+        if (isPrepared && mediaPlayer.isPlaying) {
+            mediaPlayer.pause()
+            _state.value = _state.value?.copy(isPlaying = false)
+            stopUpdatingTime()
         }
     }
 
     private fun startUpdatingTime() {
+        stopUpdatingTime()
         updateTimeRunnable = object : Runnable {
             override fun run() {
-                _state.value = _state.value?.copy(
-                    currentPosition = mediaPlayer?.currentPosition ?: 0
-                )
+                _state.value = _state.value?.copy(currentPosition = mediaPlayer.currentPosition)
                 handler.postDelayed(this, 500)
             }
-        }.also { handler.post(it) }
+        }
+        handler.post(updateTimeRunnable!!)
     }
 
     private fun stopUpdatingTime() {
         updateTimeRunnable?.let { handler.removeCallbacks(it) }
     }
 
-    private fun initPlayer(previewUrl: String?) {
-        if (previewUrl.isNullOrEmpty()) return
-        releasePlayer()
-
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(previewUrl)
-            setOnPreparedListener {
-                isPrepared = true
-                _state.value = _state.value?.copy(isPlaying = false)
+    private fun initPlayer(previewUrl: String) {
+        try {
+            if (mediaPlayer.isPlaying || isPrepared) {
+                mediaPlayer.stop()
             }
-            setOnCompletionListener {
+            mediaPlayer.reset()
+            isPrepared = false
+            mediaPlayer.setDataSource(previewUrl)
+            mediaPlayer.setOnPreparedListener {
+                isPrepared = true
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+            }
+            mediaPlayer.setOnCompletionListener {
                 pausePlayer()
                 _state.value = _state.value?.copy(currentPosition = 0)
             }
-            prepareAsync()
+            mediaPlayer.prepareAsync()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "Error init player", e)
         }
     }
 
-    private fun releasePlayer() {
-        mediaPlayer?.release()
-        mediaPlayer = null
-        isPrepared = false
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            mediaPlayer.release()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "MediaPlayer already released", e)
+        }
         stopUpdatingTime()
     }
-
-    override fun onCleared() {
-        releasePlayer()
-    }
 }
-
