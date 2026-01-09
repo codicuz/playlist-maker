@@ -4,13 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.creator.Creator
-import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import com.practicum.playlistmaker.presentation.media.MediaActivity
 import com.practicum.playlistmaker.presentation.search.SearchActivity
 import com.practicum.playlistmaker.presentation.settings.SettingsActivity
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 
 class MainActivity : AppCompatActivity() {
 
@@ -31,17 +30,13 @@ class MainActivity : AppCompatActivity() {
         buttonSettings.setOnClickListener {
             startActivity(
                 Intent(
-                    this,
-                    SettingsActivity::class.java
+                    this, SettingsActivity::class.java
                 )
             )
         }
 
-        themeViewModel.isDarkModeLiveData.observe(this) { isDark ->
-            AppCompatDelegate.setDefaultNightMode(
-                if (isDark) AppCompatDelegate.MODE_NIGHT_YES
-                else AppCompatDelegate.MODE_NIGHT_NO
-            )
+        themeViewModel.state.observe(this) { state ->
+            state.isDarkMode
         }
     }
 }
