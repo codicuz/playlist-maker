@@ -14,6 +14,9 @@ class ThemeViewModel(
     private val _isDarkMode = MutableLiveData<Boolean>()
     val isDarkModeLiveData: LiveData<Boolean> = _isDarkMode
 
+    private val _uiEvent = MutableLiveData<SettingsUiEvent>()
+    val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
+
     init {
         _isDarkMode.value = getThemeUseCase.execute()
     }
@@ -22,4 +25,17 @@ class ThemeViewModel(
         switchThemeUseCase.execute(darkMode)
         _isDarkMode.value = darkMode
     }
+
+    fun onPracticumOfferClicked() {
+        _uiEvent.value = SettingsUiEvent.OpenPracticumOffer
+    }
+
+    fun onSendToHelpdeskClicked() {
+        _uiEvent.value = SettingsUiEvent.SendToHelpdesk
+    }
+
+    fun onShareAppClicked() {
+        _uiEvent.value = SettingsUiEvent.ShareApp
+    }
 }
+
