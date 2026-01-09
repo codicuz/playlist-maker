@@ -1,5 +1,6 @@
-package com.practicum.playlistmaker.ui.settings
+package com.practicum.playlistmaker.presentation.settings
 
+import android.app.ActivityOptions
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -10,7 +11,6 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.core.net.toUri
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.creator.Creator
-import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 
 class SettingsActivity : AppCompatActivity() {
@@ -85,7 +85,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun restartWithTheme() {
         val intent = intent
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-        val options = android.app.ActivityOptions.makeCustomAnimation(this, 0, 0)
+        val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
         startActivity(intent, options.toBundle())
         finish()
     }

@@ -1,5 +1,6 @@
-package com.practicum.playlistmaker.ui.player
+package com.practicum.playlistmaker.presentation.player
 
+import android.os.Build
 import android.os.Bundle
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -10,7 +11,6 @@ import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.domain.track.Track
-import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class AudioPlayerActivity : AppCompatActivity() {
@@ -48,7 +48,7 @@ class AudioPlayerActivity : AppCompatActivity() {
         backButton.setOnClickListener { finish() }
 
         val track: Track? =
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra("track", Track::class.java)
             } else {
                 @Suppress("DEPRECATION") intent.getParcelableExtra("track")
@@ -67,7 +67,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
                 Glide.with(this).load(track.getConvertArtwork())
                     .placeholder(R.drawable.ic_no_artwork_image)
-                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
+                    .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this))).into(artworkImageView)
             }
 
             currentTrackTime.text = formatTime(state.currentPosition)
