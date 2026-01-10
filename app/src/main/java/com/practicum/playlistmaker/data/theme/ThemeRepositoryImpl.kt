@@ -39,4 +39,13 @@ class ThemeRepositoryImpl(
             else AppCompatDelegate.MODE_NIGHT_NO
         )
     }
+
+    fun isDarkModeApplied(): Boolean {
+        if (sharedPreferences.contains(themeKey)) {
+            return sharedPreferences.getBoolean(themeKey, false)
+        }
+        val uiMode = app.resources.configuration.uiMode
+        return (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+                android.content.res.Configuration.UI_MODE_NIGHT_YES
+    }
 }
