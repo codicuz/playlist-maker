@@ -16,6 +16,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
     private val handler = Handler(Looper.getMainLooper())
     private var updateTimeRunnable: Runnable? = null
     private var isPrepared = false
+    private var isCompleted = false
 
     fun setTrack(track: Track) {
         _state.value = _state.value?.copy(track = track)
@@ -24,6 +25,12 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     fun startPlayer() {
         if (isPrepared && !mediaPlayer.isPlaying) {
+
+            if (isCompleted) {
+                mediaPlayer.seekTo(0)
+                isCompleted = false
+            }
+
             mediaPlayer.start()
             _state.value = _state.value?.copy(isPlaying = true)
             startUpdatingTime()
@@ -66,8 +73,9 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
                 _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
             mediaPlayer.setOnCompletionListener {
-                pausePlayer()
-                _state.value = _state.value?.copy(currentPosition = 0)
+                isCompleted = true
+                stopUpdatingTime()
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
             mediaPlayer.prepareAsync()
         } catch (e: Exception) {
