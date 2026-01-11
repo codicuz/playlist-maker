@@ -59,14 +59,6 @@ val appModule = module {
     single { AddTrackToHistoryUseCase(get()) }
     single { ClearSearchHistoryUseCase(get()) }
     single { GetSearchHistoryUseCase(get()) }
-    viewModel {
-        SearchViewModel(
-            searchTracksUseCase = get(),
-            getHistoryUseCase = get(),
-            addTrackUseCase = get(),
-            clearHistoryUseCase = get()
-        )
-    }
 
     // Retrofit + API
     single {
