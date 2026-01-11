@@ -62,12 +62,12 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     private fun initPlayer(previewUrl: String) {
         try {
-            if (mediaPlayer.isPlaying || isPrepared) {
-                mediaPlayer.stop()
-            }
             mediaPlayer.reset()
             isPrepared = false
+            isCompleted = false
+
             mediaPlayer.setDataSource(previewUrl)
+
             mediaPlayer.setOnPreparedListener {
                 isPrepared = true
                 _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
@@ -77,6 +77,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
                 stopUpdatingTime()
                 _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
+
             mediaPlayer.prepareAsync()
         } catch (e: Exception) {
             Log.e("AudioPlayerViewModel", "Error init player", e)
