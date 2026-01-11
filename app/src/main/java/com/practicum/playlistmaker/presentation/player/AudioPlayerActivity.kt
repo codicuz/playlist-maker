@@ -9,9 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AudioPlayerActivity : AppCompatActivity() {
 
@@ -25,7 +25,7 @@ class AudioPlayerActivity : AppCompatActivity() {
     private lateinit var countryTextView: TextView
     private lateinit var artworkImageView: ImageView
     private lateinit var backButton: ImageButton
-    private lateinit var viewModel: AudioPlayerViewModel
+    private val viewModel: AudioPlayerViewModel by viewModel()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,17 +42,13 @@ class AudioPlayerActivity : AppCompatActivity() {
         countryTextView = findViewById(R.id.audCountryValue)
         artworkImageView = findViewById(R.id.songPoster)
         backButton = findViewById(R.id.audBackButton)
-
-        viewModel = Creator.provideAudioPlayerViewModel()
-
         backButton.setOnClickListener { finish() }
 
-        val track: Track? =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                intent.getParcelableExtra("track", Track::class.java)
-            } else {
-                @Suppress("DEPRECATION") intent.getParcelableExtra("track")
-            }
+        val track: Track? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("track", Track::class.java)
+        } else {
+            @Suppress("DEPRECATION") intent.getParcelableExtra("track")
+        }
 
         track?.let { viewModel.setTrack(it) } ?: run { finish() }
 
@@ -67,7 +63,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
                 Glide.with(this).load(track.getConvertArtwork())
                     .placeholder(R.drawable.ic_no_artwork_image)
-                    .transform(RoundedCorners(Useful.Companion.dpToPx(8f, this))).into(artworkImageView)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
             }
 
             currentTrackTime.text = formatTime(state.currentPosition)

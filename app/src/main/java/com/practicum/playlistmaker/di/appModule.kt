@@ -3,11 +3,13 @@ package com.practicum.playlistmaker.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.media.MediaPlayer
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
 import com.practicum.playlistmaker.domain.theme.ThemeRepository
+import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
@@ -25,4 +27,7 @@ val appModule = module {
     single { SwitchThemeUseCase(get()) }
     single { GetThemeUseCase(get()) }
     viewModel { ThemeViewModel(get(), get()) }
+
+    single { MediaPlayer() }
+    viewModel { AudioPlayerViewModel(get()) }
 }
