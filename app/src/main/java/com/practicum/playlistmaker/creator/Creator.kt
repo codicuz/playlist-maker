@@ -20,7 +20,6 @@ import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
 import com.practicum.playlistmaker.domain.track.TracksRepository
 import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
-import com.practicum.playlistmaker.presentation.theme.ThemeViewModelFactory
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -37,18 +36,6 @@ object Creator {
 
     fun provideAudioPlayerViewModel(): AudioPlayerViewModel {
         return AudioPlayerViewModel(provideMediaPlayer())
-    }
-
-    fun provideThemeViewModel(application: Application): ThemeViewModel {
-        val prefs = application.getSharedPreferences(
-            SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE
-        )
-        val repository = ThemeRepositoryImpl(prefs, application)
-        repository.applyThemeAccordingToUserOrSystem()
-        val switchThemeUseCase = SwitchThemeUseCase(repository)
-        val getThemeUseCase = GetThemeUseCase(repository)
-        val factory = ThemeViewModelFactory(switchThemeUseCase, getThemeUseCase)
-        return factory.create(ThemeViewModel::class.java)
     }
 
     fun provideSearchHistoryRepository(application: Application): SearchHistoryRepository {
