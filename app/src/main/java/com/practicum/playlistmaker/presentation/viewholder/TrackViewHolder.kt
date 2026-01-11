@@ -1,6 +1,5 @@
 package com.practicum.playlistmaker.presentation.viewholder
 
-import android.content.Intent
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -9,14 +8,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.domain.model.Track
-import com.practicum.playlistmaker.presentation.ui.AudioPlayerActivity
-import com.practicum.playlistmaker.presentation.ui.SearchHistory
+import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class TrackViewHolder(
-    parent: ViewGroup,
-    private val searchHistory: SearchHistory
+    parent: ViewGroup, private val onTrackClick: (Track) -> Unit
 ) : RecyclerView.ViewHolder(
     LayoutInflater.from(parent.context).inflate(R.layout.activity_record_item, parent, false)
 ) {
@@ -30,28 +26,12 @@ class TrackViewHolder(
         artistsName.text = item.artistsName
         trackTime.text = item.trackTime
 
-        Glide.with(itemView)
-            .load(item.artworkUrl100)
-            .placeholder(R.drawable.ic_no_artwork_image)
-            .fitCenter()
-            .transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
+        Glide.with(itemView).load(item.artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
+            .fitCenter().transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
             .into(artworkImage)
 
         itemView.setOnClickListener {
-            searchHistory.addTrack(item)
-            val context = itemView.context
-            val intent = Intent(context, AudioPlayerActivity::class.java).apply {
-                putExtra("trackName", item.trackName)
-                putExtra("artistName", item.artistsName)
-                putExtra("collectionName", item.collectionName)
-                putExtra("releaseDate", item.releaseYear)
-                putExtra("primaryGenreName", item.primaryGenreName)
-                putExtra("trackTime", item.trackTime)
-                putExtra("country", item.country)
-                putExtra("artworkUrl100", item.getConvertArtwork())
-                putExtra("previewUrl", item.previewUrl)
-            }
-            context.startActivity(intent)
+            onTrackClick(item)
         }
     }
 }

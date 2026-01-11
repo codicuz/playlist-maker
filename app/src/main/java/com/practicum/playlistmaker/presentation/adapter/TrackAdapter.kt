@@ -1,19 +1,17 @@
 package com.practicum.playlistmaker.presentation.adapter
 
-import android.content.SharedPreferences
+import android.annotation.SuppressLint
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.domain.model.Track
+import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
-import com.practicum.playlistmaker.presentation.ui.SearchHistory
 
 class TrackAdapter(
-    sharedPreferences: SharedPreferences
+    private val onTrackClick: (Track) -> Unit
 ) : RecyclerView.Adapter<TrackViewHolder>() {
-
     private val items = mutableListOf<Track>()
-    private val searchHistory = SearchHistory(sharedPreferences)
 
+    @SuppressLint("NotifyDataSetChanged")
     fun submitList(newList: List<Track>) {
         items.clear()
         items.addAll(newList)
@@ -21,7 +19,7 @@ class TrackAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
-        return TrackViewHolder(parent, searchHistory)
+        return TrackViewHolder(parent, onTrackClick)
     }
 
     override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
