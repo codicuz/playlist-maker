@@ -9,6 +9,10 @@
         android:id="@+id/secondarySearch"
         style="@style/SecondaryViews">
 
+        <include
+            android:id="@+id/searchHistory"
+            layout="@layout/search_history" />
+
         <TextView
             android:id="@+id/searchHeader"
             style="@style/ActivityTitlesSecondary"
