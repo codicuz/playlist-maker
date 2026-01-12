@@ -5,17 +5,15 @@ import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.presentation.media.MediaActivity
 import com.practicum.playlistmaker.presentation.search.SearchActivity
 import com.practicum.playlistmaker.presentation.settings.SettingsActivity
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity() {
 
-    private val themeViewModel: ThemeViewModel by lazy {
-        Creator.provideThemeViewModel(application)
-    }
+    private val themeViewModel: ThemeViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

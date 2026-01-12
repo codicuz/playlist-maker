@@ -18,14 +18,13 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.presentation.player.AudioPlayerActivity
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SearchActivity : AppCompatActivity() {
-
-    private lateinit var searchViewModel: SearchViewModel
+    private val searchViewModel: SearchViewModel by viewModel()
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
 
@@ -59,15 +58,6 @@ class SearchActivity : AppCompatActivity() {
         initViews()
         setupAdapters()
 
-        val getHistoryUseCase = Creator.provideGetSearchHistoryUseCase(application)
-        val addTrackUseCase = Creator.provideAddTrackToHistoryUseCase(application)
-        val clearHistoryUseCase = Creator.provideClearSearchHistoryUseCase(application)
-        val searchTracksUseCase = Creator.provideSearchTracksUseCase()
-
-        searchViewModel = SearchViewModel(
-            searchTracksUseCase, getHistoryUseCase, addTrackUseCase, clearHistoryUseCase
-        )
-
         searchViewModel.state.observe(this) { state ->
 
             if (state.tracks.isNotEmpty()) {
@@ -77,9 +67,8 @@ class SearchActivity : AppCompatActivity() {
             } else {
                 trackRecyclerView.visibility = View.GONE
 
-                stubEmptySearch.visibility =
-                    if (state.hasSearched && !state.isError) View.VISIBLE
-                    else View.GONE
+                stubEmptySearch.visibility = if (state.hasSearched && !state.isError) View.VISIBLE
+                else View.GONE
             }
 
             historyAdapter.submitList(state.history)

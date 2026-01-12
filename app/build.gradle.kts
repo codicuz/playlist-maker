@@ -5,8 +5,11 @@ plugins {
 }
 
 android {
+//    buildFeatures {
+//        viewBinding = true
+//    }
     namespace = "com.practicum.playlistmaker"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.practicum.playlistmaker"
@@ -41,6 +44,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.koin.android)
+    implementation(libs.koin.core)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

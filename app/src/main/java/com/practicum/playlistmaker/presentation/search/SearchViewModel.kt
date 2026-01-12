@@ -51,8 +51,6 @@ class SearchViewModel(
             tracks = emptyList(), hasSearched = false, isError = false
         )
     }
-
-
     fun addTrackToHistory(track: Track) {
         addTrackUseCase.execute(track)
         refreshHistory()

@@ -10,12 +10,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.net.toUri
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.creator.Creator
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SettingsActivity : AppCompatActivity() {
 
-    private lateinit var themeViewModel: ThemeViewModel
+    private val themeViewModel: ThemeViewModel by viewModel()
     private var themeInitialized = false
 
     companion object {
@@ -25,8 +25,6 @@ class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
-
-        themeViewModel = Creator.provideThemeViewModel(application)
 
         val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
         val buttonBack = findViewById<TextView>(R.id.settingsHeader)
