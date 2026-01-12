@@ -31,34 +31,34 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 val appModule = module {
     // Тема
-    single<SharedPreferences>(named("settingsPrefs")) {
+    single<SharedPreferences>(named(Qualifiers.SETTINGS_PREFS)) {
         get<Application>().getSharedPreferences(
             SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE
         )
     }
     single<ThemeRepository> {
-        ThemeRepositoryImpl(get(named("settingsPrefs")), get<Application>())
+        ThemeRepositoryImpl(get(named(Qualifiers.SETTINGS_PREFS)), get<Application>())
     }
-    single { SwitchThemeUseCase(get()) }
-    single { GetThemeUseCase(get()) }
+    factory { SwitchThemeUseCase(get()) }
+    factory { GetThemeUseCase(get()) }
     viewModel { ThemeViewModel(get(), get()) }
 
     // Аудиоплеер
     viewModel { AudioPlayerViewModel(MediaPlayer()) }
 
     // История
-    single<SharedPreferences>(named("searchPrefs")) {
+    single<SharedPreferences>(named(Qualifiers.SEARCH_PREFS)) {
         get<Application>().getSharedPreferences(
             SharedPrefs.PREFS_SEARCH_HISTORY, Context.MODE_PRIVATE
         )
     }
     single<SearchHistoryRepository> {
-        SearchHistoryRepositorImpl(get(named("searchPrefs")))
+        SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)))
     }
 
-    single { AddTrackToHistoryUseCase(get()) }
-    single { ClearSearchHistoryUseCase(get()) }
-    single { GetSearchHistoryUseCase(get()) }
+    factory { AddTrackToHistoryUseCase(get()) }
+    factory { ClearSearchHistoryUseCase(get()) }
+    factory { GetSearchHistoryUseCase(get()) }
 
     // Retrofit + API
     single {
@@ -70,7 +70,7 @@ val appModule = module {
 
     // TracksRepository и use-case
     single<TracksRepository> { TracksRepositoryImpl(get()) }
-    single { SearchTracksUseCase(get()) }
+    factory { SearchTracksUseCase(get()) }
 
     viewModel { SearchViewModel(get(), get(), get(), get()) }
 

@@ -2,6 +2,7 @@ package com.practicum.playlistmaker.data.theme
 
 import android.app.Application
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
 import com.practicum.playlistmaker.data.storage.SharedPrefs
@@ -19,7 +20,7 @@ class ThemeRepositoryImpl(
         }
         val uiMode = app.resources.configuration.uiMode
         val systemDarkMode =
-            (uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         sharedPreferences.edit {
             putBoolean(themeKey, systemDarkMode)
         }
