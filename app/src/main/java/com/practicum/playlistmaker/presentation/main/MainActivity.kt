@@ -43,9 +43,5 @@ class MainActivity : AppCompatActivity() {
                 )
             )
         }
-
-        themeViewModel.state.observe(this) { state ->
-            state.isDarkMode
-        }
     }
 }

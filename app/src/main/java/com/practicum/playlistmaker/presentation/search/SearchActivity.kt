@@ -24,11 +24,10 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var binding: ActivitySearchBinding
-    private lateinit var searchHistoryBinding: SearchHistoryBinding
     private val searchViewModel: SearchViewModel by viewModel()
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
-//    private lateinit var historyRecyclerView: RecyclerView
+    private lateinit var historyRecyclerView: RecyclerView
     private lateinit var stubEmptySearch: View
     private lateinit var stubServerError: View
     private lateinit var refreshButton: Button
@@ -48,7 +47,6 @@ class SearchActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySearchBinding.inflate(layoutInflater)
-        binding.root.addView(searchHistoryBinding.root)
         setContentView(binding.root)
 
         initViews()
@@ -90,7 +88,7 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-//        historyRecyclerView = findViewById(R.id.rcTrackDataHistory)
+        historyRecyclerView = findViewById(R.id.rcTrackDataHistory)
         stubEmptySearch = findViewById(R.id.stubEmptySearch)
         stubServerError = findViewById(R.id.stubNoInternet)
         refreshButton = findViewById(R.id.buttonRetry)
@@ -112,7 +110,6 @@ class SearchActivity : AppCompatActivity() {
             searchViewModel.addTrackToHistory(track)
             openPlayer(track)
         }
-        searchHistoryBinding = SearchHistoryBinding.bind(binding.searchHistory)
 
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
