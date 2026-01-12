@@ -3,6 +3,7 @@ package com.practicum.playlistmaker.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import com.google.gson.Gson
 import com.practicum.playlistmaker.data.NetworkClient
 import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
 import com.practicum.playlistmaker.data.network.ITunesApi
@@ -39,8 +40,11 @@ val dataModule = module {
 
     // History
     single<SearchHistoryRepository> {
-        SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)))
+        SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)), get())
     }
+
+    // Gson
+    single { Gson() }
 
     // Retrofit
     single {
@@ -52,8 +56,4 @@ val dataModule = module {
 
     // Tracks
     single<TracksRepository> { TracksRepositoryImpl(get()) }
-
-    // MediaPlayer
-
-
 }

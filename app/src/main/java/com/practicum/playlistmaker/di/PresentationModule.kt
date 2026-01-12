@@ -10,5 +10,7 @@ import org.koin.dsl.module
 val presentationModule = module {
     viewModel { ThemeViewModel(get(), get()) }
     viewModel { SearchViewModel(get(), get(), get(), get()) }
-    viewModel { AudioPlayerViewModel(MediaPlayer()) }
+
+    factory { MediaPlayer() }
+    viewModel { AudioPlayerViewModel(get()) }
 }
