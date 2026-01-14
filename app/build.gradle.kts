@@ -5,16 +5,16 @@ plugins {
 }
 
 android {
-//    buildFeatures {
-//        viewBinding = true
-//    }
+    buildFeatures {
+        viewBinding = true
+    }
     namespace = "com.practicum.playlistmaker"
     compileSdk = 36
 
     defaultConfig {
         applicationId = "com.practicum.playlistmaker"
         minSdk = 29
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -33,8 +33,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
 }
 

@@ -4,17 +4,17 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.net.toUri
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivitySettingsBinding
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SettingsActivity : AppCompatActivity() {
 
+    private lateinit var binding: ActivitySettingsBinding
     private val themeViewModel: ThemeViewModel by viewModel()
     private var themeInitialized = false
 
@@ -24,23 +24,17 @@ class SettingsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_settings)
-
-        val themeSwitcher = findViewById<SwitchCompat>(R.id.themeSwitcher)
-        val buttonBack = findViewById<TextView>(R.id.settingsHeader)
-        val practicumOfferBtn = findViewById<TextView>(R.id.practicumOffer)
-        val sendToHelpdeskBtn = findViewById<TextView>(R.id.sendToHelpdesk)
-        val shareAppBtn = findViewById<TextView>(R.id.shareApp)
-
+        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         themeViewModel.state.observe(this) { state ->
             if (!themeInitialized) {
-                themeSwitcher.isChecked = state.isDarkMode
+                binding.themeSwitcher.isChecked = state.isDarkMode
                 themeInitialized = true
             }
         }
 
-        themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+        binding.themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
             if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
                 themeViewModel.switchTheme(isChecked)
                 restartWithTheme()
@@ -58,10 +52,10 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
-        buttonBack.setOnClickListener { finish() }
-        practicumOfferBtn.setOnClickListener { themeViewModel.onPracticumOfferClicked() }
-        sendToHelpdeskBtn.setOnClickListener { themeViewModel.onSendToHelpdeskClicked() }
-        shareAppBtn.setOnClickListener { themeViewModel.onShareAppClicked() }
+        binding.settingsHeader.setOnClickListener { finish() }
+        binding.practicumOffer.setOnClickListener { themeViewModel.onPracticumOfferClicked() }
+        binding.sendToHelpdesk.setOnClickListener { themeViewModel.onSendToHelpdeskClicked() }
+        binding.shareApp.setOnClickListener { themeViewModel.onShareAppClicked() }
     }
 
     private fun openPracticumOffer() {
