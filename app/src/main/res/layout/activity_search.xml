@@ -36,8 +36,8 @@
                 android:maxLength="200"
                 android:maxLines="1"
                 android:paddingHorizontal="13dp"
-                android:textCursorDrawable="@drawable/ic_cursor"
-                android:singleLine="true" />
+                android:singleLine="true"
+                android:textCursorDrawable="@drawable/ic_cursor" />
 
             <ImageButton
                 android:id="@+id/clearButton"
@@ -59,17 +59,17 @@
             android:layout_height="wrap_content" />
 
         <include
-            android:id="@+id/stubNoInternet"
+            android:id="@+id/stubNoInternetInc"
             layout="@layout/no_internet"
             android:visibility="gone" />
 
         <include
-            android:id="@+id/stubEmptySearch"
+            android:id="@+id/stubEmptySearchInc"
             layout="@layout/empty_search"
             android:visibility="gone" />
 
         <include
-            android:id="@+id/stubSearchHistory"
+            android:id="@+id/stubSearchHistoryInc"
             layout="@layout/search_history"
             android:visibility="gone" />
     </LinearLayout>

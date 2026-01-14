@@ -9,13 +9,12 @@ import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.ActivitySearchBinding
+import com.practicum.playlistmaker.databinding.EmptySearchBinding
+import com.practicum.playlistmaker.databinding.NoInternetBinding
 import com.practicum.playlistmaker.databinding.SearchHistoryBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
@@ -28,11 +27,9 @@ class SearchActivity : AppCompatActivity() {
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
     private lateinit var historyRecyclerView: RecyclerView
-    private lateinit var stubEmptySearch: View
-    private lateinit var stubServerError: View
-    private lateinit var refreshButton: Button
-    private lateinit var clearHistoryButton: Button
-    private lateinit var searchHistoryView: View
+    private lateinit var emptySearchBinding: EmptySearchBinding
+    private lateinit var noInternetBinding: NoInternetBinding
+    private lateinit var searchHistoryBinding: SearchHistoryBinding
     private var currentQuery = ""
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnableOnDone: Runnable? = null
@@ -49,6 +46,10 @@ class SearchActivity : AppCompatActivity() {
         binding = ActivitySearchBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        emptySearchBinding = EmptySearchBinding.bind(binding.stubEmptySearchInc.root)
+        noInternetBinding = NoInternetBinding.bind(binding.stubNoInternetInc.root)
+        searchHistoryBinding = SearchHistoryBinding.bind(binding.stubSearchHistoryInc.root)
+
         initViews()
         setupAdapters()
 
@@ -57,18 +58,19 @@ class SearchActivity : AppCompatActivity() {
             if (state.tracks.isNotEmpty()) {
                 adapter.submitList(state.tracks)
                 binding.rcTrackData.visibility = View.VISIBLE
-                stubEmptySearch.visibility = View.GONE
+                emptySearchBinding.root.visibility = View.GONE
             } else {
                 binding.rcTrackData.visibility = View.GONE
 
-                stubEmptySearch.visibility = if (state.hasSearched && !state.isError) View.VISIBLE
-                else View.GONE
+                emptySearchBinding.root.visibility =
+                    if (state.hasSearched && !state.isError) View.VISIBLE
+                    else View.GONE
             }
 
             historyAdapter.submitList(state.history)
             updateSearchHistoryVisibility(state.history)
 
-            stubServerError.visibility = if (state.isError) View.VISIBLE else View.GONE
+            noInternetBinding.root.visibility = if (state.isError) View.VISIBLE else View.GONE
 
             binding.progressBar.visibility = View.GONE
         }
@@ -88,14 +90,8 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        historyRecyclerView = findViewById(R.id.rcTrackDataHistory)
-        stubEmptySearch = findViewById(R.id.stubEmptySearch)
-        stubServerError = findViewById(R.id.stubNoInternet)
-        refreshButton = findViewById(R.id.buttonRetry)
-        clearHistoryButton = findViewById(R.id.buttonClearSearchHistory)
-        searchHistoryView = findViewById(R.id.stubSearchHistory)
-
-        findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
+        historyRecyclerView = searchHistoryBinding.rcTrackDataHistory
+        binding.searchHeader.setOnClickListener { finish() }
     }
 
     private fun setupAdapters() {
@@ -141,7 +137,7 @@ class SearchActivity : AppCompatActivity() {
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
 
                     searchRunnableOnTextChanged = Runnable {
-                        searchHistoryView.visibility = View.GONE
+                        searchHistoryBinding.root.visibility = View.GONE
                         binding.progressBar.visibility = View.VISIBLE
                         searchViewModel.searchTracks(query)
                         hideKeyboard()
@@ -169,7 +165,7 @@ class SearchActivity : AppCompatActivity() {
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
                     searchRunnableOnDone?.let { handler.removeCallbacks(it) }
                     searchRunnableOnDone = Runnable {
-                        searchHistoryView.visibility = View.GONE
+                        searchHistoryBinding.root.visibility = View.GONE
                         binding.progressBar.visibility = View.VISIBLE
                         searchViewModel.searchTracks(query)
                         hideKeyboard()
@@ -180,26 +176,26 @@ class SearchActivity : AppCompatActivity() {
             } else false
         }
 
-        refreshButton.setOnClickListener {
+        noInternetBinding.buttonRetry.setOnClickListener {
             if (currentQuery.isNotBlank()) {
                 binding.progressBar.visibility = View.VISIBLE
                 searchViewModel.searchTracks(currentQuery)
             }
         }
 
-        clearHistoryButton.setOnClickListener {
+        searchHistoryBinding.buttonClearSearchHistory.setOnClickListener {
             searchViewModel.clearHistory()
         }
     }
 
     private fun hideAllContent() {
-        searchHistoryView.visibility = View.GONE
+        searchHistoryBinding.root.visibility = View.GONE
         historyRecyclerView.visibility = View.GONE
-        clearHistoryButton.visibility = View.GONE
+        searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
 
         binding.rcTrackData.visibility = View.GONE
-        stubEmptySearch.visibility = View.GONE
-        stubServerError.visibility = View.GONE
+        emptySearchBinding.root.visibility = View.GONE
+        noInternetBinding.root.visibility = View.GONE
         binding.progressBar.visibility = View.GONE
     }
 
@@ -208,13 +204,13 @@ class SearchActivity : AppCompatActivity() {
         val hasFocus = binding.searchEditText.hasFocus()
 
         if (hasFocus && isEmptyQuery && history.isNotEmpty()) {
-            searchHistoryView.visibility = View.VISIBLE
+            searchHistoryBinding.root.visibility = View.VISIBLE
             historyRecyclerView.visibility = View.VISIBLE
-            clearHistoryButton.visibility = View.VISIBLE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.VISIBLE
         } else {
-            searchHistoryView.visibility = View.GONE
+            searchHistoryBinding.root.visibility = View.GONE
             historyRecyclerView.visibility = View.GONE
-            clearHistoryButton.visibility = View.GONE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
         }
     }
 
