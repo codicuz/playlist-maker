@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.androidx.constraintlayout)
     implementation(libs.koin.android)
     implementation(libs.koin.core)
+    implementation(libs.fragment.ktx)
+    implementation(libs.viewpager)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
