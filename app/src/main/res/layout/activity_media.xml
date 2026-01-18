@@ -14,7 +14,14 @@
         android:id="@+id/tabLayout"
         style="@style/ActivityMedia"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/createPlaylistButton"
+        style="@style/ActivityMediaButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp" />
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"

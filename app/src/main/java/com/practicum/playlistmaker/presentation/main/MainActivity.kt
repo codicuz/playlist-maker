@@ -20,21 +20,17 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-
-
         binding.buttonSearch.setOnClickListener {
             startActivity(
                 Intent(
-                    this,
-                    SearchActivity::class.java
+                    this, SearchActivity::class.java
                 )
             )
         }
         binding.buttonMedia.setOnClickListener {
             startActivity(
                 Intent(
-                    this,
-                    MediaActivity::class.java
+                    this, MediaActivity::class.java
                 )
             )
         }
