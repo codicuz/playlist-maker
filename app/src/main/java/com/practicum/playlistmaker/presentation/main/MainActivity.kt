@@ -7,13 +7,10 @@ import com.practicum.playlistmaker.databinding.ActivityMainBinding
 import com.practicum.playlistmaker.presentation.media.MediaActivity
 import com.practicum.playlistmaker.presentation.search.SearchActivity
 import com.practicum.playlistmaker.presentation.settings.SettingsActivity
-import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
-import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val themeViewModel: ThemeViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

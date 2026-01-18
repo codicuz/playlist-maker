@@ -12,6 +12,9 @@ class MediaViewPagerAdapter(
     override fun getItemCount() = tabs.size
 
     override fun createFragment(position: Int): Fragment {
-        return TabFragment.newInstance(tabs[position])
+        return when (tabs[position]) {
+            MediaTab.FAVORITES -> FavoritesFragment.newInstance()
+            MediaTab.PLAYLISTS -> PlaylistsFragment.newInstance()
+        }
     }
 }

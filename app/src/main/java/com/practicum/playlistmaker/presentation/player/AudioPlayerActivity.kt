@@ -1,6 +1,5 @@
 package com.practicum.playlistmaker.presentation.player
 
-import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
@@ -23,11 +22,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
         binding.audBackButton.setOnClickListener { finish() }
 
-        val track: Track? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra("track", Track::class.java)
-        } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra("track")
-        }
+        val track: Track? = intent.getParcelableExtra("track", Track::class.java)
 
         track?.let { viewModel.setTrack(it) } ?: run { finish() }
 
