@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <attribution
+        android:label="@string/audio_playback_attribution"
+        android:tag="audioPlayback" />
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application

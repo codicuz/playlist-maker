@@ -1,79 +1,54 @@
 package com.practicum.playlistmaker.presentation.player
 
-import android.os.Build
 import android.os.Bundle
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.AudioPlayerBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
+import com.practicum.playlistmaker.presentation.util.parcelableExtra
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AudioPlayerActivity : AppCompatActivity() {
-
-    private lateinit var playButton: ImageButton
-    private lateinit var currentTrackTime: TextView
-    private lateinit var trackNameTextView: TextView
-    private lateinit var artistNameTextView: TextView
-    private lateinit var albumNameTextView: TextView
-    private lateinit var releaseYearTextView: TextView
-    private lateinit var genreTextView: TextView
-    private lateinit var countryTextView: TextView
-    private lateinit var artworkImageView: ImageView
-    private lateinit var backButton: ImageButton
+    private lateinit var binding: AudioPlayerBinding
     private val viewModel: AudioPlayerViewModel by viewModel()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.audio_player)
+        binding = AudioPlayerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        playButton = findViewById(R.id.audPlayButton)
-        currentTrackTime = findViewById(R.id.currentTrackTime)
-        trackNameTextView = findViewById(R.id.mainAlbumText)
-        artistNameTextView = findViewById(R.id.artistName)
-        albumNameTextView = findViewById(R.id.audAlbumNameValue)
-        releaseYearTextView = findViewById(R.id.audYearValue)
-        genreTextView = findViewById(R.id.audGenreValue)
-        countryTextView = findViewById(R.id.audCountryValue)
-        artworkImageView = findViewById(R.id.songPoster)
-        backButton = findViewById(R.id.audBackButton)
-        backButton.setOnClickListener { finish() }
+        binding.audBackButton.setOnClickListener { finish() }
 
-        val track: Track? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra("track", Track::class.java)
-        } else {
-            @Suppress("DEPRECATION") intent.getParcelableExtra("track")
-        }
+        val track: Track? = intent.parcelableExtra("track")
 
         track?.let { viewModel.setTrack(it) } ?: run { finish() }
 
         viewModel.state.observe(this) { state ->
             state.track?.let { track ->
-                trackNameTextView.text = track.trackName ?: "-"
-                artistNameTextView.text = track.artistsName ?: "-"
-                albumNameTextView.text = track.collectionName ?: "-"
-                releaseYearTextView.text = track.releaseYear ?: "-"
-                genreTextView.text = track.primaryGenreName ?: "-"
-                countryTextView.text = track.country ?: "-"
+                binding.mainAlbumText.text = track.trackName ?: "-"
+                binding.artistName.text = track.artistsName ?: "-"
+                binding.audAlbumNameValue.text = track.collectionName ?: "-"
+                binding.audYearValue.text = track.releaseYear ?: "-"
+                binding.audGenreValue.text = track.primaryGenreName ?: "-"
+                binding.audCountryValue.text = track.country ?: "-"
 
                 Glide.with(this).load(track.getConvertArtwork())
                     .placeholder(R.drawable.ic_no_artwork_image)
-                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(artworkImageView)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(binding.songPoster)
             }
 
-            currentTrackTime.text = formatTime(state.currentPosition)
-            playButton.setImageResource(
+            binding.currentTrackTime.text = formatTime(state.currentPosition)
+            binding.audPlayButton.setImageResource(
                 if (state.isPlaying) R.drawable.btn_aud_pause
                 else R.drawable.btn_aud_play
             )
         }
 
-        playButton.setOnClickListener {
+        binding.audPlayButton.setOnClickListener {
             val isPlaying = viewModel.state.value?.isPlaying ?: false
             if (isPlaying) viewModel.pausePlayer()
             else viewModel.startPlayer()

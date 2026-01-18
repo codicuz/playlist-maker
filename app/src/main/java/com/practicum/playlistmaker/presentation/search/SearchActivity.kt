@@ -9,38 +9,28 @@ import android.text.TextWatcher
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
-import android.widget.ProgressBar
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivitySearchBinding
+import com.practicum.playlistmaker.databinding.EmptySearchBinding
+import com.practicum.playlistmaker.databinding.NoInternetBinding
+import com.practicum.playlistmaker.databinding.SearchHistoryBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.presentation.player.AudioPlayerActivity
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class SearchActivity : AppCompatActivity() {
+    private lateinit var binding: ActivitySearchBinding
     private val searchViewModel: SearchViewModel by viewModel()
     private lateinit var adapter: TrackAdapter
     private lateinit var historyAdapter: TrackAdapter
-
-    private lateinit var searchEditText: EditText
-    private lateinit var clearButton: ImageView
-    private lateinit var trackRecyclerView: RecyclerView
     private lateinit var historyRecyclerView: RecyclerView
-    private lateinit var stubEmptySearch: View
-    private lateinit var stubServerError: View
-    private lateinit var refreshButton: Button
-    private lateinit var clearHistoryButton: Button
-    private lateinit var searchHistoryView: View
-    private lateinit var progressBar: ProgressBar
-
+    private lateinit var emptySearchBinding: EmptySearchBinding
+    private lateinit var noInternetBinding: NoInternetBinding
+    private lateinit var searchHistoryBinding: SearchHistoryBinding
     private var currentQuery = ""
-
     private val handler = Handler(Looper.getMainLooper())
     private var searchRunnableOnDone: Runnable? = null
     private val debounceDelayDone = 500L
@@ -53,7 +43,12 @@ class SearchActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_search)
+        binding = ActivitySearchBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        emptySearchBinding = EmptySearchBinding.bind(binding.stubEmptySearchInc.root)
+        noInternetBinding = NoInternetBinding.bind(binding.stubNoInternetInc.root)
+        searchHistoryBinding = SearchHistoryBinding.bind(binding.stubSearchHistoryInc.root)
 
         initViews()
         setupAdapters()
@@ -62,28 +57,29 @@ class SearchActivity : AppCompatActivity() {
 
             if (state.tracks.isNotEmpty()) {
                 adapter.submitList(state.tracks)
-                trackRecyclerView.visibility = View.VISIBLE
-                stubEmptySearch.visibility = View.GONE
+                binding.rcTrackData.visibility = View.VISIBLE
+                emptySearchBinding.root.visibility = View.GONE
             } else {
-                trackRecyclerView.visibility = View.GONE
+                binding.rcTrackData.visibility = View.GONE
 
-                stubEmptySearch.visibility = if (state.hasSearched && !state.isError) View.VISIBLE
-                else View.GONE
+                emptySearchBinding.root.visibility =
+                    if (state.hasSearched && !state.isError) View.VISIBLE
+                    else View.GONE
             }
 
             historyAdapter.submitList(state.history)
             updateSearchHistoryVisibility(state.history)
 
-            stubServerError.visibility = if (state.isError) View.VISIBLE else View.GONE
+            noInternetBinding.root.visibility = if (state.isError) View.VISIBLE else View.GONE
 
-            progressBar.visibility = View.GONE
+            binding.progressBar.visibility = View.GONE
         }
 
         setupListeners()
 
         currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
         if (currentQuery.isNotEmpty()) {
-            searchEditText.setText(currentQuery)
+            binding.searchEditText.setText(currentQuery)
             searchViewModel.searchTracks(currentQuery)
         }
     }
@@ -94,18 +90,8 @@ class SearchActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        searchEditText = findViewById(R.id.searchEditText)
-        clearButton = findViewById(R.id.clearButton)
-        trackRecyclerView = findViewById(R.id.rcTrackData)
-        historyRecyclerView = findViewById(R.id.rcTrackDataHistory)
-        stubEmptySearch = findViewById(R.id.stubEmptySearch)
-        stubServerError = findViewById(R.id.stubNoInternet)
-        refreshButton = findViewById(R.id.buttonRetry)
-        clearHistoryButton = findViewById(R.id.buttonClearSearchHistory)
-        searchHistoryView = findViewById(R.id.stubSearchHistory)
-        progressBar = findViewById(R.id.progressBar)
-
-        findViewById<TextView>(R.id.searchHeader).setOnClickListener { finish() }
+        historyRecyclerView = searchHistoryBinding.rcTrackDataHistory
+        binding.searchHeader.setOnClickListener { finish() }
     }
 
     private fun setupAdapters() {
@@ -113,26 +99,27 @@ class SearchActivity : AppCompatActivity() {
             searchViewModel.addTrackToHistory(track)
             openPlayer(track)
         }
-        trackRecyclerView.layoutManager = LinearLayoutManager(this)
-        trackRecyclerView.adapter = adapter
+        binding.rcTrackData.layoutManager = LinearLayoutManager(this)
+        binding.rcTrackData.adapter = adapter
 
         historyAdapter = TrackAdapter { track ->
             searchViewModel.addTrackToHistory(track)
             openPlayer(track)
         }
+
         historyRecyclerView.layoutManager = LinearLayoutManager(this)
         historyRecyclerView.adapter = historyAdapter
     }
 
     private fun setupListeners() {
-        clearButton.setOnClickListener { clearSearch() }
+        binding.clearButton.setOnClickListener { clearSearch() }
 
-        searchEditText.addTextChangedListener(object : TextWatcher {
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun afterTextChanged(s: Editable?) {}
 
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+                binding.clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
 
                 val query = s?.toString()?.trim().orEmpty()
 
@@ -150,8 +137,8 @@ class SearchActivity : AppCompatActivity() {
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
 
                     searchRunnableOnTextChanged = Runnable {
-                        searchHistoryView.visibility = View.GONE
-                        progressBar.visibility = View.VISIBLE
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
                         searchViewModel.searchTracks(query)
                         hideKeyboard()
                     }
@@ -161,7 +148,7 @@ class SearchActivity : AppCompatActivity() {
             }
         })
 
-        searchEditText.setOnFocusChangeListener { _, hasFocus ->
+        binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
                 searchViewModel.loadHistory()
             } else {
@@ -171,15 +158,15 @@ class SearchActivity : AppCompatActivity() {
 
 
 
-        searchEditText.setOnEditorActionListener { _, actionId, _ ->
+        binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                val query = searchEditText.text.toString().trim()
+                val query = binding.searchEditText.text.toString().trim()
                 if (query.isNotEmpty()) {
                     searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
                     searchRunnableOnDone?.let { handler.removeCallbacks(it) }
                     searchRunnableOnDone = Runnable {
-                        searchHistoryView.visibility = View.GONE
-                        progressBar.visibility = View.VISIBLE
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
                         searchViewModel.searchTracks(query)
                         hideKeyboard()
                     }
@@ -189,54 +176,54 @@ class SearchActivity : AppCompatActivity() {
             } else false
         }
 
-        refreshButton.setOnClickListener {
+        noInternetBinding.buttonRetry.setOnClickListener {
             if (currentQuery.isNotBlank()) {
-                progressBar.visibility = View.VISIBLE
+                binding.progressBar.visibility = View.VISIBLE
                 searchViewModel.searchTracks(currentQuery)
             }
         }
 
-        clearHistoryButton.setOnClickListener {
+        searchHistoryBinding.buttonClearSearchHistory.setOnClickListener {
             searchViewModel.clearHistory()
         }
     }
 
     private fun hideAllContent() {
-        searchHistoryView.visibility = View.GONE
+        searchHistoryBinding.root.visibility = View.GONE
         historyRecyclerView.visibility = View.GONE
-        clearHistoryButton.visibility = View.GONE
+        searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
 
-        trackRecyclerView.visibility = View.GONE
-        stubEmptySearch.visibility = View.GONE
-        stubServerError.visibility = View.GONE
-        progressBar.visibility = View.GONE
+        binding.rcTrackData.visibility = View.GONE
+        emptySearchBinding.root.visibility = View.GONE
+        noInternetBinding.root.visibility = View.GONE
+        binding.progressBar.visibility = View.GONE
     }
 
     private fun updateSearchHistoryVisibility(history: List<Track>) {
-        val isEmptyQuery = searchEditText.text.isEmpty()
-        val hasFocus = searchEditText.hasFocus()
+        val isEmptyQuery = binding.searchEditText.text.isEmpty()
+        val hasFocus = binding.searchEditText.hasFocus()
 
         if (hasFocus && isEmptyQuery && history.isNotEmpty()) {
-            searchHistoryView.visibility = View.VISIBLE
+            searchHistoryBinding.root.visibility = View.VISIBLE
             historyRecyclerView.visibility = View.VISIBLE
-            clearHistoryButton.visibility = View.VISIBLE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.VISIBLE
         } else {
-            searchHistoryView.visibility = View.GONE
+            searchHistoryBinding.root.visibility = View.GONE
             historyRecyclerView.visibility = View.GONE
-            clearHistoryButton.visibility = View.GONE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
         }
     }
 
     private fun clearSearch() {
-        searchEditText.text?.clear()
-        clearButton.visibility = View.GONE
+        binding.searchEditText.text?.clear()
+        binding.clearButton.visibility = View.GONE
         searchViewModel.clearSearchResults()
         hideKeyboard()
     }
 
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(searchEditText.windowToken, 0)
+        imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 
     private fun openPlayer(track: Track) {

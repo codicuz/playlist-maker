@@ -16,19 +16,33 @@
         <item name="android:drawableTint">@color/white</item>
     </style>
 
-    <style name="SettingsButtons" parent="SettingsButtonsBase">
-        <item name="drawableTint">@color/white</item>
+    <style name="ActivityMediaText" parent="ActivityMediaTextBase">
         <item name="android:textColor">@color/white</item>
     </style>
 
-    <style name="MainView" parent="MainViewBase">
-        <item name="android:background">@color/app_black</item>
+    <style name="ActivityMediaButton" parent="ActivityMediaButtonBase">
+        <item name="android:textColor">@color/app_black</item>
+        <item name="backgroundTint">@color/white</item>
+    </style>
+
+    <style name="ActivityMedia" parent="ActivityMediaBase">
+        <item name="tabTextColor">@color/white</item>
+        <item name="tabIndicatorColor">@color/app_white</item>
+    </style>
+
+    <style name="SettingsButtons" parent="SettingsButtonsBase">
+        <item name="drawableTint">@color/white</item>
+        <item name="android:textColor">@color/white</item>
     </style>
 
     <style name="SwitchButtons" parent="SwitchButtonsBase">
         <item name="android:textColor">@color/white</item>
         <item name="thumbTint">@color/blue</item>
         <item name="trackTint">@color/light_blue</item>
+    </style>
+
+    <style name="MainView" parent="MainViewBase">
+        <item name="android:background">@color/app_black</item>
     </style>
 
     <style name="EditTextView">
@@ -71,7 +85,4 @@
         <item name="android:src">@drawable/not_found_dark</item>
         <item name="android:textColor">@color/white</item>
     </style>
-
-
-
 </resources>

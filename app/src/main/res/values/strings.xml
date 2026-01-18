@@ -37,4 +37,10 @@
     <string name="mp_not_ready">MediaPlayer не готов</string>
     <string name="no_url_to_play">Нет ссылки для воспроизведения произведения</string>
     <string name="mp_not_ready_to_play">MediaPlayer готов к воспроизведению</string>
+    <string name="favourite_tracks">Избранные треки</string>
+    <string name="playlists">Плейлисты</string>
+    <string name="new_playlist">Новый плейлист</string>
+    <string name="empty_media">Ваша медиатека пуста</string>
+    <string name="empty_playlists">Вы не создали\n ни одного плейлиста</string>
+    <string name="audio_playback_attribution">This app plays audio</string>
 </resources>
