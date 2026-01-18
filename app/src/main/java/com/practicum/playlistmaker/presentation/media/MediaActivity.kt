@@ -3,6 +3,7 @@ package com.practicum.playlistmaker.presentation.media
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.tabs.TabLayoutMediator
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.ActivityMediaBinding
 
 class MediaActivity : AppCompatActivity() {
@@ -23,12 +24,16 @@ class MediaActivity : AppCompatActivity() {
             binding.viewPager
         ) { tab, position ->
             when (position) {
-                0 -> tab.text = "Вкладка 1"
-                1 -> tab.text = "Вкладка 2"
+                0 -> tab.text = getString(R.string.favourite_tracks)
+                1 -> tab.text = getString(R.string.playlists)
             }
         }
+        binding.mediaHeader.setOnClickListener { finish() }
+
         tabMediator.attach()
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
