@@ -19,10 +19,14 @@ val presentationModule = module {
     viewModel { PlaylistsViewModel() }
 
     factory {
-        MediaPlayer()
         val context: Context = get()
-        val mpContext = context.createAttributionContext("audioPlayback")
-        MediaPlayer(mpContext)
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            val mpContext = context.createAttributionContext("audioPlayback")
+            MediaPlayer(mpContext) // Для устройств, которые могут
+        } else {
+            MediaPlayer() // Для устройств, которые не могут
+        }
     }
     viewModel { AudioPlayerViewModel(get()) }
 }

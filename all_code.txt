@@ -1,0 +1,1404 @@
+==== ./app/src/main/java/com/practicum/playlistmaker/App.kt ====
+package com.practicum.playlistmaker
+
+import android.app.Application
+import com.practicum.playlistmaker.di.appModule
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext.startKoin
+
+class App : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidContext(this@App)
+            modules(appModule)
+        }
+
+        // Тема берется один раз системная после устновки приложения, затем сохраняется
+        // После, если системная тема поменялась, то приложение живет уже с установленной
+        // темой пользователем
+        val themeRepository: ThemeRepository =
+            org.koin.java.KoinJavaComponent.get(ThemeRepository::class.java)
+
+        themeRepository.applyTheme()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/adapter/TrackAdapter.kt ====
+package com.practicum.playlistmaker.presentation.adapter
+
+import android.annotation.SuppressLint
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.databinding.ActivityRecordItemBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
+
+class TrackAdapter(
+    private val onTrackClick: (Track) -> Unit
+) : RecyclerView.Adapter<TrackViewHolder>() {
+    private val items = mutableListOf<Track>()
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun submitList(newList: List<Track>) {
+        items.clear()
+        items.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
+        val binding = ActivityRecordItemBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return TrackViewHolder(binding, onTrackClick)
+    }
+
+    override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SingleLiveEvent.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import java.util.concurrent.atomic.AtomicBoolean
+
+class SingleLiveEvent<T> : MutableLiveData<T>() {
+    private val pending = AtomicBoolean(false)
+
+    override fun observe(owner: LifecycleOwner, observer: Observer<in T>) {
+        super.observe(owner) { t ->
+            if (pending.compareAndSet(true, false)) {
+                observer.onChanged(t)
+            }
+        }
+    }
+
+    override fun setValue(t: T?) {
+        pending.set(true)
+        super.setValue(t)
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SettingsUiEvent.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+sealed class SettingsUiEvent {
+    object OpenPracticumOffer : SettingsUiEvent()
+    object SendToHelpdesk : SettingsUiEvent()
+    object ShareApp : SettingsUiEvent()
+    data class ShowError(val message: String) : SettingsUiEvent()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SettingsActivity.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+import android.app.ActivityOptions
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivitySettingsBinding
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class SettingsActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivitySettingsBinding
+    private val themeViewModel: ThemeViewModel by viewModel()
+    private var themeInitialized = false
+
+    companion object {
+        private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivitySettingsBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        themeViewModel.state.observe(this) { state ->
+            if (!themeInitialized) {
+                binding.themeSwitcher.isChecked = state.isDarkMode
+                themeInitialized = true
+            }
+        }
+
+        binding.themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
+                themeViewModel.switchTheme(isChecked)
+                restartWithTheme()
+            }
+        }
+
+        themeViewModel.uiEvent.observe(this) { event ->
+            when (event) {
+                is SettingsUiEvent.OpenPracticumOffer -> openPracticumOffer()
+                is SettingsUiEvent.SendToHelpdesk -> openHelpdeskEmail()
+                is SettingsUiEvent.ShareApp -> shareApp()
+                is SettingsUiEvent.ShowError -> Toast.makeText(
+                    this, event.message, Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
+        binding.settingsHeader.setOnClickListener { finish() }
+        binding.practicumOffer.setOnClickListener { themeViewModel.onPracticumOfferClicked() }
+        binding.sendToHelpdesk.setOnClickListener { themeViewModel.onSendToHelpdeskClicked() }
+        binding.shareApp.setOnClickListener { themeViewModel.onShareAppClicked() }
+    }
+
+    private fun openPracticumOffer() {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = getString(R.string.practicum_license).toUri()
+        }
+        startSafe(intent)
+    }
+
+    private fun openHelpdeskEmail() {
+        val email = getString(R.string.email)
+        val subject = getString(R.string.email_subject)
+        val body = getString(R.string.email_text)
+        val uri = "mailto:$email?subject=${Uri.encode(subject)}&body=${Uri.encode(body)}"
+        val intent = Intent(Intent.ACTION_SENDTO, uri.toUri())
+        startSafe(intent)
+    }
+
+    private fun restartWithTheme() {
+        val intent = intent
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
+        startActivity(intent, options.toBundle())
+        finish()
+    }
+
+    private fun shareApp() {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = MIME_TYPE_TEXT_PLAIN
+            putExtra(
+                Intent.EXTRA_TEXT, getString(R.string.https_practicum_yandex_ru_android_developer)
+            )
+        }
+        startSafe(Intent.createChooser(intent, null))
+    }
+
+    private fun startSafe(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG).show()
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaViewPagerAdapter.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.Lifecycle
+import androidx.viewpager2.adapter.FragmentStateAdapter
+
+class MediaViewPagerAdapter(
+    fragmentManager: FragmentManager, lifecycle: Lifecycle, private val tabs: List<MediaTab>
+) : FragmentStateAdapter(fragmentManager, lifecycle) {
+
+    override fun getItemCount() = tabs.size
+
+    override fun createFragment(position: Int): Fragment {
+        return when (tabs[position]) {
+            MediaTab.FAVORITES -> FavoritesFragment.newInstance()
+            MediaTab.PLAYLISTS -> PlaylistsFragment.newInstance()
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+
+class MediaViewModel : ViewModel() {
+    val tabs = listOf(MediaTab.FAVORITES, MediaTab.PLAYLISTS)
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistsViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+
+class PlaylistsViewModel : ViewModel()==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistsFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.practicum.playlistmaker.databinding.FragmentPlaylistsBinding
+
+class PlaylistsFragment : Fragment() {
+
+    private var _binding: FragmentPlaylistsBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPlaylistsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    companion object {
+        fun newInstance() = PlaylistsFragment()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/FavoritesFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.practicum.playlistmaker.databinding.FragmentFavoritesBinding
+
+class FavoritesFragment : Fragment() {
+    private var _binding: FragmentFavoritesBinding? = null
+    private val binding get() = _binding!!
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentFavoritesBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    companion object {
+        fun newInstance() = FavoritesFragment()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/FavoritesViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+
+class FavoritesViewModel : ViewModel()
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaActivity.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.tabs.TabLayoutMediator
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivityMediaBinding
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class MediaActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMediaBinding
+    private val viewModel: MediaViewModel by viewModel()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMediaBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.viewPager.adapter =
+            MediaViewPagerAdapter(supportFragmentManager, lifecycle, viewModel.tabs)
+
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (viewModel.tabs[position]) {
+                MediaTab.FAVORITES -> getString(R.string.favourite_tracks)
+                MediaTab.PLAYLISTS -> getString(R.string.playlists)
+            }
+        }.attach()
+
+        binding.mediaHeader.setOnClickListener { finish() }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaTab.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+enum class MediaTab {
+    FAVORITES,
+    PLAYLISTS
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/util/Useful.kt ====
+package com.practicum.playlistmaker.presentation.util
+
+import android.content.Context
+import android.util.TypedValue
+
+class Useful {
+    companion object {
+        fun dpToPx(dp: Float, context: Context): Int {
+            return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, context.resources.displayMetrics
+            ).toInt()
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchViewModel.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+
+class SearchViewModel(
+    private val searchTracksUseCase: SearchTracksUseCase,
+    private val getHistoryUseCase: GetSearchHistoryUseCase,
+    private val addTrackUseCase: AddTrackToHistoryUseCase,
+    private val clearHistoryUseCase: ClearSearchHistoryUseCase
+) : ViewModel() {
+
+    private val _state = MutableLiveData(SearchScreenState())
+    val state: LiveData<SearchScreenState> = _state
+
+    fun searchTracks(query: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val tracks = searchTracksUseCase.execute(query)
+                _state.postValue(
+                    _state.value?.copy(
+                        tracks = tracks, isError = false, hasSearched = true
+                    )
+                )
+            } catch (e: Exception) {
+                _state.postValue(
+                    _state.value?.copy(
+                        tracks = emptyList(), isError = true, hasSearched = true
+                    )
+                )
+            }
+        }
+    }
+
+    fun loadHistory() {
+        val history = getHistoryUseCase.execute()
+        _state.value = _state.value?.copy(history = history)
+    }
+
+    fun clearSearchResults() {
+        _state.value = _state.value?.copy(
+            tracks = emptyList(), hasSearched = false, isError = false
+        )
+    }
+    fun addTrackToHistory(track: Track) {
+        addTrackUseCase.execute(track)
+        refreshHistory()
+    }
+
+    fun clearHistory() {
+        clearHistoryUseCase.execute()
+        refreshHistory()
+    }
+
+    private fun refreshHistory() {
+        val history = getHistoryUseCase.execute()
+        _state.value = _state.value?.copy(history = history)
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchActivity.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import android.content.Intent
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.databinding.ActivitySearchBinding
+import com.practicum.playlistmaker.databinding.EmptySearchBinding
+import com.practicum.playlistmaker.databinding.NoInternetBinding
+import com.practicum.playlistmaker.databinding.SearchHistoryBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.player.AudioPlayerActivity
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class SearchActivity : AppCompatActivity() {
+    private lateinit var binding: ActivitySearchBinding
+    private val searchViewModel: SearchViewModel by viewModel()
+    private lateinit var adapter: TrackAdapter
+    private lateinit var historyAdapter: TrackAdapter
+    private lateinit var historyRecyclerView: RecyclerView
+    private lateinit var emptySearchBinding: EmptySearchBinding
+    private lateinit var noInternetBinding: NoInternetBinding
+    private lateinit var searchHistoryBinding: SearchHistoryBinding
+    private var currentQuery = ""
+    private val handler = Handler(Looper.getMainLooper())
+    private var searchRunnableOnDone: Runnable? = null
+    private val debounceDelayDone = 500L
+    private var searchRunnableOnTextChanged: Runnable? = null
+    private val debounceDelayTextChanged = 2000L
+
+    companion object {
+        private const val SEARCH_KEY = "SEARCH_KEY"
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivitySearchBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        emptySearchBinding = EmptySearchBinding.bind(binding.stubEmptySearchInc.root)
+        noInternetBinding = NoInternetBinding.bind(binding.stubNoInternetInc.root)
+        searchHistoryBinding = SearchHistoryBinding.bind(binding.stubSearchHistoryInc.root)
+
+        initViews()
+        setupAdapters()
+
+        searchViewModel.state.observe(this) { state ->
+
+            if (state.tracks.isNotEmpty()) {
+                adapter.submitList(state.tracks)
+                binding.rcTrackData.visibility = View.VISIBLE
+                emptySearchBinding.root.visibility = View.GONE
+            } else {
+                binding.rcTrackData.visibility = View.GONE
+
+                emptySearchBinding.root.visibility =
+                    if (state.hasSearched && !state.isError) View.VISIBLE
+                    else View.GONE
+            }
+
+            historyAdapter.submitList(state.history)
+            updateSearchHistoryVisibility(state.history)
+
+            noInternetBinding.root.visibility = if (state.isError) View.VISIBLE else View.GONE
+
+            binding.progressBar.visibility = View.GONE
+        }
+
+        setupListeners()
+
+        currentQuery = savedInstanceState?.getString(SEARCH_KEY) ?: ""
+        if (currentQuery.isNotEmpty()) {
+            binding.searchEditText.setText(currentQuery)
+            searchViewModel.searchTracks(currentQuery)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(SEARCH_KEY, currentQuery)
+    }
+
+    private fun initViews() {
+        historyRecyclerView = searchHistoryBinding.rcTrackDataHistory
+        binding.searchHeader.setOnClickListener { finish() }
+    }
+
+    private fun setupAdapters() {
+        adapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+        binding.rcTrackData.layoutManager = LinearLayoutManager(this)
+        binding.rcTrackData.adapter = adapter
+
+        historyAdapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+
+        historyRecyclerView.layoutManager = LinearLayoutManager(this)
+        historyRecyclerView.adapter = historyAdapter
+    }
+
+    private fun setupListeners() {
+        binding.clearButton.setOnClickListener { clearSearch() }
+
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+
+                val query = s?.toString()?.trim().orEmpty()
+
+                if (query.isEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchViewModel.clearSearchResults()
+
+                    return
+                }
+
+                if (query != currentQuery) {
+                    currentQuery = query
+
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+
+                    searchRunnableOnTextChanged = Runnable {
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
+                        hideKeyboard()
+                    }
+
+                    handler.postDelayed(searchRunnableOnTextChanged!!, debounceDelayTextChanged)
+                }
+            }
+        })
+
+        binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                searchViewModel.loadHistory()
+            } else {
+                hideAllContent()
+            }
+        }
+
+
+
+        binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val query = binding.searchEditText.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone = Runnable {
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
+                        hideKeyboard()
+                    }
+                    handler.postDelayed(searchRunnableOnDone!!, debounceDelayDone)
+                }
+                true
+            } else false
+        }
+
+        noInternetBinding.buttonRetry.setOnClickListener {
+            if (currentQuery.isNotBlank()) {
+                binding.progressBar.visibility = View.VISIBLE
+                searchViewModel.searchTracks(currentQuery)
+            }
+        }
+
+        searchHistoryBinding.buttonClearSearchHistory.setOnClickListener {
+            searchViewModel.clearHistory()
+        }
+    }
+
+    private fun hideAllContent() {
+        searchHistoryBinding.root.visibility = View.GONE
+        historyRecyclerView.visibility = View.GONE
+        searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
+
+        binding.rcTrackData.visibility = View.GONE
+        emptySearchBinding.root.visibility = View.GONE
+        noInternetBinding.root.visibility = View.GONE
+        binding.progressBar.visibility = View.GONE
+    }
+
+    private fun updateSearchHistoryVisibility(history: List<Track>) {
+        val isEmptyQuery = binding.searchEditText.text.isEmpty()
+        val hasFocus = binding.searchEditText.hasFocus()
+
+        if (hasFocus && isEmptyQuery && history.isNotEmpty()) {
+            searchHistoryBinding.root.visibility = View.VISIBLE
+            historyRecyclerView.visibility = View.VISIBLE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.VISIBLE
+        } else {
+            searchHistoryBinding.root.visibility = View.GONE
+            historyRecyclerView.visibility = View.GONE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
+        }
+    }
+
+    private fun clearSearch() {
+        binding.searchEditText.text?.clear()
+        binding.clearButton.visibility = View.GONE
+        searchViewModel.clearSearchResults()
+        hideKeyboard()
+    }
+
+    private fun hideKeyboard() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
+    }
+
+    private fun openPlayer(track: Track) {
+        val intent = Intent(this, AudioPlayerActivity::class.java).apply {
+            putExtra("track", track)
+        }
+        startActivity(intent)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchScreenState.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import com.practicum.playlistmaker.domain.track.Track
+
+data class SearchScreenState(
+    val tracks: List<Track> = emptyList(),
+    val history: List<Track> = emptyList(),
+    val isError: Boolean = false,
+    val hasSearched: Boolean = false
+)
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/main/MainActivity.kt ====
+package com.practicum.playlistmaker.presentation.main
+
+import android.content.Intent
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.practicum.playlistmaker.databinding.ActivityMainBinding
+import com.practicum.playlistmaker.presentation.media.MediaActivity
+import com.practicum.playlistmaker.presentation.search.SearchActivity
+import com.practicum.playlistmaker.presentation.settings.SettingsActivity
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.buttonSearch.setOnClickListener {
+            startActivity(
+                Intent(
+                    this, SearchActivity::class.java
+                )
+            )
+        }
+        binding.buttonMedia.setOnClickListener {
+            startActivity(
+                Intent(
+                    this, MediaActivity::class.java
+                )
+            )
+        }
+        binding.buttonSettings.setOnClickListener {
+            startActivity(
+                Intent(
+                    this, SettingsActivity::class.java
+                )
+            )
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/viewholder/TrackViewHolder.kt ====
+package com.practicum.playlistmaker.presentation.viewholder
+
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivityRecordItemBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.Useful
+
+class TrackViewHolder(
+    private val binding: ActivityRecordItemBinding, private val onTrackClick: (Track) -> Unit
+) : RecyclerView.ViewHolder(binding.root) {
+    fun bind(item: Track) {
+        binding.trackName.text = item.trackName
+        binding.artistsName.text = item.artistsName
+        binding.trackTime.text = item.trackTime
+
+        Glide.with(itemView).load(item.artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
+            .fitCenter().transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
+            .into(binding.artworkImage)
+
+        itemView.setOnClickListener {
+            onTrackClick(item)
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerScreenState.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import com.practicum.playlistmaker.domain.track.Track
+
+data class AudioPlayerScreenState(
+    val track: Track? = null,
+    val isPlaying: Boolean = false,
+    val currentPosition: Int = 0
+)==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerActivity.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.AudioPlayerBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.Useful
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class AudioPlayerActivity : AppCompatActivity() {
+    private lateinit var binding: AudioPlayerBinding
+    private val viewModel: AudioPlayerViewModel by viewModel()
+
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = AudioPlayerBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.audBackButton.setOnClickListener { finish() }
+
+        val track: Track? = intent.getParcelableExtra("track", Track::class.java)
+
+        track?.let { viewModel.setTrack(it) } ?: run { finish() }
+
+        viewModel.state.observe(this) { state ->
+            state.track?.let { track ->
+                binding.mainAlbumText.text = track.trackName ?: "-"
+                binding.artistName.text = track.artistsName ?: "-"
+                binding.audAlbumNameValue.text = track.collectionName ?: "-"
+                binding.audYearValue.text = track.releaseYear ?: "-"
+                binding.audGenreValue.text = track.primaryGenreName ?: "-"
+                binding.audCountryValue.text = track.country ?: "-"
+
+                Glide.with(this).load(track.getConvertArtwork())
+                    .placeholder(R.drawable.ic_no_artwork_image)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, this))).into(binding.songPoster)
+            }
+
+            binding.currentTrackTime.text = formatTime(state.currentPosition)
+            binding.audPlayButton.setImageResource(
+                if (state.isPlaying) R.drawable.btn_aud_pause
+                else R.drawable.btn_aud_play
+            )
+        }
+
+        binding.audPlayButton.setOnClickListener {
+            val isPlaying = viewModel.state.value?.isPlaying ?: false
+            if (isPlaying) viewModel.pausePlayer()
+            else viewModel.startPlayer()
+        }
+    }
+
+    private fun formatTime(ms: Int): String {
+        val seconds = ms / 1000
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        return String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        viewModel.pausePlayer()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerViewModel.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import android.media.MediaPlayer
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.practicum.playlistmaker.domain.track.Track
+
+class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
+
+    private val _state = MutableLiveData(AudioPlayerScreenState())
+    val state: LiveData<AudioPlayerScreenState> = _state
+    private val handler = Handler(Looper.getMainLooper())
+    private var updateTimeRunnable: Runnable? = null
+    private var isPrepared = false
+    private var isCompleted = false
+
+    fun setTrack(track: Track) {
+        _state.value = _state.value?.copy(track = track)
+        track.previewUrl?.let { initPlayer(it) }
+    }
+
+    fun startPlayer() {
+        if (isPrepared && !mediaPlayer.isPlaying) {
+
+            if (isCompleted) {
+                mediaPlayer.seekTo(0)
+                isCompleted = false
+            }
+
+            mediaPlayer.start()
+            _state.value = _state.value?.copy(isPlaying = true)
+            startUpdatingTime()
+        }
+    }
+
+    fun pausePlayer() {
+        if (isPrepared && mediaPlayer.isPlaying) {
+            mediaPlayer.pause()
+            _state.value = _state.value?.copy(isPlaying = false)
+            stopUpdatingTime()
+        }
+    }
+
+    private fun startUpdatingTime() {
+        stopUpdatingTime()
+        updateTimeRunnable = object : Runnable {
+            override fun run() {
+                _state.value = _state.value?.copy(currentPosition = mediaPlayer.currentPosition)
+                handler.postDelayed(this, 500)
+            }
+        }
+        handler.post(updateTimeRunnable!!)
+    }
+
+    private fun stopUpdatingTime() {
+        updateTimeRunnable?.let { handler.removeCallbacks(it) }
+    }
+
+    private fun initPlayer(previewUrl: String) {
+        try {
+            mediaPlayer.reset()
+            isPrepared = false
+            isCompleted = false
+
+            mediaPlayer.setDataSource(previewUrl)
+
+            mediaPlayer.setOnPreparedListener {
+                isPrepared = true
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+            }
+            mediaPlayer.setOnCompletionListener {
+                isCompleted = true
+                stopUpdatingTime()
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+            }
+
+            mediaPlayer.prepareAsync()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "Error init player", e)
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            mediaPlayer.release()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "MediaPlayer already released", e)
+        }
+        stopUpdatingTime()
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/theme/ThemeViewModel.kt ====
+package com.practicum.playlistmaker.presentation.theme
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
+import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
+import com.practicum.playlistmaker.presentation.settings.SingleLiveEvent
+
+class ThemeViewModel(
+    private val switchThemeUseCase: SwitchThemeUseCase,
+    private val getThemeUseCase: GetThemeUseCase
+) : ViewModel() {
+
+    private val _state = MutableLiveData(ThemeScreenState())
+    val state: LiveData<ThemeScreenState> = _state
+
+    private val _uiEvent = SingleLiveEvent<SettingsUiEvent>()
+    val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
+
+    init {
+        _state.value = ThemeScreenState(isDarkMode = getThemeUseCase.execute())
+    }
+
+    fun switchTheme(darkMode: Boolean) {
+        switchThemeUseCase.execute(darkMode)
+        _state.value = _state.value?.copy(isDarkMode = darkMode)
+    }
+
+    fun onPracticumOfferClicked() {
+        _uiEvent.value = SettingsUiEvent.OpenPracticumOffer
+    }
+
+    fun onSendToHelpdeskClicked() {
+        _uiEvent.value = SettingsUiEvent.SendToHelpdesk
+    }
+
+    fun onShareAppClicked() {
+        _uiEvent.value = SettingsUiEvent.ShareApp
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/theme/ThemeScreenState.kt ====
+package com.practicum.playlistmaker.presentation.theme
+
+data class ThemeScreenState(
+    val isDarkMode: Boolean = false
+)==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/SearchTracksUseCase.kt ====
+package com.practicum.playlistmaker.domain.track
+
+class SearchTracksUseCase(
+    private val repository: TracksRepository
+) {
+
+    fun execute(searchText: String): List<Track> {
+        return repository.searchTrack(searchText)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/Track.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Parcelize
+data class Track(
+    val trackId: Int?,
+    val trackName: String?,
+    val artistsName: String?,
+    private val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+) : Parcelable {
+    val trackTime: String?
+        get() = trackTimeMillis?.let {
+            SimpleDateFormat("mm:ss", Locale.getDefault()).format(Date(it))
+        }
+
+    val releaseYear: String?
+        get() = releaseDate?.let {
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date = inputFormat.parse(it)
+                val outputFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+                outputFormat.format(date!!)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    fun getConvertArtwork(): String {
+        return artworkUrl100?.replaceAfterLast("/", "512x512bb.jpg") ?: ""
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/TracksRepository.kt ====
+package com.practicum.playlistmaker.domain.track
+
+interface TracksRepository {
+    fun searchTrack(searchString: String): List<Track>
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/AddTrackToHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+class AddTrackToHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(track: Track) {
+        repository.addTrack(track)
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/ClearSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+class ClearSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute() {
+        repository.clearHistory()
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/GetSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+
+class GetSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(): List<Track> = repository.getHistory()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/SearchHistoryRepository.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+
+interface SearchHistoryRepository {
+
+    fun getHistory(): List<Track>
+
+    fun addTrack(track: Track)
+
+    fun clearHistory()
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/ThemeRepository.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+interface ThemeRepository {
+    fun switchTheme(darkMode: Boolean)
+    fun isDarkMode(): Boolean
+    fun applyTheme()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/GetThemeUseCase.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+class GetThemeUseCase(private val repository: ThemeRepository) {
+    fun execute(): Boolean {
+        return repository.isDarkMode()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/SwitchThemeUseCase.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+class SwitchThemeUseCase(private val repository: ThemeRepository) {
+    fun execute(darkMode: Boolean) {
+        repository.switchTheme(darkMode)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/PresentationModule.kt ====
+package com.practicum.playlistmaker.di
+
+import android.content.Context
+import android.media.MediaPlayer
+import com.practicum.playlistmaker.presentation.media.FavoritesViewModel
+import com.practicum.playlistmaker.presentation.media.MediaViewModel
+import com.practicum.playlistmaker.presentation.media.PlaylistsViewModel
+import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
+import com.practicum.playlistmaker.presentation.search.SearchViewModel
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+
+val presentationModule = module {
+    viewModel { ThemeViewModel(get(), get()) }
+    viewModel { SearchViewModel(get(), get(), get(), get()) }
+    viewModel { MediaViewModel() }
+    viewModel { FavoritesViewModel() }
+    viewModel { PlaylistsViewModel() }
+
+    factory {
+        MediaPlayer()
+        val context: Context = get()
+        val mpContext = context.createAttributionContext("audioPlayback")
+        MediaPlayer(mpContext)
+    }
+    viewModel { AudioPlayerViewModel(get()) }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/DomainModule.kt ====
+package com.practicum.playlistmaker.di
+
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
+import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+import org.koin.dsl.module
+
+val domainModule = module {
+    // Theme
+    factory { GetThemeUseCase(get()) }
+    factory { SwitchThemeUseCase(get()) }
+
+    // History
+    factory { AddTrackToHistoryUseCase(get()) }
+    factory { ClearSearchHistoryUseCase(get()) }
+    factory { GetSearchHistoryUseCase(get()) }
+
+    // Search
+    factory { SearchTracksUseCase(get()) }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/DataModule.kt ====
+package com.practicum.playlistmaker.di
+
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
+import com.practicum.playlistmaker.data.network.ITunesApi
+import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
+import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+val dataModule = module {
+    // SharedPreferences
+    single<SharedPreferences>(named(Qualifiers.SETTINGS_PREFS)) {
+        get<Application>().getSharedPreferences(
+            SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE
+        )
+    }
+
+    single<SharedPreferences>(named(Qualifiers.SEARCH_PREFS)) {
+        get<Application>().getSharedPreferences(
+            SharedPrefs.PREFS_SEARCH_HISTORY, Context.MODE_PRIVATE
+        )
+    }
+
+    // Theme
+    single<ThemeRepository> {
+        ThemeRepositoryImpl(get(named(Qualifiers.SETTINGS_PREFS)), get<Application>())
+    }
+
+    // History
+    single<SearchHistoryRepository> {
+        SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)), get())
+    }
+
+    // Gson
+    single { Gson() }
+
+    // Retrofit
+    single {
+        Retrofit.Builder().baseUrl("https://itunes.apple.com")
+            .addConverterFactory(GsonConverterFactory.create()).build()
+    }
+    single { get<Retrofit>().create(ITunesApi::class.java) }
+    single<NetworkClient> { RetrofitNetworkClient(get()) }
+
+    // Tracks
+    single<TracksRepository> { TracksRepositoryImpl(get()) }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/Qualifiers.kt ====
+package com.practicum.playlistmaker.di
+
+object Qualifiers {
+    const val SETTINGS_PREFS = "settingsPrefs"
+    const val SEARCH_PREFS = "searchPrefs"
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/AppModule.kt ====
+package com.practicum.playlistmaker.di
+
+import org.koin.dsl.module
+
+val appModule = module {
+    includes(
+        dataModule, domainModule, presentationModule
+    )
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/NetworkClient.kt ====
+package com.practicum.playlistmaker.data
+
+import com.practicum.playlistmaker.data.dto.Response
+
+interface NetworkClient {
+    fun doRequest(dto: Any): Response
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/storage/SharedPrefs.kt ====
+package com.practicum.playlistmaker.data.storage
+
+class SharedPrefs {
+    companion object {
+        const val PREFS_SETTINGS = "settings"
+        const val DARK_MODE_KEY = "dark_mode"
+        const val PREFS_SEARCH_HISTORY = "search_history"
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/network/RetrofitNetworkClient.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.Response
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+
+class RetrofitNetworkClient(private val iTunesApi: ITunesApi) : NetworkClient {
+
+    override fun doRequest(dto: Any): Response {
+        if (dto is TracksSearchRequest) {
+            val resp = iTunesApi.findSong(dto.expression).execute()
+            val body = resp.body() ?: Response()
+            return body.apply { resultCode = resp.code() }
+        } else {
+            return Response().apply { resultCode = 400 }
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/network/ITunesApi.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import retrofit2.Call
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface ITunesApi {
+    @GET("/search?entity=song")
+    fun findSong(@Query("term") text: String): Call<TracksSearchResponse>
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/repository/TracksRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.repository
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.domain.track.Track
+import java.util.Objects
+
+class TracksRepositoryImpl(private val networkClient: NetworkClient) : TracksRepository {
+    override fun searchTrack(searchString: String): List<Track> {
+        val response = networkClient.doRequest(TracksSearchRequest(searchString))
+        if (response.resultCode == 200) {
+            return (response as TracksSearchResponse).results.filter { Objects.nonNull(it) }.map {
+                Track(
+                    it.trackId,
+                    it.trackName,
+                    it.artistsName,
+                    it.trackTimeMillis,
+                    it.artworkUrl100,
+                    it.previewUrl,
+                    it.collectionName,
+                    it.releaseDate,
+                    it.primaryGenreName,
+                    it.country
+                )
+            }
+        } else {
+            throw RuntimeException("Network error")
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/history/SearchHistoryRepositorImpl.kt ====
+package com.practicum.playlistmaker.data.history
+
+import android.content.SharedPreferences
+import androidx.core.content.edit
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.track.Track
+
+class SearchHistoryRepositorImpl(
+    private val sharedPreferences: SharedPreferences, private val gson: Gson
+) : SearchHistoryRepository {
+
+    private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY
+    private val maxHistorySize = 10
+
+    override fun getHistory(): List<Track> {
+        val json = sharedPreferences.getString(historyKey, null) ?: return emptyList()
+        val type = object : TypeToken<List<Track>>() {}.type
+        return gson.fromJson(json, type)
+    }
+
+    override fun addTrack(track: Track) {
+        val history = getHistory().toMutableList()
+        history.removeAll { it.trackId == track.trackId }
+        history.add(0, track)
+        if (history.size > maxHistorySize) {
+            history.subList(maxHistorySize, history.size).clear()
+        }
+        saveHistory(history)
+    }
+
+    override fun clearHistory() {
+        sharedPreferences.edit { remove(historyKey) }
+    }
+
+    private fun saveHistory(history: List<Track>) {
+        val limitedHistory =
+            if (history.size > maxHistorySize) history.subList(0, maxHistorySize) else history
+        val json = gson.toJson(limitedHistory)
+        sharedPreferences.edit { putString(historyKey, json) }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TrackDto.kt ====
+package com.practicum.playlistmaker.data.dto
+
+import com.google.gson.annotations.SerializedName
+
+data class TrackDto(
+    val trackId: Int?,
+    val trackName: String?,
+    @SerializedName("artistName") val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+)
+==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/Response.kt ====
+package com.practicum.playlistmaker.data.dto
+
+open class Response() {
+    var resultCode = 0
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TracksSearchResponse.kt ====
+package com.practicum.playlistmaker.data.dto
+
+class TracksSearchResponse(
+    val results: List<TrackDto>) : Response()==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TracksSearchRequest.kt ====
+package com.practicum.playlistmaker.data.dto
+
+data class TracksSearchRequest(val expression: String)==== ./app/src/main/java/com/practicum/playlistmaker/data/theme/ThemeRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.theme
+
+import android.app.Application
+import android.content.SharedPreferences
+import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+
+class ThemeRepositoryImpl(
+    private val sharedPreferences: SharedPreferences, private val app: Application
+) : ThemeRepository {
+
+    private val themeKey = SharedPrefs.DARK_MODE_KEY
+
+    override fun isDarkMode(): Boolean {
+        if (sharedPreferences.contains(themeKey)) {
+            return sharedPreferences.getBoolean(themeKey, false)
+        }
+        val uiMode = app.resources.configuration.uiMode
+        val systemDarkMode =
+            (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        sharedPreferences.edit {
+            putBoolean(themeKey, systemDarkMode)
+        }
+
+        return systemDarkMode
+    }
+
+    override fun switchTheme(darkMode: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(themeKey, darkMode)
+        }
+
+        applyThemeInternal(darkMode)
+    }
+
+    override fun applyTheme() {
+        applyThemeInternal(isDarkMode())
+    }
+
+    private fun applyThemeInternal(darkMode: Boolean) {
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
+    }
+}

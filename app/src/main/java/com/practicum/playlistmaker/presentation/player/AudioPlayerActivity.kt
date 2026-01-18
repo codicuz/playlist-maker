@@ -8,6 +8,7 @@ import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.AudioPlayerBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
+import com.practicum.playlistmaker.presentation.util.parcelableExtra
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AudioPlayerActivity : AppCompatActivity() {
@@ -22,7 +23,7 @@ class AudioPlayerActivity : AppCompatActivity() {
 
         binding.audBackButton.setOnClickListener { finish() }
 
-        val track: Track? = intent.getParcelableExtra("track", Track::class.java)
+        val track: Track? = intent.parcelableExtra("track")
 
         track?.let { viewModel.setTrack(it) } ?: run { finish() }
 
