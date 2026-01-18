@@ -9,8 +9,8 @@
 
     <ImageView
         style="@style/NotFound"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
+        android:layout_width="@dimen/size_not_found_image"
+        android:layout_height="@dimen/size_not_found_image"
         android:layout_gravity="center"
         android:layout_marginTop="106dp"
         android:layout_marginBottom="16dp"
