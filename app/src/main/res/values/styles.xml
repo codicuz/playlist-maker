@@ -83,6 +83,7 @@
 
     <style name="ActivityMediaBase">
         <item name="tabTextAppearance">@style/ActivityMediaTabText</item>
+        <item name="android:backgroundTint">?attr/colorGlobalBackground</item>
     </style>
 
     <style name="ActivityMedia" parent="ActivityMediaBase">
