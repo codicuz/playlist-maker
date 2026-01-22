@@ -1,6 +1,6 @@
 package com.practicum.playlistmaker.presentation.search
 
-import android.content.Context
+import android.content.Context.INPUT_METHOD_SERVICE
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -47,6 +47,8 @@ class SearchFragment : Fragment() {
 
     private val debounceDelayDone = 500L
     private val debounceDelayTextChanged = 2000L
+
+    private var wasSearchFocused = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -231,12 +233,30 @@ class SearchFragment : Fragment() {
 
     private fun hideKeyboard() {
         val imm =
-            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            requireContext().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 
     private fun openPlayer(track: Track) {
         val bundle = Bundle().apply { putParcelable("track", track) }
         findNavController().navigate(R.id.action_searchFragment_to_audioPlayerFragment, bundle)
+    }
+
+    private fun focusSearchEditText() {
+        binding.searchEditText.requestFocus()
+        val imm = requireContext().getSystemService(InputMethodManager::class.java)
+        imm.showSoftInput(binding.searchEditText, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        wasSearchFocused = binding.searchEditText.hasFocus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (wasSearchFocused) {
+            focusSearchEditText()
+        }
     }
 }
