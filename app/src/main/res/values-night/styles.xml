@@ -89,6 +89,6 @@
     <style name="BottomNav">
         <item name="itemIconTint">@color/bottom_nav_colors_night</item>
         <item name="itemTextColor">@color/bottom_nav_colors_night</item>
-        <item name="android:background">@color/app_black</item>
+        <item name="android:background">?attr/colorGlobalBackground</item>
     </style>
 </resources>

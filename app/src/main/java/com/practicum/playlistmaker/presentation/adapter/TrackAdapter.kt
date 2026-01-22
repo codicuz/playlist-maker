@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.practicum.playlistmaker.databinding.ActivityRecordItemBinding
+import com.practicum.playlistmaker.databinding.RecordItemBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
 
@@ -21,7 +21,7 @@ class TrackAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
-        val binding = ActivityRecordItemBinding.inflate(
+        val binding = RecordItemBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
         return TrackViewHolder(binding, onTrackClick)

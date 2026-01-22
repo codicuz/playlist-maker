@@ -6,9 +6,7 @@
     android:layout_height="match_parent"
     android:fillViewport="true">
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+    <androidx.constraintlayout.widget.ConstraintLayout style="@style/Fragment">
 
         <ImageButton
             android:id="@+id/audBackButton"
@@ -17,7 +15,6 @@
             android:layout_height="48dp"
             android:layout_marginStart="4dp"
             android:layout_marginTop="4dp"
-            android:background="@color/white"
             android:contentDescription="@string/todo"
             android:src="@drawable/back"
             app:layout_constraintStart_toStartOf="parent"

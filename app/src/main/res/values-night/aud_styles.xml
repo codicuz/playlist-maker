@@ -1,38 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <style name="AudButtonBack">
+        <item name="android:background">?attr/colorGlobalBackground</item>
         <item name="tint">@color/white</item>
     </style>
-
-
-
-
-
 
     <style name="AudMainText" parent="AudMainTextBase">
         <item name="android:textColor">@color/white</item>
     </style>
 
-
-
-
-
-
     <style name="AudArtistName" parent="AudArtistNameBase">
         <item name="android:textColor">@color/white</item>
     </style>
 
-
-
-
-
     <style name="AudBtnPlay" parent="AudBtnPlayBase">
         <item name="android:src">@drawable/btn_aud_play</item>
     </style>
-
-
-
-
 
     <style name="AudButtonAdd" parent="AudAdditionalButtonsBase">
         <item name="android:src">@drawable/btn_aud_add_track</item>
@@ -42,15 +26,9 @@
         <item name="android:src">@drawable/btn_aud_like_false</item>
     </style>
 
-
-
-
-
-
     <style name="AudTrackDetailsValues" parent="AudTrackDetailsValuesBase">
         <item name="android:textColor">@color/white</item>
     </style>
-
 
     <style name="AudCurrentTrackTime">
         <item name="android:textColor">@color/white</item>

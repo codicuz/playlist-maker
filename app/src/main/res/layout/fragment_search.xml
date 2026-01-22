@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/rootFrame"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    style="@style/Fragment">
 
     <LinearLayout
         android:id="@+id/secondarySearch"
         style="@style/SecondaryViews">
+
+        <TextView
+            android:id="@+id/searchHeader"
+            style="@style/ActivityTitlesSecondary"
+            android:text="@string/search" />
 
         <FrameLayout
             android:layout_width="match_parent"

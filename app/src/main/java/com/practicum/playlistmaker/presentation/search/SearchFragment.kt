@@ -1,60 +1,231 @@
 package com.practicum.playlistmaker.presentation.search
 
+import android.content.Context
 import android.os.Bundle
-import androidx.fragment.app.Fragment
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.EmptySearchBinding
+import com.practicum.playlistmaker.databinding.FragmentSearchBinding
+import com.practicum.playlistmaker.databinding.NoInternetBinding
+import com.practicum.playlistmaker.databinding.SearchHistoryBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import org.koin.androidx.viewmodel.ext.android.viewModel
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
-
-/**
- * A simple [Fragment] subclass.
- * Use the [SearchFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class SearchFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
+    private var _binding: FragmentSearchBinding? = null
+    private val binding get() = _binding!!
+
+    private val searchViewModel: SearchViewModel by viewModel()
+
+    private lateinit var adapter: TrackAdapter
+    private lateinit var historyAdapter: TrackAdapter
+
+    private lateinit var emptySearchBinding: EmptySearchBinding
+    private lateinit var noInternetBinding: NoInternetBinding
+    private lateinit var searchHistoryBinding: SearchHistoryBinding
+
+    private var currentQuery = ""
+
+    private val handler = Handler(Looper.getMainLooper())
+    private var searchRunnableOnDone: Runnable? = null
+    private var searchRunnableOnTextChanged: Runnable? = null
+
+    private val debounceDelayDone = 500L
+    private val debounceDelayTextChanged = 2000L
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSearchBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        initStubBindings()
+        initAdapters()
+        observeViewModel()
+        setupListeners()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        handler.removeCallbacksAndMessages(null)
+        _binding = null
+    }
+
+    private fun initStubBindings() {
+        emptySearchBinding = EmptySearchBinding.bind(binding.stubEmptySearchInc.root)
+        noInternetBinding = NoInternetBinding.bind(binding.stubNoInternetInc.root)
+        searchHistoryBinding = SearchHistoryBinding.bind(binding.stubSearchHistoryInc.root)
+    }
+
+    private fun initAdapters() {
+        adapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+
+        binding.rcTrackData.layoutManager = LinearLayoutManager(requireContext())
+        binding.rcTrackData.adapter = adapter
+
+        historyAdapter = TrackAdapter { track ->
+            searchViewModel.addTrackToHistory(track)
+            openPlayer(track)
+        }
+
+        searchHistoryBinding.rcTrackDataHistory.layoutManager =
+            LinearLayoutManager(requireContext())
+        searchHistoryBinding.rcTrackDataHistory.adapter = historyAdapter
+    }
+
+    private fun observeViewModel() {
+        searchViewModel.state.observe(viewLifecycleOwner) { state ->
+
+            if (state.tracks.isNotEmpty()) {
+                adapter.submitList(state.tracks)
+                binding.rcTrackData.visibility = View.VISIBLE
+                emptySearchBinding.root.visibility = View.GONE
+            } else {
+                binding.rcTrackData.visibility = View.GONE
+                emptySearchBinding.root.visibility =
+                    if (state.hasSearched && !state.isError) View.VISIBLE else View.GONE
+            }
+
+            historyAdapter.submitList(state.history)
+            updateSearchHistoryVisibility(state.history)
+
+            noInternetBinding.root.visibility = if (state.isError) View.VISIBLE else View.GONE
+
+            binding.progressBar.visibility = View.GONE
         }
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_search, container, false)
-    }
+    private fun setupListeners() {
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment SearchFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            SearchFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+        binding.searchHeader.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        binding.clearButton.setOnClickListener {
+            binding.searchEditText.text?.clear()
+            binding.searchEditText.text?.clear()
+            searchViewModel.clearSearchResults()
+            hideKeyboard()
+        }
+
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                binding.clearButton.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+
+                val query = s?.toString()?.trim().orEmpty()
+
+                if (query.isEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+                    searchViewModel.clearSearchResults()
+                    return
+                }
+
+                if (query != currentQuery) {
+                    currentQuery = query
+
+                    searchRunnableOnTextChanged?.let {
+                        handler.removeCallbacks(it)
+                    }
+
+                    searchRunnableOnTextChanged = Runnable {
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
+                        hideKeyboard()
+                    }
+
+                    handler.postDelayed(
+                        searchRunnableOnTextChanged!!, debounceDelayTextChanged
+                    )
                 }
             }
+        })
+
+        binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                searchViewModel.loadHistory()
+            }
+        }
+
+        binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val query = binding.searchEditText.text.toString().trim()
+                if (query.isNotEmpty()) {
+                    searchRunnableOnTextChanged?.let { handler.removeCallbacks(it) }
+                    searchRunnableOnDone?.let { handler.removeCallbacks(it) }
+
+                    searchRunnableOnDone = Runnable {
+                        searchHistoryBinding.root.visibility = View.GONE
+                        binding.progressBar.visibility = View.VISIBLE
+                        searchViewModel.searchTracks(query)
+                        hideKeyboard()
+                    }
+
+                    handler.postDelayed(searchRunnableOnDone!!, debounceDelayDone)
+                }
+                true
+            } else false
+        }
+
+        noInternetBinding.buttonRetry.setOnClickListener {
+            if (currentQuery.isNotBlank()) {
+                binding.progressBar.visibility = View.VISIBLE
+                searchViewModel.searchTracks(currentQuery)
+            }
+        }
+
+        searchHistoryBinding.buttonClearSearchHistory.setOnClickListener {
+            searchViewModel.clearHistory()
+        }
+    }
+
+    private fun updateSearchHistoryVisibility(history: List<Track>) {
+        val isEmptyQuery = binding.searchEditText.text.isEmpty()
+        val hasFocus = binding.searchEditText.hasFocus()
+
+        if (hasFocus && isEmptyQuery && history.isNotEmpty()) {
+            searchHistoryBinding.root.visibility = View.VISIBLE
+            searchHistoryBinding.rcTrackDataHistory.visibility = View.VISIBLE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.VISIBLE
+        } else {
+            searchHistoryBinding.root.visibility = View.GONE
+            searchHistoryBinding.rcTrackDataHistory.visibility = View.GONE
+            searchHistoryBinding.buttonClearSearchHistory.visibility = View.GONE
+        }
+    }
+
+    private fun hideKeyboard() {
+        val imm =
+            requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
+    }
+
+    private fun openPlayer(track: Track) {
+        val bundle = Bundle().apply { putParcelable("track", track) }
+        findNavController().navigate(R.id.action_searchFragment_to_audioPlayerFragment, bundle)
     }
 }

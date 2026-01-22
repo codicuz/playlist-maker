@@ -1,8 +1,10 @@
 <resources>
 
     <style name="Base.Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorOnPrimary">@color/colorOnPrimary</item>
+        <item name="colorGlobalBackground">@color/white</item>
+        <item name="colorTextPrimary">@color/app_black</item>
+        <item name="colorTextInverse">@color/white</item>
+        <item name="colorAccent">@color/blue</item>
     </style>
 
     <style name="Theme.PlaylistMaker" parent="Base.Theme.PlaylistMaker" />
