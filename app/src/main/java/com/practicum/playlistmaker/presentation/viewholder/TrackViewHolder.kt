@@ -4,12 +4,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.databinding.ActivityRecordItemBinding
+import com.practicum.playlistmaker.databinding.RecordItemBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class TrackViewHolder(
-    private val binding: ActivityRecordItemBinding, private val onTrackClick: (Track) -> Unit
+    private val binding: RecordItemBinding, private val onTrackClick: (Track) -> Unit
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(item: Track) {
         binding.trackName.text = item.trackName

@@ -83,6 +83,7 @@
 
     <style name="ActivityMediaBase">
         <item name="tabTextAppearance">@style/ActivityMediaTabText</item>
+        <item name="android:backgroundTint">?attr/colorGlobalBackground</item>
     </style>
 
     <style name="ActivityMedia" parent="ActivityMediaBase">
@@ -119,6 +120,16 @@
         <item name="minWidth">50dp</item>
     </style>
 
+    <style name="FragmentBase">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:orientation">vertical</item>
+    </style>
+
+    <style name="Fragment" parent="FragmentBase">
+        <item name="android:background">?attr/colorGlobalBackground</item>
+    </style>
+
     <style name="BaseHWMatchParent">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">match_parent</item>
@@ -129,8 +140,7 @@
     </style>
 
     <style name="MainView" parent="MainViewBase">
-        <item name="android:background">@color/blue
-        </item>
+        <item name="android:background">@color/blue</item>
     </style>
 
     <style name="SecondaryViews" parent="BaseHWMatchParent">
@@ -189,6 +199,12 @@
     <style name="NotFound" parent="NotFoundBase">
         <item name="android:src">@drawable/not_found_light</item>
         <item name="android:textColor">@color/app_black</item>
+    </style>
+
+    <style name="BottomNav">
+        <item name="itemIconTint">@color/bottom_nav_colors_day</item>
+        <item name="itemTextColor">@color/bottom_nav_colors_day</item>
+        <item name="android:background">?attr/colorGlobalBackground</item>
     </style>
 
 </resources>

@@ -1,8 +1,10 @@
 <resources>
 
-    <style name="Base.Theme.PlaylistMaker" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/colorSecondary</item>
-        <item name="colorOnPrimary">@color/colorOnSecondary</item>
-        <item name="android:backgroundTint">@color/app_black</item>
+    <style name="Theme.PlaylistMaker" parent="Base.Theme.PlaylistMaker">
+        <item name="colorGlobalBackground">@color/app_black</item>
+        <item name="colorTextPrimary">@color/white</item>
+        <item name="colorTextInverse">@color/app_black</item>
+        <item name="colorAccent">@color/light_blue</item>
     </style>
+
 </resources>

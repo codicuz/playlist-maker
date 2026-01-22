@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootFrame"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    style="@style/Fragment">
 
     <LinearLayout
         android:id="@+id/secondarySearch"
@@ -12,8 +10,7 @@
         <TextView
             android:id="@+id/searchHeader"
             style="@style/ActivityTitlesSecondary"
-            android:text="@string/search"
-            app:drawableStartCompat="@drawable/back" />
+            android:text="@string/search" />
 
         <FrameLayout
             android:layout_width="match_parent"

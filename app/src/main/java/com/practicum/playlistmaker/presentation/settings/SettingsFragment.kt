@@ -4,17 +4,23 @@ import android.app.ActivityOptions
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import com.practicum.playlistmaker.R
-import com.practicum.playlistmaker.databinding.ActivitySettingsBinding
+import com.practicum.playlistmaker.databinding.FragmentSettingsBinding
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-class SettingsActivity : AppCompatActivity() {
+class SettingsFragment : Fragment() {
 
-    private lateinit var binding: ActivitySettingsBinding
+    private var _binding: FragmentSettingsBinding? = null
+    private val binding get() = _binding!!
+
     private val themeViewModel: ThemeViewModel by viewModel()
     private var themeInitialized = false
 
@@ -22,12 +28,19 @@ class SettingsActivity : AppCompatActivity() {
         private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        binding = ActivitySettingsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
-        themeViewModel.state.observe(this) { state ->
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        themeViewModel.state.observe(viewLifecycleOwner) { state ->
             if (!themeInitialized) {
                 binding.themeSwitcher.isChecked = state.isDarkMode
                 themeInitialized = true
@@ -37,25 +50,38 @@ class SettingsActivity : AppCompatActivity() {
         binding.themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
             if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
                 themeViewModel.switchTheme(isChecked)
-                restartWithTheme()
             }
         }
 
-        themeViewModel.uiEvent.observe(this) { event ->
+        themeViewModel.uiEvent.observe(viewLifecycleOwner) { event ->
             when (event) {
                 is SettingsUiEvent.OpenPracticumOffer -> openPracticumOffer()
                 is SettingsUiEvent.SendToHelpdesk -> openHelpdeskEmail()
                 is SettingsUiEvent.ShareApp -> shareApp()
                 is SettingsUiEvent.ShowError -> Toast.makeText(
-                    this, event.message, Toast.LENGTH_LONG
+                    requireContext(),
+                    event.message,
+                    Toast.LENGTH_LONG
                 ).show()
             }
         }
 
-        binding.settingsHeader.setOnClickListener { finish() }
-        binding.practicumOffer.setOnClickListener { themeViewModel.onPracticumOfferClicked() }
-        binding.sendToHelpdesk.setOnClickListener { themeViewModel.onSendToHelpdeskClicked() }
-        binding.shareApp.setOnClickListener { themeViewModel.onShareAppClicked() }
+        binding.practicumOffer.setOnClickListener {
+            themeViewModel.onPracticumOfferClicked()
+        }
+
+        binding.sendToHelpdesk.setOnClickListener {
+            themeViewModel.onSendToHelpdeskClicked()
+        }
+
+        binding.shareApp.setOnClickListener {
+            themeViewModel.onShareAppClicked()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 
     private fun openPracticumOffer() {
@@ -74,19 +100,12 @@ class SettingsActivity : AppCompatActivity() {
         startSafe(intent)
     }
 
-    private fun restartWithTheme() {
-        val intent = intent
-        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-        val options = ActivityOptions.makeCustomAnimation(this, 0, 0)
-        startActivity(intent, options.toBundle())
-        finish()
-    }
-
     private fun shareApp() {
         val intent = Intent(Intent.ACTION_SEND).apply {
             type = MIME_TYPE_TEXT_PLAIN
             putExtra(
-                Intent.EXTRA_TEXT, getString(R.string.https_practicum_yandex_ru_android_developer)
+                Intent.EXTRA_TEXT,
+                getString(R.string.https_practicum_yandex_ru_android_developer)
             )
         }
         startSafe(Intent.createChooser(intent, null))
@@ -96,7 +115,11 @@ class SettingsActivity : AppCompatActivity() {
         try {
             startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.no_intent_handle), Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.no_intent_handle),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <style name="AudButtonBack">
+        <item name="android:background">?attr/colorGlobalBackground</item>
         <item name="tint">@color/app_black</item>
     </style>
 
@@ -23,7 +25,7 @@
     </style>
 
     <style name="AudBtnPlayBase">
-        <item name="android:background">@color/white</item>
+        <item name="android:background">?attr/colorGlobalBackground</item>
     </style>
 
     <style name="AudBtnPlay" parent="AudBtnPlayBase">

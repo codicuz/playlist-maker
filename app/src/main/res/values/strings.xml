@@ -43,4 +43,6 @@
     <string name="empty_media">Ваша медиатека пуста</string>
     <string name="empty_playlists">Вы не создали\n ни одного плейлиста</string>
     <string name="audio_playback_attribution">This app plays audio</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

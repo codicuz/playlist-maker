@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/media_view"
-    style="@style/SecondaryViews">
+    style="@style/Fragment">
 
     <TextView
         android:id="@+id/mediaHeader"
         style="@style/ActivityTitlesSecondary"
-        android:text="@string/media"
-        app:drawableStartCompat="@drawable/back" />
+        android:text="@string/media" />
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/tabLayout"
