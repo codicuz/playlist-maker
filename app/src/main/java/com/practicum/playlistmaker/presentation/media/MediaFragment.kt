@@ -28,7 +28,6 @@ class MediaFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Настраиваем ViewPager и TabLayout
         binding.viewPager.adapter =
             MediaViewPagerAdapter(childFragmentManager, viewLifecycleOwner.lifecycle, viewModel.tabs)
 
@@ -39,8 +38,6 @@ class MediaFragment : Fragment() {
             }
         }.attach()
 
-        // Кнопка назад
-        binding.mediaHeader.setOnClickListener { requireActivity().onBackPressed() }
     }
 
     override fun onDestroyView() {

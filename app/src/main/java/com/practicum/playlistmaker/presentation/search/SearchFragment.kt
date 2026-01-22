@@ -132,11 +132,6 @@ class SearchFragment : Fragment() {
     }
 
     private fun setupListeners() {
-
-        binding.searchHeader.setOnClickListener {
-            findNavController().popBackStack()
-        }
-
         binding.clearButton.setOnClickListener {
             binding.searchEditText.text?.clear()
             binding.searchEditText.text?.clear()

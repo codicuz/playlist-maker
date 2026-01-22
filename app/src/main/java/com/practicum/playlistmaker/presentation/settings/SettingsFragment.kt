@@ -67,10 +67,6 @@ class SettingsFragment : Fragment() {
             }
         }
 
-        binding.settingsHeader.setOnClickListener {
-            findNavController().popBackStack()
-        }
-
         binding.practicumOffer.setOnClickListener {
             themeViewModel.onPracticumOfferClicked()
         }
