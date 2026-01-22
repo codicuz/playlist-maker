@@ -15,6 +15,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.EmptySearchBinding
 import com.practicum.playlistmaker.databinding.FragmentSearchBinding
@@ -61,18 +62,17 @@ class SearchFragment : Fragment() {
         initAdapters()
         observeViewModel()
         setupListeners()
-        val activityRootView =
-            requireActivity().findViewById<View>(R.id.container_view)
+        val activityRootView = requireActivity().findViewById<View>(R.id.container_view)
         activityRootView.viewTreeObserver.addOnGlobalLayoutListener {
+            if (!isAdded) return@addOnGlobalLayoutListener
             val rect = android.graphics.Rect()
             activityRootView.getWindowVisibleDisplayFrame(rect)
             val screenHeight = activityRootView.rootView.height
             val keypadHeight = screenHeight - rect.bottom
 
-            val bottomNav =
-                requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
-                    R.id.bottomNavigationView
-                )
+            val bottomNav = requireActivity().findViewById<BottomNavigationView>(
+                R.id.bottomNavigationView
+            )
             bottomNav.isVisible = keypadHeight < screenHeight * 0.15
         }
 
