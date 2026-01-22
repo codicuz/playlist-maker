@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -60,6 +61,21 @@ class SearchFragment : Fragment() {
         initAdapters()
         observeViewModel()
         setupListeners()
+        val activityRootView =
+            requireActivity().findViewById<View>(R.id.container_view)
+        activityRootView.viewTreeObserver.addOnGlobalLayoutListener {
+            val rect = android.graphics.Rect()
+            activityRootView.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = activityRootView.rootView.height
+            val keypadHeight = screenHeight - rect.bottom
+
+            val bottomNav =
+                requireActivity().findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(
+                    R.id.bottomNavigationView
+                )
+            bottomNav.isVisible = keypadHeight < screenHeight * 0.15
+        }
+
     }
 
     override fun onDestroyView() {
