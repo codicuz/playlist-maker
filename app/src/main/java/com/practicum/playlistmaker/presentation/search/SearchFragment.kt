@@ -136,8 +136,9 @@ class SearchFragment : Fragment() {
     private fun setupListeners() {
         binding.clearButton.setOnClickListener {
             binding.searchEditText.text?.clear()
-            binding.searchEditText.text?.clear()
             searchViewModel.clearSearchResults()
+            searchViewModel.loadHistory()
+            binding.searchEditText.requestFocus()
             hideKeyboard()
         }
 
@@ -232,8 +233,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun hideKeyboard() {
-        val imm =
-            requireContext().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        val imm = requireContext().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
     }
 

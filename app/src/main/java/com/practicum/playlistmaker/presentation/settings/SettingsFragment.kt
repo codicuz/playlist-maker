@@ -50,7 +50,6 @@ class SettingsFragment : Fragment() {
         binding.themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
             if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
                 themeViewModel.switchTheme(isChecked)
-                restartWithTheme()
             }
         }
 
@@ -99,10 +98,6 @@ class SettingsFragment : Fragment() {
         val uri = "mailto:$email?subject=${Uri.encode(subject)}&body=${Uri.encode(body)}"
         val intent = Intent(Intent.ACTION_SENDTO, uri.toUri())
         startSafe(intent)
-    }
-
-    private fun restartWithTheme() {
-        requireActivity().recreate()
     }
 
     private fun shareApp() {
