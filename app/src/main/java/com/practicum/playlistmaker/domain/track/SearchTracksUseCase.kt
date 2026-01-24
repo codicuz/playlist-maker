@@ -1,10 +1,9 @@
 package com.practicum.playlistmaker.domain.track
 
-class SearchTracksUseCase(
-    private val repository: TracksRepository
-) {
+import kotlinx.coroutines.flow.Flow
 
-    fun execute(searchText: String): List<Track> {
+class SearchTracksUseCase(private val repository: TracksRepository) {
+    fun execute(searchText: String): Flow<List<Track>> {
         return repository.searchTrack(searchText)
     }
 }
