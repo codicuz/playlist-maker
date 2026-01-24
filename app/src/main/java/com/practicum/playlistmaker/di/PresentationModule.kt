@@ -1,6 +1,6 @@
 package com.practicum.playlistmaker.di
 
-import android.content.Context
+import android.media.AudioAttributes
 import android.media.MediaPlayer
 import com.practicum.playlistmaker.presentation.media.FavoritesViewModel
 import com.practicum.playlistmaker.presentation.media.MediaViewModel
@@ -19,13 +19,11 @@ val presentationModule = module {
     viewModel { PlaylistsViewModel() }
 
     factory {
-        val context: Context = get()
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            val mpContext = context.createAttributionContext("audioPlayback")
-            MediaPlayer(mpContext) // Для устройств, которые могут
-        } else {
-            MediaPlayer() // Для устройств, которые не могут
+        MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA).build()
+            )
         }
     }
     viewModel { AudioPlayerViewModel(get()) }

@@ -96,7 +96,9 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        viewModel.pausePlayer()
+        if (!requireActivity().isChangingConfigurations) {
+            viewModel.pausePlayer()
+        }
     }
 
     override fun onDestroyView() {

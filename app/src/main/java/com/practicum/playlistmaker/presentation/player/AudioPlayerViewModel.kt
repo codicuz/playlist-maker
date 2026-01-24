@@ -23,18 +23,17 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
     private var updateProgressJob: Job? = null
 
     fun setTrack(track: Track) {
+        if (_state.value?.track?.trackId == track.trackId) return
         _state.value = _state.value?.copy(track = track)
         track.previewUrl?.let { initPlayer(it) }
     }
 
     fun startPlayer() {
         if (isPrepared && !mediaPlayer.isPlaying) {
-
             if (isCompleted) {
                 mediaPlayer.seekTo(0)
                 isCompleted = false
             }
-
             mediaPlayer.start()
             _state.value = _state.value?.copy(isPlaying = true)
             startUpdatingProgress()
@@ -42,7 +41,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
     }
 
     fun pausePlayer() {
-        if (isPrepared && mediaPlayer.isPlaying) {
+        if (isPrepared) {
             mediaPlayer.pause()
             _state.value = _state.value?.copy(isPlaying = false)
             stopUpdatingProgress()
@@ -52,7 +51,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
     private fun startUpdatingProgress() {
         stopUpdatingProgress()
         updateProgressJob = viewModelScope.launch {
-            while (isActive && mediaPlayer.isPlaying) {
+            while (isActive) {
                 _state.value = _state.value?.copy(
                     currentPosition = mediaPlayer.currentPosition
                 )
@@ -80,9 +79,11 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
             }
 
             mediaPlayer.setOnCompletionListener {
-                isCompleted = true
                 stopUpdatingProgress()
-                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+                isCompleted = true
+                _state.value = _state.value?.copy(
+                    isPlaying = false, currentPosition = 0
+                )
             }
 
             mediaPlayer.prepareAsync()
@@ -93,11 +94,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        try {
-            mediaPlayer.release()
-        } catch (e: Exception) {
-            Log.e("AudioPlayerViewModel", "MediaPlayer already released", e)
-        }
         stopUpdatingProgress()
+        mediaPlayer.release()
     }
 }
