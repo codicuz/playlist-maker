@@ -5,5 +5,6 @@ import com.practicum.playlistmaker.domain.track.Track
 data class AudioPlayerScreenState(
     val track: Track? = null,
     val isPlaying: Boolean = false,
-    val currentPosition: Int = 0
+    val currentPosition: Int = 0,
+    val isFavorite: Boolean = false
 )

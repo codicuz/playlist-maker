@@ -11,7 +11,7 @@ data class Track(
     val trackId: Int?,
     val trackName: String?,
     val artistsName: String?,
-    private val trackTimeMillis: Long?,
+    val trackTimeMillis: Long?,
     val artworkUrl100: String?,
     val previewUrl: String?,
     val collectionName: String?,
