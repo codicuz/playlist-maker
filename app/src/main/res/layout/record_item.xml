@@ -12,8 +12,8 @@
         android:layout_height="45dp"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="8dp"
-        android:src="@drawable/ic_no_artwork_image"
-        android:contentDescription="@string/todo" />
+        android:contentDescription="@string/todo"
+        android:src="@drawable/ic_no_artwork_image" />
 
     <LinearLayout
         android:layout_width="0dp"
@@ -26,7 +26,6 @@
         <TextView
             android:id="@+id/track_name"
             style="@style/RcTrackTitle"
-            android:text="@string/track_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_vertical"
@@ -34,6 +33,7 @@
             android:ellipsize="end"
             android:fontFamily="@font/ys_display_regular"
             android:maxLines="1"
+            android:text="@string/track_name"
             android:textSize="16sp" />
 
         <LinearLayout
@@ -45,14 +45,13 @@
             <TextView
                 android:id="@+id/artists_name"
                 style="@style/RcArtistsNameTrackTime"
-                android:text="@string/artist_name"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:ellipsize="end"
                 android:fontFamily="@font/ys_display_regular"
                 android:gravity="center_vertical"
                 android:maxLines="1"
+                android:text="@string/artist_name"
                 android:textSize="11sp" />
 
             <ImageView
@@ -67,10 +66,10 @@
             <TextView
                 android:id="@+id/trackTime"
                 style="@style/RcArtistsNameTrackTime"
-                android:text="@string/track_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/ys_display_regular"
+                android:text="@string/track_time"
                 android:textSize="11sp" />
         </LinearLayout>
     </LinearLayout>
