@@ -1,0 +1,12 @@
+name: Action build
+run-name: ${{ github.actor }} is runing build on GitHub Actions 🚀
+on: [push]
+jobs:
+  Run-Gradle-Build:
+    runs-on: Linux
+    steps:
+      - run: echo "🎉 Building."
+      - name: Check out repository code
+        uses: actions/checkout@v5
+      - name: Build project
+        run: ./gradlew build -x lint

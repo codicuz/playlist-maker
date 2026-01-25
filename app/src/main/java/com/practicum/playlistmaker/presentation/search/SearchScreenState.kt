@@ -6,5 +6,6 @@ data class SearchScreenState(
     val tracks: List<Track> = emptyList(),
     val history: List<Track> = emptyList(),
     val isError: Boolean = false,
-    val hasSearched: Boolean = false
+    val hasSearched: Boolean = false,
+    val isLoading: Boolean = false
 )

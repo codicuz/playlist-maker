@@ -1,63 +1,68 @@
 package com.practicum.playlistmaker.presentation.player
 
 import android.media.MediaPlayer
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     private val _state = MutableLiveData(AudioPlayerScreenState())
     val state: LiveData<AudioPlayerScreenState> = _state
-    private val handler = Handler(Looper.getMainLooper())
-    private var updateTimeRunnable: Runnable? = null
+
     private var isPrepared = false
     private var isCompleted = false
 
+    private var updateProgressJob: Job? = null
+
     fun setTrack(track: Track) {
+        if (_state.value?.track?.trackId == track.trackId) return
         _state.value = _state.value?.copy(track = track)
         track.previewUrl?.let { initPlayer(it) }
     }
 
     fun startPlayer() {
         if (isPrepared && !mediaPlayer.isPlaying) {
-
             if (isCompleted) {
                 mediaPlayer.seekTo(0)
                 isCompleted = false
             }
-
             mediaPlayer.start()
             _state.value = _state.value?.copy(isPlaying = true)
-            startUpdatingTime()
+            startUpdatingProgress()
         }
     }
 
     fun pausePlayer() {
-        if (isPrepared && mediaPlayer.isPlaying) {
+        if (isPrepared) {
             mediaPlayer.pause()
             _state.value = _state.value?.copy(isPlaying = false)
-            stopUpdatingTime()
+            stopUpdatingProgress()
         }
     }
 
-    private fun startUpdatingTime() {
-        stopUpdatingTime()
-        updateTimeRunnable = object : Runnable {
-            override fun run() {
-                _state.value = _state.value?.copy(currentPosition = mediaPlayer.currentPosition)
-                handler.postDelayed(this, 500)
+    private fun startUpdatingProgress() {
+        stopUpdatingProgress()
+        updateProgressJob = viewModelScope.launch {
+            while (isActive) {
+                _state.value = _state.value?.copy(
+                    currentPosition = mediaPlayer.currentPosition
+                )
+                delay(300)
             }
         }
-        handler.post(updateTimeRunnable!!)
     }
 
-    private fun stopUpdatingTime() {
-        updateTimeRunnable?.let { handler.removeCallbacks(it) }
+    private fun stopUpdatingProgress() {
+        updateProgressJob?.cancel()
+        updateProgressJob = null
     }
 
     private fun initPlayer(previewUrl: String) {
@@ -72,10 +77,13 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
                 isPrepared = true
                 _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
+
             mediaPlayer.setOnCompletionListener {
+                stopUpdatingProgress()
                 isCompleted = true
-                stopUpdatingTime()
-                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+                _state.value = _state.value?.copy(
+                    isPlaying = false, currentPosition = 0
+                )
             }
 
             mediaPlayer.prepareAsync()
@@ -86,11 +94,7 @@ class AudioPlayerViewModel(private val mediaPlayer: MediaPlayer) : ViewModel() {
 
     override fun onCleared() {
         super.onCleared()
-        try {
-            mediaPlayer.release()
-        } catch (e: Exception) {
-            Log.e("AudioPlayerViewModel", "MediaPlayer already released", e)
-        }
-        stopUpdatingTime()
+        stopUpdatingProgress()
+        mediaPlayer.release()
     }
 }
