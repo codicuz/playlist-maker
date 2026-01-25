@@ -72,6 +72,7 @@ class AudioPlayerViewModel(
                 _state.value = _state.value?.copy(
                     currentPosition = mediaPlayer.currentPosition
                 )
+//                Log.d("CURR", "${_state.value?.currentPosition}")
                 delay(300)
             }
         }
