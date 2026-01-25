@@ -6,6 +6,7 @@ import com.practicum.playlistmaker.domain.track.Track
 
 fun FavoriteTrackEntity.toTrack(): Track =
     Track(
+        id,
         trackId,
         trackName,
         artistsName,
@@ -20,6 +21,7 @@ fun FavoriteTrackEntity.toTrack(): Track =
 
 fun Track.toEntity(): FavoriteTrackEntity =
     FavoriteTrackEntity(
+        id,
         trackId!!,
         trackName,
         artistsName,

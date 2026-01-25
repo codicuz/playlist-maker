@@ -8,6 +8,7 @@ import java.util.Locale
 
 @Parcelize
 data class Track(
+    val id: Long,
     val trackId: Int?,
     val trackName: String?,
     val artistsName: String?,

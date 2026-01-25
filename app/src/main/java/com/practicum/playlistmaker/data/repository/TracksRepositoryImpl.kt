@@ -18,6 +18,7 @@ class TracksRepositoryImpl(
             emit(
                 (response as TracksSearchResponse).results.map {
                     Track(
+                        it.id,
                         it.trackId,
                         it.trackName,
                         it.artistsName,
