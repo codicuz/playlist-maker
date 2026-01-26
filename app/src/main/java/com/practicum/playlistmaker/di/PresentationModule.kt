@@ -15,7 +15,7 @@ val presentationModule = module {
     viewModel { ThemeViewModel(get(), get()) }
     viewModel { SearchViewModel(get(), get(), get(), get()) }
     viewModel { MediaViewModel() }
-    viewModel { FavoritesViewModel() }
+    viewModel { FavoritesViewModel(get()) }
     viewModel { PlaylistsViewModel() }
 
     factory {
@@ -26,5 +26,5 @@ val presentationModule = module {
             )
         }
     }
-    viewModel { AudioPlayerViewModel(get()) }
+    viewModel { AudioPlayerViewModel(get(), get(), get(), get()) }
 }

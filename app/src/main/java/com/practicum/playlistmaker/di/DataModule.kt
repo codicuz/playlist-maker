@@ -3,14 +3,18 @@ package com.practicum.playlistmaker.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.room.Room
 import com.google.gson.Gson
 import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.favorites.FavoritesRepositoryImpl
+import com.practicum.playlistmaker.data.favorites.db.AppDatabase
 import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
 import com.practicum.playlistmaker.data.network.ITunesApi
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
+import com.practicum.playlistmaker.domain.favorites.FavoritesRepository
 import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
 import com.practicum.playlistmaker.domain.theme.ThemeRepository
 import com.practicum.playlistmaker.domain.track.TracksRepository
@@ -56,4 +60,15 @@ val dataModule = module {
 
     // Tracks
     single<TracksRepository> { TracksRepositoryImpl(get()) }
+
+    // Favorites
+    single {
+        Room.databaseBuilder(
+            get(), AppDatabase::class.java, "playlist_maker_db"
+        ).build()
+    }
+
+    single { get<AppDatabase>().favoritesDao() }
+
+    single<FavoritesRepository> { FavoritesRepositoryImpl(get()) }
 }

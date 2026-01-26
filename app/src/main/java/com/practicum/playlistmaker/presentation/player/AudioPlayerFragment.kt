@@ -53,6 +53,7 @@ class AudioPlayerFragment : Fragment() {
         viewModel.setTrack(track!!)
         observeViewModel()
         setupPlayerButtons()
+        setupFavoriteButton()
     }
 
     private fun observeViewModel() {
@@ -76,6 +77,11 @@ class AudioPlayerFragment : Fragment() {
                 if (state.isPlaying) R.drawable.btn_aud_pause
                 else R.drawable.btn_aud_play
             )
+
+            binding.audFavoriteButton.setImageResource(
+                if (state.isFavorite) R.drawable.btn_aud_like_true
+                else R.drawable.btn_aud_like_false
+            )
         }
     }
 
@@ -84,6 +90,11 @@ class AudioPlayerFragment : Fragment() {
             val isPlaying = viewModel.state.value?.isPlaying ?: false
             if (isPlaying) viewModel.pausePlayer()
             else viewModel.startPlayer()
+        }
+    }
+    private fun setupFavoriteButton() {
+        binding.audFavoriteButton.setOnClickListener {
+            viewModel.toggleFavorite()
         }
     }
 

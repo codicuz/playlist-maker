@@ -53,7 +53,6 @@ class SearchViewModel(
 
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
-            _state.value = _state.value.copy(isLoading = true)
             delay(SEARCH_DEBOUNCE_DELAY)
             searchTracks(query)
         }
@@ -67,15 +66,18 @@ class SearchViewModel(
 
     private fun searchTracks(query: String) {
         searchFlowJob?.cancel()
+
+        _state.value = _state.value.copy(isLoading = true)
+
         searchFlowJob = searchTracksUseCase.execute(query).catch {
-            _state.value = _state.value.copy(
-                tracks = emptyList(), hasSearched = true, isError = true, isLoading = false
-            )
-        }.onEach { tracks ->
-            _state.value = _state.value.copy(
-                tracks = tracks, hasSearched = true, isError = false, isLoading = false
-            )
-        }.launchIn(viewModelScope)
+                _state.value = _state.value.copy(
+                    tracks = emptyList(), hasSearched = true, isError = true, isLoading = false
+                )
+            }.onEach { tracks ->
+                _state.value = _state.value.copy(
+                    tracks = tracks, hasSearched = true, isError = false, isLoading = false
+                )
+            }.launchIn(viewModelScope)
     }
 
     fun loadHistory() {
