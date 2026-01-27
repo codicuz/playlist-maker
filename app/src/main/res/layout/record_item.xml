@@ -53,7 +53,8 @@
                 android:gravity="center_vertical"
                 android:maxLines="1"
                 android:text="@string/artist_name"
-                android:textSize="11sp" />
+                android:textSize="11sp"
+                tools:ignore="InefficientWeight" />
 
             <ImageView
                 android:id="@+id/point_image"
