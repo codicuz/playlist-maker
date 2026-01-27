@@ -45,4 +45,8 @@
     <string name="audio_playback_attribution">This app plays audio</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="new_play_list">Новый плейлист</string>
+    <string name="pl_title">Название*</string>
+    <string name="pl_description">Описание</string>
+    <string name="create_new_playlist_btn">Создать</string>
 </resources>
