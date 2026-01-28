@@ -7,6 +7,7 @@ import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
 import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
 import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
 import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
@@ -30,4 +31,8 @@ val domainModule = module {
     factory { RemoveFromFavoritesUseCase(get()) }
     factory { GetFavoritesUseCase(get()) }
     factory { IsFavoriteUseCase(get()) }
+
+    // Playlist
+    factory { CreatePlaylistUseCase(get()) }
+
 }
