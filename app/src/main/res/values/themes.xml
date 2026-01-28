@@ -5,6 +5,7 @@
         <item name="colorTextPrimary">@color/app_black</item>
         <item name="colorTextInverse">@color/white</item>
         <item name="colorAccent">@color/blue</item>
+        <item name="colorStrokeBx">@color/playlist_outline_color_day</item>
     </style>
 
     <style name="Theme.PlaylistMaker" parent="Base.Theme.PlaylistMaker" />

@@ -93,11 +93,10 @@
     </style>
 
     <style name="NewPlaylistInputs" parent="NewPlaylistInputsBase">
-        <item name="android:backgroundTint">@color/white</item>
+        <item name="android:textColorHint">@color/white</item>
     </style>
 
     <style name="NewPlaylistButton" parent="NewPlayListButtonBase">
-        <item name="backgroundTint">@color/gray</item>
         <item name="android:textColor">@color/white</item>
     </style>
 
