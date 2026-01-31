@@ -5,7 +5,7 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/newPlayList"
+        android:id="@+id/newPlayListBack"
         style="@style/ActivityTitlesSecondary"
         android:text="@string/new_play_list"
         app:drawableStartCompat="@drawable/back"
@@ -21,7 +21,7 @@
 
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/newPlayList">
+        app:layout_constraintTop_toBottomOf="@id/newPlayListBack">
 
         <ImageView
             android:id="@+id/playlist_cover"

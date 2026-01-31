@@ -1,12 +1,17 @@
 package com.practicum.playlistmaker.presentation.media
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -64,13 +69,25 @@ class NewPlaylistFragment : Fragment() {
         }
 
         binding.newPlaylistImage.setOnClickListener {
-            pickCoverLauncher.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-            )
+            if (hasGalleryPermission()) {
+                pickCoverLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            } else {
+                Toast.makeText(
+                    requireContext(),
+                    "Нет разрешения на доступ к фото",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
         binding.createPlaylistButton.setOnClickListener {
             viewModel.createPlaylist()
+        }
+
+        binding.newPlayListBack.setOnClickListener {
+            handleBackPress()
         }
     }
 
@@ -111,6 +128,20 @@ class NewPlaylistFragment : Fragment() {
         } else {
             findNavController().navigateUp()
         }
+    }
+
+    private fun hasGalleryPermission(): Boolean {
+
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            permission
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onDestroyView() {

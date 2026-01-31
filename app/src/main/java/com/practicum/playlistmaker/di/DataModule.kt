@@ -3,8 +3,6 @@ package com.practicum.playlistmaker.di
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
-import android.net.Uri
-import android.util.Log
 import androidx.room.Room
 import com.google.gson.Gson
 import com.practicum.playlistmaker.data.NetworkClient
@@ -13,6 +11,7 @@ import com.practicum.playlistmaker.data.favorites.db.AppDatabase
 import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
 import com.practicum.playlistmaker.data.network.ITunesApi
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
+import com.practicum.playlistmaker.data.playlist.NewPlaylistRepositoryImpl
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
@@ -77,10 +76,7 @@ val dataModule = module {
 
     // Playlist
     single<NewPlaylistRepository> {
-        object : NewPlaylistRepository {
-            override suspend fun createPlaylist(title: String, description: String?, coverUri: Uri?) {
-                Log.d("CURR", "Я где-то тут------------------------------")
-            }
-        }
+        NewPlaylistRepositoryImpl(get<AppDatabase>().playlistDao())
     }
+
 }
