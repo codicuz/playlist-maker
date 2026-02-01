@@ -21,6 +21,7 @@ import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.practicum.playlistmaker.databinding.FragmentNewPlaylistBinding
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import com.practicum.playlistmaker.presentation.util.Useful
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -57,6 +58,8 @@ class NewPlaylistFragment : Fragment() {
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             handleBackPress()
         }
+
+        (activity as? MainActivity)?.hideBottomNav()
     }
 
     private fun setupListeners() {
@@ -75,9 +78,7 @@ class NewPlaylistFragment : Fragment() {
                 )
             } else {
                 Toast.makeText(
-                    requireContext(),
-                    "Нет разрешения на доступ к фото",
-                    Toast.LENGTH_SHORT
+                    requireContext(), "Нет разрешения на доступ к фото", Toast.LENGTH_SHORT
                 ).show()
             }
         }
@@ -109,7 +110,7 @@ class NewPlaylistFragment : Fragment() {
                 state.error?.let { error ->
                     MaterialAlertDialogBuilder(requireContext()).setTitle("Ошибка")
                         .setMessage(error).setPositiveButton("ОК", null).show()
-                    viewModel.onDescriptionChanged(state.description) // сброс ошибки
+                    viewModel.onDescriptionChanged(state.description)
                 }
             }
         }
@@ -139,13 +140,13 @@ class NewPlaylistFragment : Fragment() {
         }
 
         return ContextCompat.checkSelfPermission(
-            requireContext(),
-            permission
+            requireContext(), permission
         ) == PackageManager.PERMISSION_GRANTED
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
+        (activity as? MainActivity)?.showBottomNav()
         _binding = null
     }
 }

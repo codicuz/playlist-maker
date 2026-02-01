@@ -70,4 +70,14 @@ class MainActivity : AppCompatActivity() {
             permissionLauncher.launch(permission)
         }
     }
+    fun hideBottomNav() {
+
+        binding.bottomNavigationView.visibility = View.GONE
+    }
+
+    fun showBottomNav() {
+        binding.bottomNavigationView.visibility = View.VISIBLE
+    }
+
+
 }

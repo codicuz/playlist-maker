@@ -17,7 +17,7 @@ val presentationModule = module {
     viewModel { SearchViewModel(get(), get(), get(), get()) }
     viewModel { MediaViewModel() }
     viewModel { FavoritesViewModel(get()) }
-    viewModel { PlaylistsViewModel() }
+    viewModel { PlaylistsViewModel(get()) }
 
     factory {
         MediaPlayer().apply {

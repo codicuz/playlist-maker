@@ -15,6 +15,14 @@
         android:layout_marginTop="24dp"
         android:layout_marginBottom="46dp" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/playlistsItems"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp" />
+
     <ImageView
         style="@style/NotFound"
         android:layout_width="@dimen/size_not_found_image"

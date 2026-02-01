@@ -6,4 +6,5 @@
     <dimen name="button_margin">16dp</dimen>
     <dimen name="button_layout_height">0dp</dimen>
     <dimen name="size_not_found_image">120dp</dimen>
+    <dimen name="grid_spacing_8">8dp</dimen>
 </resources>
