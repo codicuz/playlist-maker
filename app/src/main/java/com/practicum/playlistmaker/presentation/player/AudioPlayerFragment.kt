@@ -126,6 +126,13 @@ class AudioPlayerFragment : Fragment() {
                 }
             }
         }
+
+        viewModel.shouldCloseBottomSheet.observe(viewLifecycleOwner) { shouldClose ->
+            if (shouldClose == true) {
+                hideBottomSheet()
+                viewModel.resetShouldCloseBottomSheet()
+            }
+        }
     }
 
     private fun setupPlayerButtons() {
@@ -171,7 +178,6 @@ class AudioPlayerFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         adapter = PlaylistBottomSheetAdapter(mutableListOf()) { playlist ->
             track?.let { viewModel.addTrackToPlaylist(playlist, it) }
-            hideBottomSheet()
         }
         recyclerView.adapter = adapter
 

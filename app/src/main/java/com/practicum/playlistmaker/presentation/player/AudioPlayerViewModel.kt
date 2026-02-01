@@ -49,6 +49,9 @@ class AudioPlayerViewModel(
     private val _addTrackStatus = MutableLiveData<AddTrackStatus?>()
     val addTrackStatus: LiveData<AddTrackStatus> = _addTrackStatus as LiveData<AddTrackStatus>
 
+    private val _shouldCloseBottomSheet = MutableLiveData<Boolean?>()
+    val shouldCloseBottomSheet: LiveData<Boolean> = _shouldCloseBottomSheet as LiveData<Boolean>
+
     fun setTrack(track: Track) {
         this.track = track
 
@@ -79,8 +82,11 @@ class AudioPlayerViewModel(
     }
 
     fun addTrackToPlaylist(playlist: Playlist, track: Track) {
+        // Проверяем, не добавлен ли уже трек в плейлист
         if (playlist.trackIds.contains(track.trackId)) {
             _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
+            // Не закрываем bottom sheet при уже существующем треке
+            _shouldCloseBottomSheet.value = false
             return
         }
 
@@ -88,18 +94,25 @@ class AudioPlayerViewModel(
             when (val result = addTrackToPlaylistUseCase.execute(playlist.id, track)) {
                 is AddTrackResult.Success -> {
                     _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
+                    _shouldCloseBottomSheet.value = true
                     loadPlaylists()
                 }
 
                 is AddTrackResult.AlreadyExists -> {
                     _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)
+                    _shouldCloseBottomSheet.value = false
                 }
 
                 is AddTrackResult.Error -> {
                     _addTrackStatus.value = AddTrackStatus.Error(result.message)
+                    _shouldCloseBottomSheet.value = true
                 }
             }
         }
+    }
+
+    fun resetShouldCloseBottomSheet() {
+        _shouldCloseBottomSheet.value = null
     }
 
     private fun loadPlaylists() {
