@@ -20,6 +20,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentNewPlaylistBinding
 import com.practicum.playlistmaker.presentation.main.MainActivity
 import com.practicum.playlistmaker.presentation.util.Useful
@@ -78,7 +79,7 @@ class NewPlaylistFragment : Fragment() {
                 )
             } else {
                 Toast.makeText(
-                    requireContext(), "Нет разрешения на доступ к фото", Toast.LENGTH_SHORT
+                    requireContext(), getString(R.string.no_photo_access), Toast.LENGTH_SHORT
                 ).show()
             }
         }
@@ -96,6 +97,7 @@ class NewPlaylistFragment : Fragment() {
         lifecycleScope.launch {
             viewModel.state.collectLatest { state ->
                 binding.createPlaylistButton.isEnabled = state.isCreateEnabled
+
                 state.coverUri?.let { uri ->
                     Glide.with(requireContext()).load(uri).transform(
                         CenterCrop(), RoundedCorners(Useful.dpToPx(8f, requireContext()))
@@ -104,30 +106,29 @@ class NewPlaylistFragment : Fragment() {
                 }
 
                 if (state.success) {
-                    val message = "Плейлист ${state.title} создан"
+                    val message = getString(R.string.playlist_created, state.title)
                     Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
-
                     findNavController().navigateUp()
                 }
 
                 state.error?.let { error ->
-                    MaterialAlertDialogBuilder(requireContext()).setTitle("Ошибка")
-                        .setMessage(error).setPositiveButton("ОК", null).show()
-                    viewModel.onDescriptionChanged(state.description)
+                    MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.Error))
+                        .setMessage(error).setPositiveButton(getString(R.string.okay), null).show()
                 }
             }
         }
     }
+
     private fun handleBackPress() {
         val currentState = viewModel.state.value
         val hasUnsaved =
             currentState.title.isNotBlank() || currentState.description.isNotBlank() || currentState.coverUri != null
 
         if (hasUnsaved) {
-            MaterialAlertDialogBuilder(requireContext()).setTitle("Завершить создание плейлиста?")
-                .setMessage("Все несохраненные данные будут потеряны")
-                .setNegativeButton("Отмена") { dialog, _ -> dialog.dismiss() }
-                .setPositiveButton("Завершить") { _, _ -> findNavController().navigateUp() }.show()
+            MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.abort_create_playlist))
+                .setMessage(getString(R.string.all_data_will_be_lost))
+                .setNegativeButton(getString(R.string.cancel_btn)) { dialog, _ -> dialog.dismiss() }
+                .setPositiveButton(getString(R.string.finish_btn)) { _, _ -> findNavController().navigateUp() }.show()
         } else {
             findNavController().navigateUp()
         }

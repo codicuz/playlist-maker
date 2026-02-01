@@ -9,6 +9,7 @@ import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.BottomSheetPlaylistItemBinding
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.presentation.util.Useful
+import java.io.File
 
 class PlaylistBottomSheetViewHolder(
     private val binding: BottomSheetPlaylistItemBinding
@@ -16,13 +17,33 @@ class PlaylistBottomSheetViewHolder(
 
     fun bind(item: Playlist) {
         binding.playlistTitle.text = item.title
-
         binding.tracksCount.text = "${item.trackCount} трэков"
 
         val radius = Useful.dpToPx(2f, itemView.context)
-        Glide.with(itemView.context)
-            .load(item.coverUri)
-            .placeholder(R.drawable.ic_no_artwork_image)
+
+        // Загружаем изображение из внутреннего хранилища
+        if (!item.coverUri.isNullOrEmpty()) {
+            try {
+                val file = File(item.coverUri)
+                if (file.exists()) {
+                    Glide.with(itemView.context).load(file)
+                        .placeholder(R.drawable.ic_no_artwork_image)
+                        .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+                        .into(binding.playlistCover)
+                } else {
+                    loadDefaultCover(radius)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                loadDefaultCover(radius)
+            }
+        } else {
+            loadDefaultCover(radius)
+        }
+    }
+
+    private fun loadDefaultCover(radius: Int) {
+        Glide.with(itemView.context).load(R.drawable.ic_no_artwork_image)
             .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
             .into(binding.playlistCover)
     }
