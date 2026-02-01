@@ -12,12 +12,15 @@ import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
 import com.practicum.playlistmaker.data.network.ITunesApi
 import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
 import com.practicum.playlistmaker.data.playlist.NewPlaylistRepositoryImpl
+import com.practicum.playlistmaker.data.playlist.PlaylistTracksRepositoryImpl
 import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
 import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
 import com.practicum.playlistmaker.domain.favorites.FavoritesRepository
 import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.NewPlaylistRepository
+import com.practicum.playlistmaker.domain.playlist.PlaylistTracksRepository
 import com.practicum.playlistmaker.domain.theme.ThemeRepository
 import com.practicum.playlistmaker.domain.track.TracksRepository
 import org.koin.core.qualifier.named
@@ -78,5 +81,12 @@ val dataModule = module {
     single<NewPlaylistRepository> {
         NewPlaylistRepositoryImpl(get<AppDatabase>().playlistDao())
     }
+
+    single { get<AppDatabase>().playlistTrackDao() }
+
+    single<PlaylistTracksRepository> { PlaylistTracksRepositoryImpl(get()) }
+
+
+
 
 }
