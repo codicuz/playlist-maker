@@ -10,6 +10,8 @@ import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.favorites.AddToFavoritesUseCase
 import com.practicum.playlistmaker.domain.favorites.IsFavoriteUseCase
 import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
+import com.practicum.playlistmaker.domain.playlist.AddTrackResult
+import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
@@ -18,12 +20,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+sealed class AddTrackStatus {
+    data class Success(val playlistName: String) : AddTrackStatus()
+    data class AlreadyExists(val playlistName: String) : AddTrackStatus()
+    class Error(val message: String) : AddTrackStatus()
+}
+
 class AudioPlayerViewModel(
     private val mediaPlayer: MediaPlayer,
     private val addToFavoritesUseCase: AddToFavoritesUseCase,
     private val removeFromFavoritesUseCase: RemoveFromFavoritesUseCase,
     private val isFavoriteUseCase: IsFavoriteUseCase,
-    private val getPlaylistsUseCase: GetPlaylistsUseCase
+    private val getPlaylistsUseCase: GetPlaylistsUseCase,
+    private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase
 ) : ViewModel() {
 
     private val _state = MutableLiveData(AudioPlayerScreenState())
@@ -35,6 +44,10 @@ class AudioPlayerViewModel(
     private var updateProgressJob: Job? = null
 
     val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
+
+
+    private val _addTrackStatus = MutableLiveData<AddTrackStatus?>()
+    val addTrackStatus: LiveData<AddTrackStatus> = _addTrackStatus as LiveData<AddTrackStatus>
 
     fun setTrack(track: Track) {
         this.track = track
@@ -59,6 +72,39 @@ class AudioPlayerViewModel(
             mediaPlayer.start()
             _state.value = _state.value?.copy(isPlaying = true)
             startUpdatingProgress()
+        }
+    }
+    fun resetAddTrackStatus() {
+        _addTrackStatus.value = null
+    }
+
+    fun addTrackToPlaylist(playlist: Playlist, track: Track) {
+        if (playlist.trackIds.contains(track.trackId)) {
+            _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
+            return
+        }
+
+        viewModelScope.launch {
+            when (val result = addTrackToPlaylistUseCase.execute(playlist.id, track)) {
+                is AddTrackResult.Success -> {
+                    _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
+                    loadPlaylists()
+                }
+
+                is AddTrackResult.AlreadyExists -> {
+                    _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)
+                }
+
+                is AddTrackResult.Error -> {
+                    _addTrackStatus.value = AddTrackStatus.Error(result.message)
+                }
+            }
+        }
+    }
+
+    private fun loadPlaylists() {
+        viewModelScope.launch {
+            getPlaylistsUseCase.execute().collect {}
         }
     }
 

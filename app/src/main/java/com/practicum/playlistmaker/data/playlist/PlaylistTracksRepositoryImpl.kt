@@ -25,4 +25,8 @@ class PlaylistTracksRepositoryImpl(
     override suspend fun removeTrack(playlistId: Long, trackId: Int) {
         dao.removeTrackFromPlaylist(playlistId, trackId)
     }
+
+    override suspend fun getTracksOnce(playlistId: Long): List<Track> {
+        return dao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
+    }
 }

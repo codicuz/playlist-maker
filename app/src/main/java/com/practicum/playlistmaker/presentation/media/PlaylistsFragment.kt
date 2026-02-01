@@ -10,6 +10,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentPlaylistsBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.presentation.adapter.PlaylistAdapter
 import com.practicum.playlistmaker.presentation.util.GridSpacingItemDecoration
 import kotlinx.coroutines.flow.collectLatest
@@ -59,7 +60,18 @@ class PlaylistsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.playlists.collectLatest { list ->
                 adapter.submitList(list)
+                updateEmptyState(list)
             }
+        }
+    }
+
+    private fun updateEmptyState(playlists: List<Playlist>) {
+        if (playlists.isEmpty()) {
+            binding.emptyPlaylistImage.visibility = View.VISIBLE
+            binding.mediaTab.visibility = View.VISIBLE
+        } else {
+            binding.emptyPlaylistImage.visibility = View.GONE
+            binding.mediaTab.visibility = View.GONE
         }
     }
 

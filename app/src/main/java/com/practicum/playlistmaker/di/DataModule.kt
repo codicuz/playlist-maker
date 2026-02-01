@@ -79,7 +79,7 @@ val dataModule = module {
 
     // Playlist
     single<NewPlaylistRepository> {
-        NewPlaylistRepositoryImpl(get<AppDatabase>().playlistDao())
+        NewPlaylistRepositoryImpl(get<AppDatabase>().playlistDao(), get<AppDatabase>().playlistTrackDao())
     }
 
     single { get<AppDatabase>().playlistTrackDao() }

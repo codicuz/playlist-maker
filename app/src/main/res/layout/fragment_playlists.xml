@@ -24,6 +24,7 @@
         android:paddingBottom="16dp" />
 
     <ImageView
+        android:id="@+id/emptyPlaylistImage"
         style="@style/NotFound"
         android:layout_width="@dimen/size_not_found_image"
         android:layout_height="@dimen/size_not_found_image"

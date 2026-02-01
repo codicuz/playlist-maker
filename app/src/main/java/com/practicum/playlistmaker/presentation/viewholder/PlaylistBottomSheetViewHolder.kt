@@ -2,6 +2,8 @@ package com.practicum.playlistmaker.presentation.viewholder
 
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.BottomSheetPlaylistItemBinding
@@ -15,10 +17,13 @@ class PlaylistBottomSheetViewHolder(
     fun bind(item: Playlist) {
         binding.playlistTitle.text = item.title
 
-        binding.tracksCount.text = "0 треков"
+        binding.tracksCount.text = "${item.trackCount} трэков"
 
         val radius = Useful.dpToPx(2f, itemView.context)
-        Glide.with(itemView.context).load(item.coverUri).placeholder(R.drawable.ic_no_artwork_image)
-            .transform(RoundedCorners(radius)).into(binding.playlistCover)
+        Glide.with(itemView.context)
+            .load(item.coverUri)
+            .placeholder(R.drawable.ic_no_artwork_image)
+            .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+            .into(binding.playlistCover)
     }
 }

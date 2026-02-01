@@ -37,7 +37,7 @@ val domainModule = module {
     // Playlist
     factory { CreatePlaylistUseCase(get()) }
     factory { GetPlaylistsUseCase(get()) }
-    factory { AddTrackToPlaylistUseCase(get()) }
+    factory { AddTrackToPlaylistUseCase(get(), get()) }
 
 
 }

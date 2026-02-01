@@ -1,12 +1,12 @@
 package com.practicum.playlistmaker.presentation.player
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
-import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -30,7 +30,7 @@ class AudioPlayerFragment : Fragment() {
 
     private var track: Track? = null
 
-    private lateinit var bottomSheetBehavior: BottomSheetBehavior<FrameLayout>
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
 
     private lateinit var adapter: PlaylistBottomSheetAdapter
 
@@ -95,6 +95,37 @@ class AudioPlayerFragment : Fragment() {
                 else R.drawable.btn_aud_like_false
             )
         }
+
+        viewModel.addTrackStatus.observe(viewLifecycleOwner) { status ->
+            status?.let {
+                when (it) {
+                    is AddTrackStatus.Success -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Добавлено в плейлист ${it.playlistName}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+
+                    is AddTrackStatus.AlreadyExists -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Трек уже добавлен в плейлист ${it.playlistName}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+
+                    is AddTrackStatus.Error -> {
+                        Toast.makeText(
+                            requireContext(), "Ошибка: ${it.message}", Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+                }
+            }
+        }
     }
 
     private fun setupPlayerButtons() {
@@ -132,55 +163,87 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun setupBottomSheet() {
-        val bottomSheetContainer = binding.root.findViewById<FrameLayout>(R.id.bottomSheetContainer)
-        val overlay = binding.root.findViewById<View>(R.id.overlay)
+        val bottomSheetContainer = binding.bottomSheet
+        val overlay = binding.overlay
         val recyclerView =
             bottomSheetContainer.findViewById<RecyclerView>(R.id.playlistRecyclerView)
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
-
         adapter = PlaylistBottomSheetAdapter(mutableListOf()) { playlist ->
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+            track?.let { viewModel.addTrackToPlaylist(playlist, it) }
+            hideBottomSheet()
         }
-
         recyclerView.adapter = adapter
+
+        viewModel.playlists.observe(viewLifecycleOwner) { playlists ->
+            adapter.update(playlists)
+        }
 
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
             state = BottomSheetBehavior.STATE_HIDDEN
+            peekHeight = 0
+            isHideable = true
+            isDraggable = true
         }
 
         binding.audAddToPlaylist.setOnClickListener {
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+            toggleBottomSheet()
         }
 
         overlay.setOnClickListener {
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+            hideBottomSheet()
         }
 
         bottomSheetBehavior.addBottomSheetCallback(object :
             BottomSheetBehavior.BottomSheetCallback() {
+
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                overlay.visibility =
-                    if (newState == BottomSheetBehavior.STATE_HIDDEN) View.GONE else View.VISIBLE
+                when (newState) {
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        overlay.visibility = View.GONE
+                    }
+                }
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                overlay.alpha = slideOffset.coerceIn(0f, 1f)
+                val normalizedOffset = when {
+                    slideOffset >= 0 -> slideOffset
+                    else -> slideOffset + 1
+                }.coerceIn(0f, 1f)
+
+                if (normalizedOffset > 0) {
+                    overlay.visibility = View.VISIBLE
+                    overlay.alpha = normalizedOffset * 0.6f
+                } else {
+                    overlay.alpha = 0f
+                    overlay.visibility = View.GONE
+                }
             }
         })
 
-        viewModel.playlists.observe(viewLifecycleOwner) { playlists ->
-            Log.d("AudioPlayerFragment", "Playlists: $playlists")
-            adapter.update(playlists)
-        }
-
-        binding.bottomSheetContainer.findViewById<Button>(R.id.createNewPlaylistButtonSheet)
+        bottomSheetContainer.findViewById<Button>(R.id.createNewPlaylistButtonSheet)
             .setOnClickListener {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+                hideBottomSheet()
                 findNavController().navigate(
                     R.id.action_audioPlayerFragment_to_newPlaylistFragment
                 )
             }
+    }
+
+    private fun toggleBottomSheet() {
+        if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+            hideBottomSheet()
+        } else {
+            showBottomSheet()
+        }
+    }
+
+    private fun showBottomSheet() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+    }
+
+    private fun hideBottomSheet() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
     }
 
     companion object {

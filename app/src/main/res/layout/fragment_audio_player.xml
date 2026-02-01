@@ -263,20 +263,46 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#99000000"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true" />
 
-    <FrameLayout
-        android:id="@+id/bottomSheetContainer"
+    <LinearLayout
+        android:id="@+id/bottomSheet"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:background="@drawable/bg_bottom_sheet"
+        android:paddingTop="8dp"
+        android:orientation="vertical"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-        <include
-            layout="@layout/bottom_sheet_playlists"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
 
-    </FrameLayout>
+        <View
+            android:layout_width="50dp"
+            style="@style/BottomSheetCap"
+            android:layout_height="4dp"
+            android:layout_marginBottom="30dp"
+            android:layout_gravity="center_horizontal"
+            android:background="@drawable/bg_bottom_sheet_shape" />
+
+        <TextView
+            android:id="@+id/bottomSheetTitle"
+            android:layout_marginBottom="28dp"
+            style="@style/BottomSheetText" />
+
+        <Button
+            android:id="@+id/createNewPlaylistButtonSheet"
+            style="@style/ActivityMediaButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:text="@string/new_playlist" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/playlistRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:layout_marginTop="16dp"
+            android:overScrollMode="never" />
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

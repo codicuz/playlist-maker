@@ -104,6 +104,9 @@ class NewPlaylistFragment : Fragment() {
                 }
 
                 if (state.success) {
+                    val message = "Плейлист ${state.title} создан"
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+
                     findNavController().navigateUp()
                 }
 
@@ -115,7 +118,6 @@ class NewPlaylistFragment : Fragment() {
             }
         }
     }
-
     private fun handleBackPress() {
         val currentState = viewModel.state.value
         val hasUnsaved =

@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginHorizontal="13dp"
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
@@ -10,8 +11,8 @@
         android:id="@+id/playlist_cover"
         android:layout_width="45dp"
         android:layout_height="45dp"
-        android:contentDescription="@string/todo"
         android:layout_marginEnd="8dp"
+        android:contentDescription="@string/todo"
         android:src="@drawable/ic_no_artwork_image" />
 
     <LinearLayout
@@ -19,6 +20,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"
         android:orientation="vertical">
+
         <TextView
             android:id="@+id/playlist_title"
             android:layout_width="wrap_content"
@@ -32,6 +34,7 @@
             android:textSize="11sp"
             tools:ignore="InefficientWeight"
             tools:text="Имя альбома" />
+
         <TextView
             android:id="@+id/tracks_count"
             android:layout_width="wrap_content"

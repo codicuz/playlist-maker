@@ -9,8 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaylistTrackDao {
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun addTrackToPlaylist(track: PlaylistTrackEntity)
 
     @Query("SELECT * FROM playlist_tracks WHERE playlistId = :playlistId ORDER BY id DESC")
@@ -18,4 +17,7 @@ interface PlaylistTrackDao {
 
     @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId AND trackId = :trackId")
     suspend fun removeTrackFromPlaylist(playlistId: Long, trackId: Int)
+
+    @Query("SELECT * FROM playlist_tracks WHERE playlistId = :playlistId")
+    suspend fun getTracksFromPlaylistOnce(playlistId: Long): List<PlaylistTrackEntity>
 }

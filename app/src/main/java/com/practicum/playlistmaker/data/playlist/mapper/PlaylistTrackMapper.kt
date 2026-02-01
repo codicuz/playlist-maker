@@ -20,7 +20,7 @@ fun Track.toEntity(playlistId: Long): PlaylistTrackEntity =
 
 fun PlaylistTrackEntity.toTrack(): Track =
     Track(
-        id = id,
+        id = 0L,
         trackId = trackId,
         trackName = trackName,
         artistsName = artistsName,
