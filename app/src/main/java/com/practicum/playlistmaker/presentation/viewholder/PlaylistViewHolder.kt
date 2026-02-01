@@ -17,7 +17,7 @@ class PlaylistViewHolder(
     fun bind(item: Playlist) {
 
         binding.playlistTitle.text = item.title
-        binding.tracksCount.text = item.description ?: ""
+        binding.tracksCount.text = "0 трэков"
 
         val radius = Useful.dpToPx(8f, itemView.context)
 

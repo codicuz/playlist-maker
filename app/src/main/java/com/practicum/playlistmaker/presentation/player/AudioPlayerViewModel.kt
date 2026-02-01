@@ -5,10 +5,13 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.favorites.AddToFavoritesUseCase
 import com.practicum.playlistmaker.domain.favorites.IsFavoriteUseCase
 import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
+import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -19,29 +22,31 @@ class AudioPlayerViewModel(
     private val mediaPlayer: MediaPlayer,
     private val addToFavoritesUseCase: AddToFavoritesUseCase,
     private val removeFromFavoritesUseCase: RemoveFromFavoritesUseCase,
-    private val isFavoriteUseCase: IsFavoriteUseCase
+    private val isFavoriteUseCase: IsFavoriteUseCase,
+    private val getPlaylistsUseCase: GetPlaylistsUseCase
 ) : ViewModel() {
 
     private val _state = MutableLiveData(AudioPlayerScreenState())
     val state: LiveData<AudioPlayerScreenState> = _state
 
     private lateinit var track: Track
-
     private var isPrepared = false
     private var isCompleted = false
-
     private var updateProgressJob: Job? = null
+
+    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
 
     fun setTrack(track: Track) {
         this.track = track
 
         viewModelScope.launch {
             val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
-            _state.update { it.copy(isFavorite = isFav) }
+            _state.value = _state.value?.copy(isFavorite = isFav)
         }
 
         if (_state.value?.track?.trackId == track.trackId) return
         _state.value = _state.value?.copy(track = track)
+
         track.previewUrl?.let { initPlayer(it) }
     }
 
@@ -69,10 +74,7 @@ class AudioPlayerViewModel(
         stopUpdatingProgress()
         updateProgressJob = viewModelScope.launch {
             while (isActive) {
-                _state.value = _state.value?.copy(
-                    currentPosition = mediaPlayer.currentPosition
-                )
-//                Log.d("CURR", "${_state.value?.currentPosition}")
+                _state.value = _state.value?.copy(currentPosition = mediaPlayer.currentPosition)
                 delay(300)
             }
         }
@@ -99,12 +101,11 @@ class AudioPlayerViewModel(
             mediaPlayer.setOnCompletionListener {
                 stopUpdatingProgress()
                 isCompleted = true
-                _state.value = _state.value?.copy(
-                    isPlaying = false, currentPosition = 0
-                )
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
 
             mediaPlayer.prepareAsync()
+
         } catch (e: Exception) {
             Log.e("AudioPlayerViewModel", "Error init player", e)
         }
@@ -114,11 +115,8 @@ class AudioPlayerViewModel(
         viewModelScope.launch {
             val currentFav = _state.value?.isFavorite ?: false
             track.trackId?.let { id ->
-                if (currentFav) {
-                    removeFromFavoritesUseCase.execute(id)
-                } else {
-                    addToFavoritesUseCase.execute(track)
-                }
+                if (currentFav) removeFromFavoritesUseCase.execute(id)
+                else addToFavoritesUseCase.execute(track)
                 _state.value = _state.value?.copy(isFavorite = !currentFav)
             }
         }
@@ -128,9 +126,5 @@ class AudioPlayerViewModel(
         super.onCleared()
         stopUpdatingProgress()
         mediaPlayer.release()
-    }
-
-    private fun <T> MutableLiveData<T>.update(block: (T) -> T) {
-        value = value?.let(block)
     }
 }

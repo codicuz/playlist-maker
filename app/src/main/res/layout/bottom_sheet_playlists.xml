@@ -24,7 +24,7 @@
         style="@style/BottomSheetText" />
 
     <Button
-        android:id="@+id/createNewPlaylistButton"
+        android:id="@+id/createNewPlaylistButtonSheet"
         style="@style/ActivityMediaButton"
         android:layout_width="wrap_content"
         android:layout_height="36dp"

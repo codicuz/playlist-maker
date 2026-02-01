@@ -27,7 +27,7 @@ val presentationModule = module {
             )
         }
     }
-    viewModel { AudioPlayerViewModel(get(), get(), get(), get()) }
+    viewModel { AudioPlayerViewModel(get(), get(), get(), get(), get()) }
 
     viewModel { NewPlaylistViewModel(get()) }
 }
