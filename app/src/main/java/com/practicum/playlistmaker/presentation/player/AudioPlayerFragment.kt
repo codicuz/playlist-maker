@@ -118,7 +118,7 @@ class AudioPlayerFragment : Fragment() {
                     is AddTrackStatus.Success -> {
                         Toast.makeText(
                             requireContext(),
-                            "Добавлено в плейлист ${it.playlistName}",
+                            getString(R.string.added_to_playlist, it.playlistName),
                             Toast.LENGTH_SHORT
                         ).show()
                         viewModel.resetAddTrackStatus()
@@ -127,7 +127,7 @@ class AudioPlayerFragment : Fragment() {
                     is AddTrackStatus.AlreadyExists -> {
                         Toast.makeText(
                             requireContext(),
-                            "Трек уже добавлен в плейлист ${it.playlistName}",
+                            getString(R.string.allready_exists_in_playlist, it.playlistName),
                             Toast.LENGTH_SHORT
                         ).show()
                         viewModel.resetAddTrackStatus()
@@ -135,7 +135,8 @@ class AudioPlayerFragment : Fragment() {
 
                     is AddTrackStatus.Error -> {
                         Toast.makeText(
-                            requireContext(), "Ошибка: ${it.message}", Toast.LENGTH_SHORT
+                            requireContext(),
+                            getString(R.string.error, it.message), Toast.LENGTH_SHORT
                         ).show()
                         viewModel.resetAddTrackStatus()
                     }
