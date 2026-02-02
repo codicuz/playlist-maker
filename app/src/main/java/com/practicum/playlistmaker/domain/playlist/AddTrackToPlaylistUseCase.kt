@@ -28,8 +28,8 @@ class AddTrackToPlaylistUseCase(
     }
 }
 
-sealed class AddTrackResult {
-    data class Success(val playlistName: String) : AddTrackResult()
-    data class AlreadyExists(val playlistName: String) : AddTrackResult()
-    data class Error(val message: String) : AddTrackResult()
+sealed interface AddTrackResult {
+    data class Success(val playlistName: String) : AddTrackResult
+    data class AlreadyExists(val playlistName: String) : AddTrackResult
+    data class Error(val message: String) : AddTrackResult
 }
