@@ -10,13 +10,12 @@ import com.practicum.playlistmaker.domain.playlist.NewPlaylistRepository
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import org.koin.java.KoinJavaComponent.inject
 
 class NewPlaylistRepositoryImpl(
-    private val playlistDao: PlaylistDao, private val playlistTrackDao: PlaylistTrackDao
+    private val playlistDao: PlaylistDao,
+    private val playlistTrackDao: PlaylistTrackDao,
+    private val coverFileManager: CoverFileManager
 ) : NewPlaylistRepository {
-
-    private val coverFileManager: CoverFileManager by inject(CoverFileManager::class.java)
 
     override suspend fun createPlaylist(title: String, description: String?, coverUri: Uri?) {
         val internalCoverPath = coverUri?.let { coverFileManager.copyCoverToInternalStorage(it) }
