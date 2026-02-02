@@ -5,11 +5,11 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.practicum.playlistmaker.R
@@ -73,10 +73,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun hideBottomNav() {
-        binding.bottomNavigationView.visibility = View.GONE
+        binding.bottomNavigationView.isVisible = false
+
     }
 
     fun showBottomNav() {
-        binding.bottomNavigationView.visibility = View.VISIBLE
+        binding.bottomNavigationView.isVisible = true
     }
 }
