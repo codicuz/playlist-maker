@@ -21,12 +21,10 @@ class PlaylistViewHolder(
 
         val radius = Useful.dpToPx(8f, itemView.context)
 
-        // Загружаем изображение из внутреннего хранилища
         if (!item.coverUri.isNullOrEmpty()) {
             try {
                 val file = File(item.coverUri)
                 if (file.exists()) {
-                    // Используем File объект для загрузки
                     Glide.with(itemView.context).load(file)
                         .placeholder(R.drawable.ic_no_artwork_image)
                         .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))

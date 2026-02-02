@@ -15,10 +15,6 @@ import androidx.navigation.ui.setupWithNavController
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.ActivityMainBinding
 
-
-const val CAMERA_REQUEST_CODE = 1
-
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
@@ -39,6 +35,13 @@ class MainActivity : AppCompatActivity() {
 
         navController?.let {
             binding.bottomNavigationView.setupWithNavController(it)
+
+            navController.addOnDestinationChangedListener { _, destination, _ ->
+                when (destination.id) {
+                    R.id.audioPlayerFragment, R.id.newPlaylistFragment -> hideBottomNav()
+                    else -> showBottomNav()
+                }
+            }
         }
     }
 
@@ -46,15 +49,14 @@ class MainActivity : AppCompatActivity() {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) {
-                    Log.d("PERMISSION", "Доступ к фото разрешен ✅")
+                    Log.d("PERMISSION", "Доступ к фото разрешен")
                 } else {
-                    Log.d("PERMISSION", "Доступ к фото запрещен ❌")
+                    Log.d("PERMISSION", "Доступ к фото запрещен")
                 }
             }
     }
 
     private fun checkGalleryPermission() {
-
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
         } else {
@@ -62,22 +64,19 @@ class MainActivity : AppCompatActivity() {
         }
 
         val granted = ContextCompat.checkSelfPermission(
-            this,
-            permission
+            this, permission
         ) == PackageManager.PERMISSION_GRANTED
 
         if (!granted) {
             permissionLauncher.launch(permission)
         }
     }
-    fun hideBottomNav() {
 
+    fun hideBottomNav() {
         binding.bottomNavigationView.visibility = View.GONE
     }
 
     fun showBottomNav() {
         binding.bottomNavigationView.visibility = View.VISIBLE
     }
-
-
 }

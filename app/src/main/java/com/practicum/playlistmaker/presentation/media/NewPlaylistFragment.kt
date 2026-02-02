@@ -35,7 +35,6 @@ class NewPlaylistFragment : Fragment() {
 
     private val viewModel: NewPlaylistViewModel by viewModel()
 
-
     private val pickCoverLauncher =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
             if (uri != null) {
@@ -128,14 +127,15 @@ class NewPlaylistFragment : Fragment() {
             MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.abort_create_playlist))
                 .setMessage(getString(R.string.all_data_will_be_lost))
                 .setNegativeButton(getString(R.string.cancel_btn)) { dialog, _ -> dialog.dismiss() }
-                .setPositiveButton(getString(R.string.finish_btn)) { _, _ -> findNavController().navigateUp() }.show()
+                .setPositiveButton(getString(R.string.finish_btn)) { _, _ ->
+                    findNavController().navigateUp()
+                }.show()
         } else {
             findNavController().navigateUp()
         }
     }
 
     private fun hasGalleryPermission(): Boolean {
-
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
         } else {
@@ -147,9 +147,13 @@ class NewPlaylistFragment : Fragment() {
         ) == PackageManager.PERMISSION_GRANTED
     }
 
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.hideBottomNav()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
-        (activity as? MainActivity)?.showBottomNav()
         _binding = null
     }
 }

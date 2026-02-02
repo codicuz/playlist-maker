@@ -12,7 +12,6 @@ import com.practicum.playlistmaker.databinding.FragmentFavoritesBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.presentation.main.MainActivity
-import com.practicum.playlistmaker.presentation.player.AudioPlayerFragment
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class FavoritesFragment : Fragment() {
@@ -71,7 +70,7 @@ class FavoritesFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        activity?.findViewById<View>(R.id.bottomNavigationView)?.visibility = View.VISIBLE
+        (activity as? MainActivity)?.showBottomNav()
     }
 
     override fun onDestroyView() {

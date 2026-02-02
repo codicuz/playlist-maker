@@ -45,20 +45,28 @@ class AudioPlayerFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAudioPlayerBinding.inflate(inflater, container, false)
+        binding.audBackButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        (requireActivity() as? MainActivity)?.hideBottomNav()
 
         binding.audBackButton.setOnClickListener {
             findNavController().popBackStack()
         }
+
         if (track == null) {
-            binding.root.post {
-                findNavController().popBackStack()
+            track = arguments?.getParcelable(ARG_TRACK)
+            if (track == null) {
+                binding.root.post {
+                    findNavController().popBackStack()
+                }
+                return
             }
-            return
         }
 
         viewModel.setTrack(track!!)
@@ -66,6 +74,14 @@ class AudioPlayerFragment : Fragment() {
         setupPlayerButtons()
         setupFavoriteButton()
         setupBottomSheet()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        track?.let {
+            outState.putParcelable(ARG_TRACK, it)
+        }
+        viewModel.savePlaybackState()
     }
 
     private fun observeViewModel() {
@@ -156,16 +172,29 @@ class AudioPlayerFragment : Fragment() {
         return String.format("%02d:%02d", minutes, remainingSeconds)
     }
 
+    override fun onPause() {
+        super.onPause()
+        if (!requireActivity().isChangingConfigurations) {
+            viewModel.state.value?.isPlaying?.let { isPlaying ->
+                if (isPlaying) {
+                    viewModel.pausePlayer()
+                }
+            }
+        }
+    }
+
     override fun onStop() {
         super.onStop()
         if (!requireActivity().isChangingConfigurations) {
-            viewModel.pausePlayer()
+            viewModel.savePlaybackState()
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        (requireActivity() as MainActivity).showBottomNav()
+        if (!requireActivity().isChangingConfigurations) {
+            (requireActivity() as? MainActivity)?.showBottomNav()
+        }
         _binding = null
     }
 

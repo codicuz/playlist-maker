@@ -22,6 +22,7 @@ import com.practicum.playlistmaker.databinding.NoInternetBinding
 import com.practicum.playlistmaker.databinding.SearchHistoryBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import kotlinx.coroutines.flow.collectLatest
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -171,6 +172,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun openPlayer(track: Track) {
+        (requireActivity() as? MainActivity)?.hideBottomNav()
         val bundle = Bundle().apply { putParcelable("track", track) }
         findNavController().navigate(R.id.action_searchFragment_to_audioPlayerFragment, bundle)
     }
@@ -202,5 +204,6 @@ class SearchFragment : Fragment() {
             val imm = requireContext().getSystemService(InputMethodManager::class.java)
             imm.showSoftInput(binding.searchEditText, InputMethodManager.SHOW_IMPLICIT)
         }
+        (activity as? MainActivity)?.showBottomNav()
     }
 }

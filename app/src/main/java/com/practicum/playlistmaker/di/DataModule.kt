@@ -29,7 +29,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 val dataModule = module {
-    // SharedPreferences
     single<SharedPreferences>(named(Qualifiers.SETTINGS_PREFS)) {
         get<Application>().getSharedPreferences(
             SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE

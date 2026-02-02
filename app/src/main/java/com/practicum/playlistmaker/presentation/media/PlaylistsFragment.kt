@@ -12,6 +12,7 @@ import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentPlaylistsBinding
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.presentation.adapter.PlaylistAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import com.practicum.playlistmaker.presentation.util.GridSpacingItemDecoration
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -74,6 +75,12 @@ class PlaylistsFragment : Fragment() {
             binding.mediaTab.visibility = View.GONE
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
+    }
+
 
     override fun onDestroyView() {
         super.onDestroyView()

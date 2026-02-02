@@ -21,7 +21,6 @@ class PlaylistBottomSheetViewHolder(
 
         val radius = Useful.dpToPx(2f, itemView.context)
 
-        // Загружаем изображение из внутреннего хранилища
         if (!item.coverUri.isNullOrEmpty()) {
             try {
                 val file = File(item.coverUri)

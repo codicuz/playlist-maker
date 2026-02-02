@@ -38,13 +38,15 @@ class AudioPlayerViewModel(
     private val _state = MutableLiveData(AudioPlayerScreenState())
     val state: LiveData<AudioPlayerScreenState> = _state
 
-    private lateinit var track: Track
+    private var currentTrack: Track? = null
     private var isPrepared = false
     private var isCompleted = false
     private var updateProgressJob: Job? = null
 
-    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
+    private var wasPlayingBeforeConfigChange = false
+    private var lastPositionBeforeConfigChange = 0
 
+    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
 
     private val _addTrackStatus = MutableLiveData<AddTrackStatus?>()
     val addTrackStatus: LiveData<AddTrackStatus> = _addTrackStatus as LiveData<AddTrackStatus>
@@ -53,17 +55,41 @@ class AudioPlayerViewModel(
     val shouldCloseBottomSheet: LiveData<Boolean> = _shouldCloseBottomSheet as LiveData<Boolean>
 
     fun setTrack(track: Track) {
-        this.track = track
-
-        viewModelScope.launch {
-            val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
-            _state.value = _state.value?.copy(isFavorite = isFav)
+        if (currentTrack?.trackId == track.trackId && isPrepared) {
+            updateTrackState(track)
+            if (wasPlayingBeforeConfigChange && lastPositionBeforeConfigChange > 0) {
+                mediaPlayer.seekTo(lastPositionBeforeConfigChange)
+                if (wasPlayingBeforeConfigChange && !mediaPlayer.isPlaying) {
+                    mediaPlayer.start()
+                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
+                    startUpdatingProgress()
+                }
+                wasPlayingBeforeConfigChange = false
+                lastPositionBeforeConfigChange = 0
+            }
+            return
         }
 
-        if (_state.value?.track?.trackId == track.trackId) return
-        _state.value = _state.value?.copy(track = track)
+        stopPlayer()
+
+        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
+        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+
+        currentTrack = track
+        updateTrackState(track)
 
         track.previewUrl?.let { initPlayer(it) }
+    }
+
+    private fun updateTrackState(track: Track) {
+        viewModelScope.launch {
+            val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
+            _state.value = _state.value?.copy(
+                track = track,
+                isFavorite = isFav,
+                currentPosition = 0
+            )
+        }
     }
 
     fun startPlayer() {
@@ -75,17 +101,26 @@ class AudioPlayerViewModel(
             mediaPlayer.start()
             _state.value = _state.value?.copy(isPlaying = true)
             startUpdatingProgress()
+        } else if (!isPrepared) {
+            currentTrack?.previewUrl?.let {
+                initPlayer(it)
+                viewModelScope.launch {
+                    delay(100)
+                    if (isPrepared) {
+                        startPlayer()
+                    }
+                }
+            }
         }
     }
+
     fun resetAddTrackStatus() {
         _addTrackStatus.value = null
     }
 
     fun addTrackToPlaylist(playlist: Playlist, track: Track) {
-        // Проверяем, не добавлен ли уже трек в плейлист
         if (playlist.trackIds.contains(track.trackId)) {
             _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
-            // Не закрываем bottom sheet при уже существующем треке
             _shouldCloseBottomSheet.value = false
             return
         }
@@ -122,18 +157,39 @@ class AudioPlayerViewModel(
     }
 
     fun pausePlayer() {
-        if (isPrepared) {
+        if (isPrepared && mediaPlayer.isPlaying) {
             mediaPlayer.pause()
             _state.value = _state.value?.copy(isPlaying = false)
             stopUpdatingProgress()
         }
     }
 
+    private fun stopPlayer() {
+        if (isPrepared) {
+            try {
+                mediaPlayer.stop()
+            } catch (e: IllegalStateException) {
+            }
+        }
+        stopUpdatingProgress()
+        isPrepared = false
+        isCompleted = false
+    }
+
     private fun startUpdatingProgress() {
         stopUpdatingProgress()
         updateProgressJob = viewModelScope.launch {
             while (isActive) {
-                _state.value = _state.value?.copy(currentPosition = mediaPlayer.currentPosition)
+                val position = try {
+                    if (isPrepared && mediaPlayer.isPlaying) {
+                        mediaPlayer.currentPosition
+                    } else {
+                        _state.value?.currentPosition ?: 0
+                    }
+                } catch (e: IllegalStateException) {
+                    _state.value?.currentPosition ?: 0
+                }
+                _state.value = _state.value?.copy(currentPosition = position)
                 delay(300)
             }
         }
@@ -146,6 +202,8 @@ class AudioPlayerViewModel(
 
     private fun initPlayer(previewUrl: String) {
         try {
+            stopUpdatingProgress()
+
             mediaPlayer.reset()
             isPrepared = false
             isCompleted = false
@@ -154,7 +212,14 @@ class AudioPlayerViewModel(
 
             mediaPlayer.setOnPreparedListener {
                 isPrepared = true
-                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+                if (wasPlayingBeforeConfigChange) {
+                    mediaPlayer.seekTo(lastPositionBeforeConfigChange)
+                    mediaPlayer.start()
+                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
+                    startUpdatingProgress()
+                    wasPlayingBeforeConfigChange = false
+                    lastPositionBeforeConfigChange = 0
+                }
             }
 
             mediaPlayer.setOnCompletionListener {
@@ -163,27 +228,42 @@ class AudioPlayerViewModel(
                 _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
             }
 
+            mediaPlayer.setOnErrorListener { mp, what, extra ->
+                Log.e("AudioPlayerViewModel", "MediaPlayer error: what=$what, extra=$extra")
+                false
+            }
+
             mediaPlayer.prepareAsync()
 
         } catch (e: Exception) {
             Log.e("AudioPlayerViewModel", "Error init player", e)
+            isPrepared = false
         }
     }
 
     fun toggleFavorite() {
         viewModelScope.launch {
             val currentFav = _state.value?.isFavorite ?: false
-            track.trackId?.let { id ->
+            currentTrack?.trackId?.let { id ->
                 if (currentFav) removeFromFavoritesUseCase.execute(id)
-                else addToFavoritesUseCase.execute(track)
+                else addToFavoritesUseCase.execute(currentTrack!!)
                 _state.value = _state.value?.copy(isFavorite = !currentFav)
             }
         }
     }
 
+    fun savePlaybackState() {
+        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
+        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+    }
+
     override fun onCleared() {
         super.onCleared()
         stopUpdatingProgress()
-        mediaPlayer.release()
+        try {
+            mediaPlayer.release()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "Error releasing MediaPlayer", e)
+        }
     }
 }
