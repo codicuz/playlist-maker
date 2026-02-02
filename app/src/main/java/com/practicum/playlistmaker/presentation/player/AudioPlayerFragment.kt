@@ -1,12 +1,14 @@
 package com.practicum.playlistmaker.presentation.player
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,10 +36,22 @@ class AudioPlayerFragment : Fragment() {
 
     private lateinit var adapter: PlaylistBottomSheetAdapter
 
+    private var savedBottomSheetState: Int? = null
+    private var savedOverlayVisible: Boolean = false
+
+    private var returningFromNewPlaylist: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
             track = it.getParcelable(ARG_TRACK)
+        }
+
+        savedInstanceState?.let {
+            savedBottomSheetState =
+                it.getInt(KEY_BOTTOM_SHEET_STATE, BottomSheetBehavior.STATE_HIDDEN)
+            savedOverlayVisible = it.getBoolean(KEY_OVERLAY_VISIBLE, false)
+            returningFromNewPlaylist = it.getBoolean(KEY_RETURNING_FROM_NEW_PLAYLIST, false)
         }
     }
 
@@ -61,6 +75,9 @@ class AudioPlayerFragment : Fragment() {
 
         if (track == null) {
             track = arguments?.getParcelable(ARG_TRACK)
+            if (track == null && savedInstanceState != null) {
+                track = savedInstanceState.getParcelable(ARG_TRACK)
+            }
             if (track == null) {
                 binding.root.post {
                     findNavController().popBackStack()
@@ -74,7 +91,56 @@ class AudioPlayerFragment : Fragment() {
         setupPlayerButtons()
         setupFavoriteButton()
         setupBottomSheet()
+
+        restoreBottomSheetState()
     }
+
+    private fun restoreBottomSheetState() {
+        if (returningFromNewPlaylist) {
+            savedBottomSheetState = BottomSheetBehavior.STATE_HIDDEN
+            savedOverlayVisible = false
+            returningFromNewPlaylist = false
+
+            binding.root.post {
+                binding.overlay.isVisible = false
+            }
+        }
+
+        savedBottomSheetState?.let { savedState ->
+            if (isValidBottomSheetState(savedState)) {
+                binding.root.post {
+                    if (::bottomSheetBehavior.isInitialized && bottomSheetBehavior.state != savedState) {
+                        try {
+                            bottomSheetBehavior.state = savedState
+                        } catch (e: Exception) {
+                            Log.e("AudioPlayer", "Error restoring bottom sheet state", e)
+                        }
+                    }
+                }
+            } else {
+                savedBottomSheetState = BottomSheetBehavior.STATE_HIDDEN
+                binding.root.post {
+                    if (::bottomSheetBehavior.isInitialized) {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+                    }
+                    binding.overlay.isVisible = false
+                }
+            }
+        }
+
+        if (savedOverlayVisible && savedBottomSheetState != BottomSheetBehavior.STATE_HIDDEN) {
+            binding.root.post {
+                binding.overlay.isVisible = true
+                binding.overlay.alpha = 0.6f
+            }
+        }
+    }
+
+
+    private fun isValidBottomSheetState(state: Int): Boolean {
+        return state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED || state == BottomSheetBehavior.STATE_EXPANDED || state == BottomSheetBehavior.STATE_HALF_EXPANDED || state == BottomSheetBehavior.STATE_DRAGGING
+    }
+
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -82,6 +148,21 @@ class AudioPlayerFragment : Fragment() {
             outState.putParcelable(ARG_TRACK, it)
         }
         viewModel.savePlaybackState()
+
+        val stateToSave = if (::bottomSheetBehavior.isInitialized) {
+            val currentState = bottomSheetBehavior.state
+            if (isValidBottomSheetState(currentState) && currentState != BottomSheetBehavior.STATE_SETTLING) {
+                currentState
+            } else {
+                savedBottomSheetState ?: BottomSheetBehavior.STATE_HIDDEN
+            }
+        } else {
+            savedBottomSheetState ?: BottomSheetBehavior.STATE_HIDDEN
+        }
+
+        outState.putInt(KEY_BOTTOM_SHEET_STATE, stateToSave)
+        outState.putBoolean(KEY_OVERLAY_VISIBLE, binding.overlay.isVisible)
+        outState.putBoolean(KEY_RETURNING_FROM_NEW_PLAYLIST, returningFromNewPlaylist)
     }
 
     private fun observeViewModel() {
@@ -136,7 +217,8 @@ class AudioPlayerFragment : Fragment() {
                     is AddTrackStatus.Error -> {
                         Toast.makeText(
                             requireContext(),
-                            getString(R.string.error, it.message), Toast.LENGTH_SHORT
+                            getString(R.string.error, it.message),
+                            Toast.LENGTH_SHORT
                         ).show()
                         viewModel.resetAddTrackStatus()
                     }
@@ -199,6 +281,11 @@ class AudioPlayerFragment : Fragment() {
         _binding = null
     }
 
+    override fun onResume() {
+        super.onResume()
+        returningFromNewPlaylist = false
+    }
+
     private fun setupBottomSheet() {
         val bottomSheetContainer = binding.bottomSheet
         val overlay = binding.overlay
@@ -234,9 +321,23 @@ class AudioPlayerFragment : Fragment() {
             BottomSheetBehavior.BottomSheetCallback() {
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState != BottomSheetBehavior.STATE_SETTLING) {
+                    savedBottomSheetState = newState
+                }
+
                 when (newState) {
                     BottomSheetBehavior.STATE_HIDDEN -> {
-                        overlay.visibility = View.GONE
+                        binding.overlay.isVisible = false
+                        savedOverlayVisible = false
+                    }
+
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        binding.overlay.isVisible = true
+                        savedOverlayVisible = true
+                    }
+
+                    else -> {
+                        savedOverlayVisible = binding.overlay.isVisible
                     }
                 }
             }
@@ -250,15 +351,18 @@ class AudioPlayerFragment : Fragment() {
                 if (normalizedOffset > 0) {
                     overlay.visibility = View.VISIBLE
                     overlay.alpha = normalizedOffset * 0.6f
+                    savedOverlayVisible = true
                 } else {
                     overlay.alpha = 0f
                     overlay.visibility = View.GONE
+                    savedOverlayVisible = false
                 }
             }
         })
 
         bottomSheetContainer.findViewById<Button>(R.id.createNewPlaylistButtonSheet)
             .setOnClickListener {
+                returningFromNewPlaylist = true
                 hideBottomSheet()
                 findNavController().navigate(
                     R.id.action_audioPlayerFragment_to_newPlaylistFragment
@@ -284,6 +388,9 @@ class AudioPlayerFragment : Fragment() {
 
     companion object {
         private const val ARG_TRACK = "track"
+        private const val KEY_BOTTOM_SHEET_STATE = "bottom_sheet_state"
+        private const val KEY_OVERLAY_VISIBLE = "overlay_visible"
+        private const val KEY_RETURNING_FROM_NEW_PLAYLIST = "returning_from_new_playlist"
 
         @JvmStatic
         fun newInstance(track: Track) = AudioPlayerFragment().apply {
