@@ -58,4 +58,6 @@
     <string name="Error">Ошибка</string>
     <string name="okay">ОК</string>
     <string name="no_photo_access">Нет разрешения на доступ к фото</string>
+    <string name="error_playlist_title_empty">Название плейлиста не может быть пустым</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
 </resources>

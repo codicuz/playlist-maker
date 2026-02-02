@@ -1,8 +1,10 @@
 package com.practicum.playlistmaker.presentation.media
 
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +17,7 @@ data class NewPlaylistScreenState(
     val coverUri: Uri? = null,
     val isCreateEnabled: Boolean = false,
     val isCreating: Boolean = false,
-    val error: String? = null,
+    @StringRes val error: Int? = null,
     val success: Boolean = false
 )
 
@@ -41,7 +43,7 @@ class NewPlaylistViewModel(
     fun createPlaylist() {
         val current = _state.value
         if (current.title.isBlank()) {
-            _state.update { it.copy(error = "Название плейлиста не может быть пустым") }
+            _state.update { it.copy(error = R.string.error_playlist_title_empty) }
             return
         }
 
@@ -56,7 +58,7 @@ class NewPlaylistViewModel(
                 )
                 _state.update { it.copy(isCreating = false, success = true) }
             } catch (e: Exception) {
-                _state.update { it.copy(isCreating = false, error = e.message) }
+                _state.update { it.copy(isCreating = false, error = R.string.unknown_error) }
             }
         }
     }
