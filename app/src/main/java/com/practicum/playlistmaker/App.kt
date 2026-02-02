@@ -14,9 +14,6 @@ class App : Application() {
             modules(appModule)
         }
 
-        // Тема берется один раз системная после устновки приложения, затем сохраняется
-        // После, если системная тема поменялась, то приложение живет уже с установленной
-        // темой пользователем
         val themeRepository: ThemeRepository =
             org.koin.java.KoinJavaComponent.get(ThemeRepository::class.java)
 

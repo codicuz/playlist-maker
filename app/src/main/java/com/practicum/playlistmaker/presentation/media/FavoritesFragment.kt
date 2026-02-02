@@ -11,6 +11,7 @@ import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentFavoritesBinding
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class FavoritesFragment : Fragment() {
@@ -38,6 +39,8 @@ class FavoritesFragment : Fragment() {
 
     private fun setupRecyclerView() {
         trackAdapter = TrackAdapter { track ->
+            (requireActivity() as MainActivity).hideBottomNav()
+
             val bundle = Bundle().apply { putParcelable("track", track) }
             findNavController().navigate(R.id.action_mediaFragment_to_audioPlayerFragment, bundle)
         }
@@ -63,6 +66,11 @@ class FavoritesFragment : Fragment() {
             binding.mediaIsEmptyImage.visibility = View.GONE
             binding.mediaIsEmptyText.visibility = View.GONE
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
     }
 
     override fun onDestroyView() {

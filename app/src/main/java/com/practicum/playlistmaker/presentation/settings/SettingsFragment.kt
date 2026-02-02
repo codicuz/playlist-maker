@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentSettingsBinding
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -77,6 +78,11 @@ class SettingsFragment : Fragment() {
         binding.shareApp.setOnClickListener {
             themeViewModel.onShareAppClicked()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
     }
 
     override fun onDestroyView() {

@@ -91,4 +91,21 @@
         <item name="itemTextColor">@color/bottom_nav_colors_night</item>
         <item name="android:background">?attr/colorGlobalBackground</item>
     </style>
+
+    <style name="NewPlaylistInputs" parent="NewPlaylistInputsBase">
+        <item name="android:textColorHint">@color/white</item>
+    </style>
+
+    <style name="NewPlaylistButton" parent="NewPlayListButtonBase">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="BottomSheetText" parent="BottomSheetTextBase">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="BottomSheetCap">
+        <item name="android:backgroundTint">@color/white</item>
+    </style>
+
 </resources>

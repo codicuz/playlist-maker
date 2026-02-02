@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/bottomSheet"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingTop="8dp"
+    android:orientation="vertical"
+  >
+
+    <View
+        android:layout_width="50dp"
+        style="@style/BottomSheetCap"
+        android:layout_height="4dp"
+        android:layout_marginBottom="30dp"
+        android:layout_gravity="center_horizontal"
+        android:background="@drawable/bg_bottom_sheet_shape"/>
+
+    <TextView
+        android:id="@+id/bottomSheetTitle"
+        android:layout_marginBottom="28dp"
+        style="@style/BottomSheetText" />
+
+    <Button
+        android:id="@+id/createNewPlaylistButtonSheet"
+        style="@style/ActivityMediaButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="@string/new_playlist" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/playlistRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginTop="16dp"
+        android:overScrollMode="never" />
+</LinearLayout>
