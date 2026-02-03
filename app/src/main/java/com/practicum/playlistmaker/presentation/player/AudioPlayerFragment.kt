@@ -5,14 +5,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -91,7 +89,6 @@ class AudioPlayerFragment : Fragment() {
         setupPlayerButtons()
         setupFavoriteButton()
         setupBottomSheet()
-
         restoreBottomSheetState()
     }
 
@@ -289,8 +286,8 @@ class AudioPlayerFragment : Fragment() {
     private fun setupBottomSheet() {
         val bottomSheetContainer = binding.bottomSheet
         val overlay = binding.overlay
-        val recyclerView =
-            bottomSheetContainer.findViewById<RecyclerView>(R.id.playlistRecyclerView)
+        val recyclerView = binding.playlistRecyclerView
+        val dragHandle = binding.dragHandle
 
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         adapter = PlaylistBottomSheetAdapter(mutableListOf()) { playlist ->
@@ -302,12 +299,24 @@ class AudioPlayerFragment : Fragment() {
             adapter.update(playlists)
         }
 
+        val displayMetrics = resources.displayMetrics
+        val screenHeight = displayMetrics.heightPixels
+        val peekHeightPx = (screenHeight * 0.40).toInt()
+
+
+
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
             state = BottomSheetBehavior.STATE_HIDDEN
-            peekHeight = 0
+            peekHeight = peekHeightPx
             isHideable = true
             isDraggable = true
+            isFitToContents = false
+            halfExpandedRatio = 0.40f
+            expandedOffset = 0
+            skipCollapsed = false
         }
+
+        hideBottomSheet()
 
         binding.audAddToPlaylist.setOnClickListener {
             toggleBottomSheet()
@@ -315,6 +324,22 @@ class AudioPlayerFragment : Fragment() {
 
         overlay.setOnClickListener {
             hideBottomSheet()
+        }
+
+        dragHandle.setOnClickListener {
+            when (bottomSheetBehavior.state) {
+                BottomSheetBehavior.STATE_COLLAPSED -> {
+                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+                }
+
+                BottomSheetBehavior.STATE_EXPANDED -> {
+                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+
+                else -> {
+                    showBottomSheet()
+                }
+            }
         }
 
         bottomSheetBehavior.addBottomSheetCallback(object :
@@ -331,9 +356,16 @@ class AudioPlayerFragment : Fragment() {
                         savedOverlayVisible = false
                     }
 
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        binding.overlay.isVisible = true
+                        savedOverlayVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+
                     BottomSheetBehavior.STATE_EXPANDED -> {
                         binding.overlay.isVisible = true
                         savedOverlayVisible = true
+                        binding.overlay.alpha = 0.6f
                     }
 
                     else -> {
@@ -343,43 +375,53 @@ class AudioPlayerFragment : Fragment() {
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                val normalizedOffset = when {
-                    slideOffset >= 0 -> slideOffset
-                    else -> slideOffset + 1
-                }.coerceIn(0f, 1f)
+                when {
+                    slideOffset <= 0 -> {
+                        val progress = (slideOffset + 1).coerceIn(0f, 1f)
+                        if (progress > 0) {
+                            overlay.visibility = View.VISIBLE
+                            overlay.alpha = progress * 0.6f
+                        } else {
+                            overlay.visibility = View.GONE
+                        }
+                    }
 
-                if (normalizedOffset > 0) {
-                    overlay.visibility = View.VISIBLE
-                    overlay.alpha = normalizedOffset * 0.6f
-                    savedOverlayVisible = true
-                } else {
-                    overlay.alpha = 0f
-                    overlay.visibility = View.GONE
-                    savedOverlayVisible = false
+                    else -> {
+                        overlay.visibility = View.VISIBLE
+                        overlay.alpha = 0.6f
+                    }
                 }
             }
         })
 
-        bottomSheetContainer.findViewById<Button>(R.id.createNewPlaylistButtonSheet)
-            .setOnClickListener {
-                returningFromNewPlaylist = true
-                hideBottomSheet()
-                findNavController().navigate(
-                    R.id.action_audioPlayerFragment_to_newPlaylistFragment
-                )
-            }
+        binding.createNewPlaylistButtonSheet.setOnClickListener {
+            returningFromNewPlaylist = true
+            hideBottomSheet()
+            findNavController().navigate(
+                R.id.action_audioPlayerFragment_to_newPlaylistFragment
+            )
+        }
+
     }
 
     private fun toggleBottomSheet() {
-        if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
-            hideBottomSheet()
-        } else {
-            showBottomSheet()
+        when (bottomSheetBehavior.state) {
+            BottomSheetBehavior.STATE_HIDDEN -> {
+                showBottomSheet()
+            }
+
+            BottomSheetBehavior.STATE_COLLAPSED, BottomSheetBehavior.STATE_EXPANDED -> {
+                hideBottomSheet()
+            }
+
+            else -> {
+                hideBottomSheet()
+            }
         }
     }
 
     private fun showBottomSheet() {
-        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
     }
 
     private fun hideBottomSheet() {
