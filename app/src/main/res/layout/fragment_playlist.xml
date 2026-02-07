@@ -1,15 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/audioPlayerCoordinator"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".presentation.media.PlaylistFragment">
+    android:layout_height="wrap_content"
+    tools:context=".presentation.player.AudioPlayerFragment">
 
-    <TextView
-        android:id="@+id/playlistInfo"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center"
-        android:text="Это экран плейлиста!" />
+        android:orientation="vertical">
 
-</FrameLayout>
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageButton
+                android:id="@+id/playlistBackButton"
+                style="@style/AudButtonBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginTop="4dp"
+                android:contentDescription="@string/todo"
+                android:src="@drawable/back" />
+
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="360dp"
+                android:contentDescription="@string/todo"
+                tools:src="@drawable/ic_no_artwork_image" />
+
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/playlist_title"
+                style="@style/PlaylistTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="Best song" />
+
+            <TextView
+                android:id="@+id/playlist_description"
+                style="@style/PlaylistText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                tools:text="2026" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/playlistMinutesCount"
+                    style="@style/PlaylistText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="300 минут" />
+
+                <ImageView
+                    android:id="@+id/point_image"
+                    style="@style/RcDelimiterTimeButton"
+                    android:layout_width="4dp"
+                    android:layout_height="4dp"
+                    android:layout_marginHorizontal="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/ic_artists_time_delimiter"
+                    android:contentDescription="@string/todo" />
+
+                <TextView
+                    android:id="@+id/playlistTracksCount"
+                    style="@style/PlaylistText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    tools:text="98 треков" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp">
+
+                <ImageButton
+                    android:id="@+id/playlistShareButton"
+                    style="@style/AudButtonBack"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:contentDescription="@string/todo"
+                    android:src="@drawable/share" />
+
+                <ImageButton
+                    android:id="@+id/playlistHamburgerButton"
+                    style="@style/AudButtonBack"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="@string/todo"
+                    android:src="@drawable/playlist_hamburger" />
+
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#99000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/bottomSheet"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_bottom_sheet"
+        android:orientation="vertical"
+        android:paddingTop="8dp"
+
+        app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
+
+        <View
+            android:id="@+id/dragHandle"
+            style="@style/BottomSheetCap"
+            android:layout_width="50dp"
+            android:layout_height="4dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="30dp"
+            android:background="@drawable/bg_bottom_sheet_shape" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/playlistRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:overScrollMode="never" />
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -42,9 +42,7 @@ class PlaylistFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.playlistInfo.text = "Плейлист ID: $playlistId"
-
-        binding.playlistInfo.setOnClickListener {
+        binding.playlistBackButton.setOnClickListener {
             findNavController().popBackStack()
         }
     }
