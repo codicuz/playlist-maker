@@ -38,7 +38,9 @@ class PlaylistsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        adapter = PlaylistAdapter()
+        adapter = PlaylistAdapter { playlist ->
+            navigateToPlaylistFragment(playlist)
+        }
 
         val spacing = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
 
@@ -76,11 +78,20 @@ class PlaylistsFragment : Fragment() {
         }
     }
 
+    private fun navigateToPlaylistFragment(playlist: Playlist) {
+        val bundle = Bundle().apply {
+            putLong("playlistId", playlist.id)
+        }
+        findNavController().navigate(
+            R.id.action_mediaFragment_to_playlistFragment,
+            bundle
+        )
+    }
+
     override fun onResume() {
         super.onResume()
         (activity as? MainActivity)?.showBottomNav()
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

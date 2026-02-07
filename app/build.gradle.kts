@@ -56,6 +56,8 @@ dependencies {
 
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.legacy.support.v4)
+    implementation(libs.androidx.recyclerview)
     kapt(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)

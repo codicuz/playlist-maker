@@ -12,7 +12,8 @@ import com.practicum.playlistmaker.presentation.util.Useful
 import java.io.File
 
 class PlaylistViewHolder(
-    private val binding: PlaylistItemBinding
+    private val binding: PlaylistItemBinding,
+    private val onPlaylistClick: (Playlist) -> Unit
 ) : RecyclerView.ViewHolder(binding.root) {
 
     fun bind(item: Playlist) {
@@ -44,6 +45,10 @@ class PlaylistViewHolder(
             }
         } else {
             loadDefaultCover(radius)
+        }
+
+        itemView.setOnClickListener {
+            onPlaylistClick(item)
         }
     }
 
