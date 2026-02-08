@@ -4,17 +4,34 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/audioPlayerCoordinator"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     tools:context=".presentation.player.AudioPlayerFragment">
 
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
     <LinearLayout
+        android:id="@+id/contentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:visibility="visible">
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="wrap_content">
+
+            <ImageView
+                android:id="@+id/playlistCover"
+                android:layout_width="match_parent"
+                android:layout_height="360dp"
+                android:contentDescription="@string/todo"
+                android:scaleType="centerCrop"
+                tools:src="@drawable/ic_no_artwork_image" />
 
             <ImageButton
                 android:id="@+id/playlistBackButton"
@@ -24,13 +41,9 @@
                 android:layout_marginStart="4dp"
                 android:layout_marginTop="4dp"
                 android:contentDescription="@string/todo"
+                android:background="@android:color/transparent"
+                android:backgroundTint="@android:color/transparent"
                 android:src="@drawable/back" />
-
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="360dp"
-                android:contentDescription="@string/todo"
-                tools:src="@drawable/ic_no_artwork_image" />
 
         </FrameLayout>
 
@@ -41,14 +54,14 @@
             android:orientation="vertical">
 
             <TextView
-                android:id="@+id/playlist_title"
+                android:id="@+id/playlistTitle"
                 style="@style/PlaylistTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 tools:text="Best song" />
 
             <TextView
-                android:id="@+id/playlist_description"
+                android:id="@+id/playlistDescription"
                 style="@style/PlaylistText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -117,8 +130,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#99000000"
-        android:clickable="true"
-        android:focusable="true"
+        android:clickable="false"
+        android:focusable="false"
         android:visibility="gone"
         tools:visibility="visible" />
 
@@ -127,9 +140,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@drawable/bg_bottom_sheet"
+        android:minHeight="200dp"
         android:orientation="vertical"
         android:paddingTop="8dp"
-
+        app:behavior_peekHeight="300dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
         <View
