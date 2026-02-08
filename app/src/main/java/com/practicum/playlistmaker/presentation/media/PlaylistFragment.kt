@@ -237,15 +237,16 @@ class PlaylistFragment : Fragment() {
             expandedOffset = 0
             skipCollapsed = false
 
-            maxHeight = screenHeight
-
             peekHeight = (screenHeight * 0.35).toInt()
 
+            halfExpandedRatio = 0.7f
+
             state = BottomSheetBehavior.STATE_HIDDEN
+            isHideable = false
+            isDraggable = true
         }
 
         binding.overlay.isVisible = false
-
         setupBottomSheetListeners()
     }
 
@@ -407,6 +408,22 @@ class PlaylistFragment : Fragment() {
         }
 
         loadDefaultCover()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (::bottomSheetBehavior.isInitialized) {
+            outState.putInt("BOTTOM_SHEET_STATE", bottomSheetBehavior.state)
+        }
+    }
+
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        savedInstanceState?.getInt("BOTTOM_SHEET_STATE")?.let { savedState ->
+            if (::bottomSheetBehavior.isInitialized) {
+                bottomSheetBehavior.state = savedState
+            }
+        }
     }
 
     private fun loadDefaultCover() {

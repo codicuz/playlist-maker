@@ -261,6 +261,9 @@ class AudioPlayerViewModel(
         super.onCleared()
         stopUpdatingProgress()
         try {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+            }
             mediaPlayer.release()
         } catch (e: Exception) {
             Log.e("AudioPlayerViewModel", "Error releasing MediaPlayer", e)

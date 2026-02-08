@@ -33,19 +33,25 @@ class PlaylistViewModel(
         _state.value = _state.value.copy(isLoading = true)
 
         viewModelScope.launch {
-            val playlist = getPlaylistByIdUseCase.execute(playlistId)
-            val tracks = getTracksForPlaylistUseCase.execute(playlistId)
+            try {
+                val playlist = getPlaylistByIdUseCase.execute(playlistId)
+                val tracks = getTracksForPlaylistUseCase.execute(playlistId)
 
-            val totalDurationMinutes = calculateTotalDuration(tracks)
-            val trackCount = tracks.size
+                val totalDurationMinutes = calculateTotalDuration(tracks)
+                val trackCount = tracks.size
 
-            _state.value = _state.value.copy(
-                playlist = playlist,
-                tracks = tracks,
-                totalDurationMinutes = totalDurationMinutes,
-                trackCount = trackCount,
-                isLoading = false
-            )
+                _state.value = _state.value.copy(
+                    playlist = playlist,
+                    tracks = tracks,
+                    totalDurationMinutes = totalDurationMinutes,
+                    trackCount = trackCount,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    isLoading = false,
+                )
+            }
         }
     }
 
