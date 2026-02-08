@@ -32,6 +32,6 @@ val presentationModule = module {
 
     viewModel { NewPlaylistViewModel(get()) }
 
-    viewModel { PlaylistViewModel(get(), get(), get()) }
+    viewModel { PlaylistViewModel(get(), get(), get(), get()) }
 
 }

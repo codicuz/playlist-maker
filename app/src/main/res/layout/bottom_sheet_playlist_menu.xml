@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet"
+    style="@style/Fragment"
     android:orientation="vertical"
     android:paddingTop="8dp">
 
@@ -42,47 +43,51 @@
 
             <TextView
                 android:id="@+id/playlistMenuTitle"
+                style="@style/PlaylistMenuTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="?android:attr/textColorPrimary"
                 tools:text="Имя плейлиста" />
 
             <TextView
                 android:id="@+id/playlistMenuTrackCount"
+                style="@style/PlaylistMenuTrackCount"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="?android:attr/textColorSecondary"
                 tools:text="158 треков" />
         </LinearLayout>
     </LinearLayout>
 
     <TextView
         android:id="@+id/menuShare"
+        style="@style/PlaylistMenuTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:paddingVertical="21dp"
         android:text="@string/share"
-        android:textColor="?android:attr/textColorPrimary" />
+        tools:text="@string/share" />
 
     <TextView
         android:id="@+id/menuEdit"
+        style="@style/PlaylistMenuTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:paddingVertical="21dp"
         android:text="@string/edit_information"
-        android:textColor="?android:attr/textColorPrimary" />
+        tools:text="@string/edit_information" />
 
     <TextView
         android:id="@+id/menuDelete"
+        style="@style/PlaylistMenuTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:paddingHorizontal="16dp"
         android:paddingVertical="21dp"
-        android:text="@string/delete_playlist" />
+        android:text="@string/delete_playlist"
+        tools:text="@string/delete_playlist" />
 
 </LinearLayout>

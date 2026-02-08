@@ -50,4 +50,8 @@ class NewPlaylistRepositoryImpl(
     private suspend fun getTracksForPlaylist(playlistId: Long): List<com.practicum.playlistmaker.domain.track.Track> {
         return playlistTrackDao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
     }
+
+    override suspend fun deletePlaylist(playlistId: Long) {
+        playlistDao.deletePlaylist(playlistId)
+    }
 }

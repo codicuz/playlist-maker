@@ -2,6 +2,7 @@ package com.practicum.playlistmaker.presentation.media
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.playlist.DeletePlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
@@ -17,20 +18,32 @@ data class PlaylistScreenState(
     val tracks: List<Track> = emptyList(),
     val isLoading: Boolean = false,
     val totalDurationMinutes: Long = 0,
-    val trackCount: Int = 0
+    val trackCount: Int = 0,
+    val isDeleting: Boolean = false,
+    val deletionSuccess: Boolean = false,
+    val error: String? = null
 )
 
 class PlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
     private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase,
-    private val deleteTrackFromPlaylistUseCase: DeleteTrackFromPlaylistUseCase
+    private val deleteTrackFromPlaylistUseCase: DeleteTrackFromPlaylistUseCase,
+    private val deletePlaylistUseCase: DeletePlaylistUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PlaylistScreenState())
     val state: StateFlow<PlaylistScreenState> = _state.asStateFlow()
 
+    private val _deletionEvent = MutableStateFlow<DeletionEvent?>(null)
+    val deletionEvent: StateFlow<DeletionEvent?> = _deletionEvent.asStateFlow()
+
+    sealed class DeletionEvent {
+        object Success : DeletionEvent()
+        data class Error(val message: String) : DeletionEvent()
+    }
+
     fun loadPlaylist(playlistId: Long) {
-        _state.value = _state.value.copy(isLoading = true)
+        _state.value = _state.value.copy(isLoading = true, error = null)
 
         viewModelScope.launch {
             try {
@@ -50,6 +63,7 @@ class PlaylistViewModel(
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
+                    error = e.message ?: "Ошибка загрузки плейлиста"
                 )
             }
         }
@@ -58,10 +72,38 @@ class PlaylistViewModel(
     fun deleteTrackFromPlaylist(track: Track) {
         viewModelScope.launch {
             _state.value.playlist?.let { playlist ->
-                deleteTrackFromPlaylistUseCase.execute(playlist.id, track.trackId)
-                loadPlaylist(playlist.id)
+                try {
+                    deleteTrackFromPlaylistUseCase.execute(playlist.id, track.trackId)
+                    loadPlaylist(playlist.id)
+                } catch (e: Exception) {
+                    _state.value = _state.value.copy(
+                        error = "Ошибка удаления трека: ${e.message}"
+                    )
+                }
             }
         }
+    }
+
+    fun deletePlaylist() {
+        viewModelScope.launch {
+            _state.value.playlist?.let { playlist ->
+                _state.value = _state.value.copy(isDeleting = true, error = null)
+
+                try {
+                    deletePlaylistUseCase.execute(playlist.id)
+                    _deletionEvent.value = DeletionEvent.Success
+                } catch (e: Exception) {
+                    _state.value = _state.value.copy(isDeleting = false)
+                    _deletionEvent.value = DeletionEvent.Error(
+                        e.message ?: "Неизвестная ошибка при удалении плейлиста"
+                    )
+                }
+            }
+        }
+    }
+
+    fun resetDeletionEvent() {
+        _deletionEvent.value = null
     }
 
     private fun calculateTotalDuration(tracks: List<Track>): Long {

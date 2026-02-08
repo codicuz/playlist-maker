@@ -22,5 +22,11 @@ interface PlaylistDao {
     @Query("UPDATE playlists SET trackCount = :count WHERE id = :playlistId")
     suspend fun updateTrackCount(playlistId: Long, count: Int)
 
+    @Query("DELETE FROM playlists WHERE id = :playlistId")
+    suspend fun deletePlaylist(playlistId: Long)
+
+    @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId")
+    suspend fun deleteTracksFromPlaylist(playlistId: Long)
+
 }
 

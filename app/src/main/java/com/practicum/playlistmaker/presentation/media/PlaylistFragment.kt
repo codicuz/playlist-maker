@@ -1,5 +1,6 @@
 package com.practicum.playlistmaker.presentation.media
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -19,6 +20,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentPlaylistBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
 import com.practicum.playlistmaker.presentation.main.MainActivity
@@ -36,9 +38,7 @@ class PlaylistFragment : Fragment() {
     private val viewModel: PlaylistViewModel by viewModel()
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
-
     private lateinit var trackAdapter: TrackAdapter
-
     private lateinit var bottomSheetDialog: BottomSheetDialog
 
     companion object {
@@ -64,9 +64,7 @@ class PlaylistFragment : Fragment() {
             val screenHeight = resources.displayMetrics.heightPixels
             val desiredHeight = (screenHeight * 0.53).toInt()
 
-            val parent =
-                view.parent as ViewGroup
-
+            val parent = view.parent as ViewGroup
             parent.layoutParams = parent.layoutParams.apply {
                 height = desiredHeight
             }
@@ -117,7 +115,6 @@ class PlaylistFragment : Fragment() {
             .into(imageView)
     }
 
-
     private fun setupMenuClickListeners(view: View) {
         view.findViewById<TextView>(R.id.menuShare).setOnClickListener {
             sharePlaylist()
@@ -139,9 +136,67 @@ class PlaylistFragment : Fragment() {
         setupMenuContent(bottomSheetDialog.findViewById(android.R.id.content)!!)
         bottomSheetDialog.show()
     }
+
+    private fun buildShareText(playlist: Playlist?, tracks: List<Track>): String {
+        val builder = StringBuilder()
+
+        playlist?.title?.let { title ->
+            builder.append(title).append("\n")
+        }
+
+        playlist?.description?.takeIf { it.isNotBlank() }?.let { description ->
+            builder.append(description).append("\n")
+        }
+
+        val trackCount = tracks.size
+        val tracksText = resources.getQuantityString(
+            R.plurals.tracks_count_bracers,
+            trackCount,
+            trackCount
+        )
+        builder.append("$tracksText\n\n")
+
+        tracks.forEachIndexed { index, track ->
+            val trackNumber = index + 1
+            val artist = track.artistsName ?: getString(R.string.unknown_artist)
+            val trackName = track.trackName ?: getString(R.string.unknown_track_name)
+            val duration = track.trackTime ?: getString(R.string.unknown_track_time)
+
+            builder.append("$trackNumber. $artist - $trackName ($duration)\n")
+        }
+
+        return builder.toString()
+    }
+
     private fun sharePlaylist() {
-        // TODO: Реализовать функционал "Поделиться плейлистом"
-        Toast.makeText(requireContext(), "Поделиться плейлистом", Toast.LENGTH_SHORT).show()
+        val tracks = viewModel.state.value.tracks
+        val playlist = viewModel.state.value.playlist
+
+        if (tracks.isEmpty()) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.no_shareable_playlist),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
+        val shareText = buildShareText(playlist, tracks)
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, shareText)
+        }
+
+        try {
+            startActivity(Intent.createChooser(intent, null))
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.no_intent_handle),
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun editPlaylist() {
@@ -150,7 +205,21 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun deletePlaylist() {
-        Toast.makeText(requireContext(), "Удалить плейлист", Toast.LENGTH_SHORT).show()
+        val playlistName = viewModel.state.value.playlist?.title
+            ?: getString(R.string.unknown_playlist)
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.MyDialogButton)
+            .setTitle(getString(R.string.delete_playlist_title, playlistName))
+            .setNegativeButton(getString(R.string.no)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton(getString(R.string.yes)) { dialog, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    viewModel.deletePlaylist()
+                }
+                dialog.dismiss()
+            }
+            .show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -177,7 +246,7 @@ class PlaylistFragment : Fragment() {
         }
 
         binding.playlistShareButton.setOnClickListener {
-            // TODO: реализовать в будущем
+            sharePlaylist()
         }
 
         setupRecyclerView()
@@ -207,7 +276,6 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun navigateToPlayer(track: Track) {
-        (requireActivity() as? MainActivity)?.hideBottomNav()
         val bundle = Bundle().apply { putParcelable("track", track) }
         findNavController().navigate(
             R.id.action_playlistFragment_to_audioPlayerFragment,
@@ -236,11 +304,8 @@ class PlaylistFragment : Fragment() {
             isFitToContents = false
             expandedOffset = 0
             skipCollapsed = false
-
             peekHeight = (screenHeight * 0.35).toInt()
-
             halfExpandedRatio = 0.7f
-
             state = BottomSheetBehavior.STATE_HIDDEN
             isHideable = false
             isDraggable = true
@@ -279,7 +344,8 @@ class PlaylistFragment : Fragment() {
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
                 if (newState == BottomSheetBehavior.STATE_HIDDEN &&
-                    viewModel.state.value.tracks.isNotEmpty()) {
+                    viewModel.state.value.tracks.isNotEmpty()
+                ) {
                     bottomSheet.post {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
@@ -361,6 +427,36 @@ class PlaylistFragment : Fragment() {
                 }
             }
         }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.deletionEvent.collectLatest { event ->
+                when (event) {
+                    is PlaylistViewModel.DeletionEvent.Success -> {
+                        parentFragmentManager.setFragmentResult(
+                            "playlist_deleted",
+                            Bundle().apply {
+                                putBoolean("deleted", true)
+                                putLong("playlist_id", playlistId)
+                            }
+                        )
+                        findNavController().popBackStack()
+                        viewModel.resetDeletionEvent()
+                    }
+
+                    is PlaylistViewModel.DeletionEvent.Error -> {
+                        Toast.makeText(
+                            requireContext(),
+                            "Ошибка удаления: ${event.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        viewModel.resetDeletionEvent()
+                    }
+
+                    null -> {
+                    }
+                }
+            }
+        }
     }
 
     private fun updateBottomSheetVisibility(tracks: List<Track>) {
@@ -375,9 +471,7 @@ class PlaylistFragment : Fragment() {
         if (hasTracks) {
             bottomSheetBehavior.isHideable = false
             bottomSheetBehavior.isDraggable = true
-
             bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-
             binding.overlay.isVisible = true
             binding.overlay.alpha = 0.6f
         } else {
@@ -391,6 +485,7 @@ class PlaylistFragment : Fragment() {
         binding.dragHandle.isClickable = hasTracks
         binding.dragHandle.isEnabled = hasTracks
     }
+
     private fun loadPlaylistCover(coverUri: String?) {
         if (!coverUri.isNullOrEmpty()) {
             try {
@@ -398,7 +493,6 @@ class PlaylistFragment : Fragment() {
                 if (file.exists()) {
                     binding.playlistCover.scaleType = ImageView.ScaleType.CENTER_CROP
                     binding.playlistCover.setPadding(0, 0, 0, 0)
-
                     Glide.with(requireContext()).load(file).into(binding.playlistCover)
                     return
                 }
@@ -433,6 +527,14 @@ class PlaylistFragment : Fragment() {
 
         Glide.with(requireContext()).load(R.drawable.ic_no_artwork_image)
             .into(binding.playlistCover)
+    }
+
+    override fun onResume() {
+        super.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
     }
 
     override fun onDestroyView() {

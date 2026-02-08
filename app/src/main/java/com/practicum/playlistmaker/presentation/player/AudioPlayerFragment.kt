@@ -272,9 +272,6 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        if (!requireActivity().isChangingConfigurations) {
-            (requireActivity() as? MainActivity)?.showBottomNav()
-        }
         _binding = null
     }
 

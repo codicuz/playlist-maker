@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/audioPlayerCoordinator"
+    android:background="@color/white"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".presentation.player.AudioPlayerFragment">
@@ -30,12 +31,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="360dp"
                 android:contentDescription="@string/todo"
+                android:layout_marginBottom="24dp"
                 android:scaleType="centerCrop"
                 tools:src="@drawable/ic_no_artwork_image" />
 
             <ImageButton
                 android:id="@+id/playlistBackButton"
-                style="@style/AudButtonBack"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="4dp"
@@ -83,6 +84,7 @@
                 <ImageView
                     android:id="@+id/point_image"
                     style="@style/RcDelimiterTimeButton"
+                    android:backgroundTint="@color/app_black"
                     android:layout_width="4dp"
                     android:layout_height="4dp"
                     android:layout_marginHorizontal="8dp"
@@ -106,7 +108,7 @@
 
                 <ImageButton
                     android:id="@+id/playlistShareButton"
-                    style="@style/AudButtonBack"
+                    android:backgroundTint="@android:color/transparent"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_marginEnd="16dp"
@@ -115,7 +117,7 @@
 
                 <ImageButton
                     android:id="@+id/playlistHamburgerButton"
-                    style="@style/AudButtonBack"
+                    android:backgroundTint="@android:color/transparent"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="@string/todo"
@@ -133,7 +135,7 @@
         android:clickable="false"
         android:focusable="false"
         android:visibility="gone"
-        tools:visibility="visible" />
+        tools:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/bottomSheet"

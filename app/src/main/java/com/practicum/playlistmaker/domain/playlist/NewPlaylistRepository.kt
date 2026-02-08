@@ -8,4 +8,6 @@ interface NewPlaylistRepository {
     fun getPlaylists(): Flow<List<Playlist>>
     suspend fun getPlaylistById(id: Long): Playlist?
     suspend fun updateTrackCount(id: Long, count: Int)
+
+    suspend fun deletePlaylist(playlistId: Long)
 }

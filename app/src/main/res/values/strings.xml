@@ -69,6 +69,12 @@
         <item quantity="many">%d трэков</item>
         <item quantity="other">%d трэков</item>
     </plurals>
+    <plurals name="tracks_count_bracers">
+        <item quantity="one">[%d] трэк</item>
+        <item quantity="few">[%d] трэка</item>
+        <item quantity="many">[%d] трэков</item>
+        <item quantity="other">[%d] трэков</item>
+    </plurals>
     <string name="zero_minutes">0 минут</string>
     <plurals name="tracks_minutes">
         <item quantity="one">%d минута</item>
@@ -82,4 +88,13 @@
     <string name="share">Поделиться</string>
     <string name="edit_information">Редактировать информацию</string>
     <string name="delete_playlist">Удалить плейлист</string>
+    <string name="delete_playlist_title">Хотите удалить плейлист «%1$s»? </string>
+    <string name="delete_playlist_message">Хотите удалить плейлист?</string>
+    <string name="playlist_deleted_success">Плейлист успешно удален</string>
+    <string name="no_intent_handle_">Не удалось выполнить действие</string>
+    <string name="no_shareable_playlist">В этом плейлисте нет списка треков, которым можно поделиться</string>
+    <string name="unknown_artist">Неизвестный исполнитель</string>
+    <string name="unknown_track_name">Без названия</string>
+    <string name="unknown_track_time">--:--</string>
+    <string name="unknown_playlist">Неизвестный плейлист</string>
 </resources>

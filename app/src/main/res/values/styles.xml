@@ -274,17 +274,23 @@
         <item name="android:backgroundTint">@color/light_gray</item>
     </style>
 
-    <style name="PlaylistTitle">
+    <style name="PlaylistTitleBase">
         <item name="android:fontFamily">@font/ys_display_bold</item>
         <item name="android:textSize">24sp</item>
         <item name="android:layout_marginBottom">8dp</item>
+    </style>
+
+    <style name="PlaylistTitle" parent="PlaylistTitleBase">
         <item name="android:textColor">@color/app_black</item>
     </style>
 
-    <style name="PlaylistText">
+    <style name="PlaylistTextBase">
         <item name="android:fontFamily">@font/ys_display_regular</item>
         <item name="android:textSize">18sp</item>
         <item name="android:layout_marginBottom">8dp</item>
+    </style>
+
+    <style name="PlaylistText" parent="PlaylistTextBase">
         <item name="android:textColor">@color/app_black</item>
     </style>
 
@@ -297,8 +303,15 @@
     </style>
 
     <style name="MyDialogButton" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="android:background">@color/white</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/DialogTitle</item>
         <item name="buttonBarPositiveButtonStyle">@style/DialogButton.Positive</item>
         <item name="buttonBarNegativeButtonStyle">@style/DialogButton.Negative</item>
+    </style>
+
+    <style name="DialogTitle"
+        parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+        <item name="android:textColor">@color/black</item>
     </style>
 
     <style name="DialogButton.Positive" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
@@ -307,6 +320,24 @@
 
     <style name="DialogButton.Negative" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/blue</item>
+    </style>
+
+    <style name="PlaylistMenuTitleBase">
+        <item name="android:fontFamily">@font/ys_display_regular</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="PlaylistMenuTitle" parent="PlaylistMenuTitleBase">
+        <item name="android:textColor">@color/app_black</item>
+    </style>
+
+    <style name="PlaylistMenuTrackCountBase">
+        <item name="android:fontFamily">@font/ys_display_regular</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="PlaylistMenuTrackCount" parent="PlaylistMenuTrackCountBase">
+        <item name="android:textColor">@color/gray</item>
     </style>
 
 </resources>
