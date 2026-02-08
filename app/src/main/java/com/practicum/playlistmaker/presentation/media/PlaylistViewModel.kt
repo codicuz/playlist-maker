@@ -2,6 +2,7 @@ package com.practicum.playlistmaker.presentation.media
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
@@ -21,7 +22,8 @@ data class PlaylistScreenState(
 
 class PlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
-    private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase
+    private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase,
+    private val deleteTrackFromPlaylistUseCase: DeleteTrackFromPlaylistUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PlaylistScreenState())
@@ -44,6 +46,15 @@ class PlaylistViewModel(
                 trackCount = trackCount,
                 isLoading = false
             )
+        }
+    }
+
+    fun deleteTrackFromPlaylist(track: Track) {
+        viewModelScope.launch {
+            _state.value.playlist?.let { playlist ->
+                deleteTrackFromPlaylistUseCase.execute(playlist.id, track.trackId)
+                loadPlaylist(playlist.id)
+            }
         }
     }
 

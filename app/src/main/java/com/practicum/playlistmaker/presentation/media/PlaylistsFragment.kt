@@ -83,8 +83,7 @@ class PlaylistsFragment : Fragment() {
             putLong("playlistId", playlist.id)
         }
         findNavController().navigate(
-            R.id.action_mediaFragment_to_playlistFragment,
-            bundle
+            R.id.action_mediaFragment_to_playlistFragment, bundle
         )
     }
 

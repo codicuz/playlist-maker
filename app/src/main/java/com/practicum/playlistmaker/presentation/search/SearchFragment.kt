@@ -71,19 +71,25 @@ class SearchFragment : Fragment() {
     }
 
     private fun initAdapters() {
-        adapter = TrackAdapter { track ->
-            viewModel.onTrackClicked(track) {
-                openPlayer(it)
-            }
-        }
+        adapter = TrackAdapter(
+            onTrackClick = { track ->
+                viewModel.onTrackClicked(track) {
+                    openPlayer(it)
+                }
+            },
+            onTrackLongClick = { }
+        )
 
         binding.rcTrackData.layoutManager = LinearLayoutManager(requireContext())
         binding.rcTrackData.adapter = adapter
 
-        historyAdapter = TrackAdapter { track ->
-            viewModel.addTrackToHistory(track)
-            openPlayer(track)
-        }
+        historyAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                viewModel.addTrackToHistory(track)
+                openPlayer(track)
+            },
+            onTrackLongClick = { }
+        )
         searchHistoryBinding.rcTrackDataHistory.layoutManager =
             LinearLayoutManager(requireContext())
         searchHistoryBinding.rcTrackDataHistory.adapter = historyAdapter

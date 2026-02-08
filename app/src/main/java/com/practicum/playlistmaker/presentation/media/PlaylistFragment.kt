@@ -13,8 +13,12 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentPlaylistBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -29,6 +33,8 @@ class PlaylistFragment : Fragment() {
     private val viewModel: PlaylistViewModel by viewModel()
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
+
+    private lateinit var trackAdapter: TrackAdapter
 
     companion object {
         private const val ARG_PLAYLIST_ID = "playlistId"
@@ -69,9 +75,10 @@ class PlaylistFragment : Fragment() {
         }
 
         binding.playlistHamburgerButton.setOnClickListener {
-            toggleBottomSheet()
+            // TODO:
         }
 
+        setupRecyclerView()
         setupBottomSheet()
         observeViewModel()
 
@@ -80,13 +87,47 @@ class PlaylistFragment : Fragment() {
         }
     }
 
+    private fun setupRecyclerView() {
+        trackAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                navigateToPlayer(track)
+            },
+            onTrackLongClick = { track ->
+                showDeleteDialog(track)
+            }
+        )
+
+        binding.playlistRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = trackAdapter
+        }
+    }
+
+    private fun navigateToPlayer(track: Track) {
+        (requireActivity() as? MainActivity)?.hideBottomNav()
+        val bundle = Bundle().apply { putParcelable("track", track) }
+        findNavController().navigate(
+            R.id.action_playlistFragment_to_audioPlayerFragment,
+            bundle
+        )
+    }
+
+    private fun showDeleteDialog(track: Track) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.delete_track_title))
+            .setMessage(getString(R.string.delete_track_message))
+            .setNegativeButton(getString(R.string.no)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton(getString(R.string.yes)) { dialog, _ ->
+                viewModel.deleteTrackFromPlaylist(track)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
     private fun setupBottomSheet() {
         val bottomSheetContainer = binding.bottomSheet
-
-        binding.playlistRecyclerView.let {
-            it.layoutManager = LinearLayoutManager(requireContext())
-            // TODO: Добавить адаптер для отображения треков в плейлисте
-        }
 
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
             state = BottomSheetBehavior.STATE_COLLAPSED
@@ -195,8 +236,7 @@ class PlaylistFragment : Fragment() {
                     }
                     binding.playlistMinutesCount.text = minutesText
 
-                    // TODO: Загрузить треки в RecyclerView BottomSheet
-                    // adapter.submitList(state.tracks)
+                    trackAdapter.submitList(state.tracks)
                 }
             }
         }

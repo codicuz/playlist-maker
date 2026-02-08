@@ -38,12 +38,14 @@ class FavoritesFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        trackAdapter = TrackAdapter { track ->
-            (requireActivity() as MainActivity).hideBottomNav()
-
-            val bundle = Bundle().apply { putParcelable("track", track) }
-            findNavController().navigate(R.id.action_mediaFragment_to_audioPlayerFragment, bundle)
-        }
+        trackAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                (requireActivity() as MainActivity).hideBottomNav()
+                val bundle = Bundle().apply { putParcelable("track", track) }
+                findNavController().navigate(R.id.action_mediaFragment_to_audioPlayerFragment, bundle)
+            },
+            onTrackLongClick = { }
+        )
 
         binding.favoritesItems.apply {
             layoutManager = LinearLayoutManager(requireContext())
