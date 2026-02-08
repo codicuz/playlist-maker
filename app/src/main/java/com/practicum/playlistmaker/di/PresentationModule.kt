@@ -2,6 +2,7 @@ package com.practicum.playlistmaker.di
 
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import com.practicum.playlistmaker.presentation.media.EditPlaylistViewModel
 import com.practicum.playlistmaker.presentation.media.FavoritesViewModel
 import com.practicum.playlistmaker.presentation.media.MediaViewModel
 import com.practicum.playlistmaker.presentation.media.NewPlaylistViewModel
@@ -34,4 +35,5 @@ val presentationModule = module {
 
     viewModel { PlaylistViewModel(get(), get(), get(), get()) }
 
+    viewModel { EditPlaylistViewModel(get(), get()) }
 }

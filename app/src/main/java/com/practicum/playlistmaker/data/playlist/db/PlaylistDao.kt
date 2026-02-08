@@ -4,8 +4,8 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.practicum.playlistmaker.data.playlist.entity.PlaylistEntity
-import com.practicum.playlistmaker.data.playlist.entity.PlaylistTrackEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -28,5 +28,6 @@ interface PlaylistDao {
     @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId")
     suspend fun deleteTracksFromPlaylist(playlistId: Long)
 
+    @Update
+    suspend fun updatePlaylist(playlist: PlaylistEntity)
 }
-

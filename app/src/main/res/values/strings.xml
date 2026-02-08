@@ -97,4 +97,9 @@
     <string name="unknown_track_name">Без названия</string>
     <string name="unknown_track_time">--:--</string>
     <string name="unknown_playlist">Неизвестный плейлист</string>
+
+    <string name="edit_playlist">Редактировать</string>
+    <string name="save">Сохранить</string>
+    <string name="playlist_updated">Плейлист \"%1$s\" обновлен</string>
+    <string name="playlist_updated_success">Плейлист обновлен успешно</string>
 </resources>
