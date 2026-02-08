@@ -296,4 +296,17 @@
         <item name="android:background">@android:color/transparent</item>
     </style>
 
+    <style name="MyDialogButton" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="buttonBarPositiveButtonStyle">@style/DialogButton.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/DialogButton.Negative</item>
+    </style>
+
+    <style name="DialogButton.Positive" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/blue</item>
+    </style>
+
+    <style name="DialogButton.Negative" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/blue</item>
+    </style>
+
 </resources>

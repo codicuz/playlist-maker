@@ -124,7 +124,7 @@ class NewPlaylistFragment : Fragment() {
             currentState.title.isNotBlank() || currentState.description.isNotBlank() || currentState.coverUri != null
 
         if (hasUnsaved) {
-            MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.abort_create_playlist))
+            MaterialAlertDialogBuilder(requireContext(), R.style.MyDialogButton).setTitle(getString(R.string.abort_create_playlist))
                 .setMessage(getString(R.string.all_data_will_be_lost))
                 .setNegativeButton(getString(R.string.cancel_btn)) { dialog, _ -> dialog.dismiss() }
                 .setPositiveButton(getString(R.string.finish_btn)) { _, _ ->

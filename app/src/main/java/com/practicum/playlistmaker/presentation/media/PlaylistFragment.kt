@@ -216,9 +216,8 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun showDeleteDialog(track: Track) {
-        MaterialAlertDialogBuilder(requireContext())
+        MaterialAlertDialogBuilder(requireContext(), R.style.MyDialogButton)
             .setTitle(getString(R.string.delete_track_title))
-            .setMessage(getString(R.string.delete_track_message))
             .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
             }
