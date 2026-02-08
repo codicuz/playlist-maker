@@ -52,15 +52,27 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun setupPlaylistMenu() {
-        bottomSheetDialog = BottomSheetDialog(requireContext())
+        bottomSheetDialog = BottomSheetDialog(
+            requireContext(),
+            R.style.BottomSheetMenuTheme
+        )
+
         val view = layoutInflater.inflate(R.layout.bottom_sheet_playlist_menu, null)
         bottomSheetDialog.setContentView(view)
 
-        bottomSheetDialog.behavior.peekHeight = resources.displayMetrics.heightPixels / 2
-        bottomSheetDialog.behavior.state = BottomSheetBehavior.STATE_COLLAPSED
+        view.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+            val desiredHeight = (screenHeight * 0.53).toInt()
+
+            val parent =
+                view.parent as ViewGroup
+
+            parent.layoutParams = parent.layoutParams.apply {
+                height = desiredHeight
+            }
+        }
 
         setupMenuContent(view)
-
         setupMenuClickListeners(view)
 
         binding.playlistHamburgerButton.setOnClickListener {
@@ -105,6 +117,7 @@ class PlaylistFragment : Fragment() {
             .into(imageView)
     }
 
+
     private fun setupMenuClickListeners(view: View) {
         view.findViewById<TextView>(R.id.menuShare).setOnClickListener {
             sharePlaylist()
@@ -126,7 +139,6 @@ class PlaylistFragment : Fragment() {
         setupMenuContent(bottomSheetDialog.findViewById(android.R.id.content)!!)
         bottomSheetDialog.show()
     }
-
     private fun sharePlaylist() {
         // TODO: Реализовать функционал "Поделиться плейлистом"
         Toast.makeText(requireContext(), "Поделиться плейлистом", Toast.LENGTH_SHORT).show()
@@ -158,7 +170,6 @@ class PlaylistFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.overlay.isVisible = false
         binding.overlay.alpha = 0.6f
 
         binding.playlistBackButton.setOnClickListener {
@@ -220,63 +231,35 @@ class PlaylistFragment : Fragment() {
 
     private fun setupBottomSheet() {
         val bottomSheetContainer = binding.bottomSheet
-        val displayMetrics = resources.displayMetrics
-        val screenHeight = displayMetrics.heightPixels
+        val screenHeight = resources.displayMetrics.heightPixels
 
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
-            peekHeight = (screenHeight * 0.35).toInt()
-            maxHeight = screenHeight
-
-            isHideable = true
-            isDraggable = true
             isFitToContents = false
             expandedOffset = 0
             skipCollapsed = false
 
+            maxHeight = screenHeight
+
+            peekHeight = (screenHeight * 0.35).toInt()
+
             state = BottomSheetBehavior.STATE_HIDDEN
         }
 
-        bottomSheetBehavior.addBottomSheetCallback(object :
-            BottomSheetBehavior.BottomSheetCallback() {
+        binding.overlay.isVisible = false
 
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                when (newState) {
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        binding.overlay.isVisible = false
-                    }
-                    BottomSheetBehavior.STATE_COLLAPSED -> {
-                        binding.overlay.isVisible = true
-                        binding.overlay.alpha = 0.6f
-                    }
-                    BottomSheetBehavior.STATE_EXPANDED -> {
-                        binding.overlay.isVisible = true
-                        binding.overlay.alpha = 0.6f
-                    }
-                }
-            }
+        setupBottomSheetListeners()
+    }
 
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                when {
-                    slideOffset <= 0 -> {
-                        val progress = (slideOffset + 1).coerceIn(0f, 1f)
-                        if (progress > 0) {
-                            binding.overlay.visibility = View.VISIBLE
-                            binding.overlay.alpha = progress * 0.6f
-                        } else {
-                            binding.overlay.visibility = View.GONE
-                        }
-                    }
-                    else -> {
-                        binding.overlay.visibility = View.VISIBLE
-                        binding.overlay.alpha = 0.6f
-                    }
-                }
-            }
-        })
+    private fun setupBottomSheetListeners() {
+        binding.overlay.setOnClickListener(null)
+        binding.overlay.setOnTouchListener(null)
+        binding.overlay.isClickable = false
+        binding.overlay.isFocusable = false
+        binding.overlay.isFocusableInTouchMode = false
 
         binding.dragHandle.setOnClickListener {
-            val hasTracks = viewModel.state.value.tracks.isNotEmpty()
-            if (hasTracks) {
+            val currentHasTracks = viewModel.state.value.tracks.isNotEmpty()
+            if (currentHasTracks) {
                 when (bottomSheetBehavior.state) {
                     BottomSheetBehavior.STATE_COLLAPSED -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
@@ -290,25 +273,53 @@ class PlaylistFragment : Fragment() {
                 }
             }
         }
-    }
 
-    private fun toggleBottomSheet() {
-        val hasTracks = viewModel.state.value.tracks.isNotEmpty()
-        if (!hasTracks) return
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
 
-        when (bottomSheetBehavior.state) {
-            BottomSheetBehavior.STATE_HIDDEN -> {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                binding.overlay.isVisible = true
-                binding.overlay.alpha = 0.6f
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN &&
+                    viewModel.state.value.tracks.isNotEmpty()) {
+                    bottomSheet.post {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    }
+                    return
+                }
+
+                when (newState) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        binding.overlay.isVisible = false
+                    }
+                }
             }
-            BottomSheetBehavior.STATE_COLLAPSED -> {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                val hasTracksNow = viewModel.state.value.tracks.isNotEmpty()
+
+                if (!hasTracksNow) {
+                    binding.overlay.isVisible = false
+                    return
+                }
+
+                when {
+                    slideOffset >= 0 -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    slideOffset < 0 -> {
+                        binding.overlay.isVisible = false
+                    }
+                }
             }
-            BottomSheetBehavior.STATE_EXPANDED -> {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-            }
-        }
+        })
     }
 
     private fun observeViewModel() {
@@ -353,27 +364,33 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun updateBottomSheetVisibility(tracks: List<Track>) {
+        if (!::bottomSheetBehavior.isInitialized) return
+
+        val screenHeight = resources.displayMetrics.heightPixels
+        val peekHeight = (screenHeight * 0.35).toInt()
         val hasTracks = tracks.isNotEmpty()
 
-        if (::bottomSheetBehavior.isInitialized) {
-            if (hasTracks) {
-                if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN) {
-                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                    binding.overlay.isVisible = true
-                    binding.overlay.alpha = 0.6f
-                }
-            } else {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-                binding.overlay.isVisible = false
-            }
+        bottomSheetBehavior.peekHeight = peekHeight
+
+        if (hasTracks) {
+            bottomSheetBehavior.isHideable = false
+            bottomSheetBehavior.isDraggable = true
+
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+            binding.overlay.isVisible = true
+            binding.overlay.alpha = 0.6f
+        } else {
+            bottomSheetBehavior.isHideable = true
+            bottomSheetBehavior.isDraggable = false
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+            binding.overlay.isVisible = false
         }
 
         binding.dragHandle.isVisible = hasTracks
-
         binding.dragHandle.isClickable = hasTracks
         binding.dragHandle.isEnabled = hasTracks
     }
-
     private fun loadPlaylistCover(coverUri: String?) {
         if (!coverUri.isNullOrEmpty()) {
             try {
@@ -400,31 +417,6 @@ class PlaylistFragment : Fragment() {
 
         Glide.with(requireContext()).load(R.drawable.ic_no_artwork_image)
             .into(binding.playlistCover)
-    }
-
-    override fun onResume() {
-        super.onResume()
-
-        if (::bottomSheetBehavior.isInitialized) {
-            val displayMetrics = resources.displayMetrics
-            val screenHeight = displayMetrics.heightPixels
-            val peekHeight = (screenHeight * 0.35).toInt()
-
-            bottomSheetBehavior.peekHeight = peekHeight
-
-            val hasTracks = viewModel.state.value.tracks.isNotEmpty()
-            if (hasTracks) {
-                if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN) {
-                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                }
-                binding.overlay.isVisible = true
-            } else {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-                binding.overlay.isVisible = false
-            }
-        }
-
-        (activity as? MainActivity)?.showBottomNav()
     }
 
     override fun onDestroyView() {

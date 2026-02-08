@@ -1,0 +1,1920 @@
+==== ./app/src/main/java/com/practicum/playlistmaker/App.kt ====
+package com.practicum.playlistmaker
+
+import android.app.Application
+import com.practicum.playlistmaker.di.appModule
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext.startKoin
+
+class App : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        startKoin {
+            androidContext(this@App)
+            modules(appModule)
+        }
+
+        val themeRepository: ThemeRepository =
+            org.koin.java.KoinJavaComponent.get(ThemeRepository::class.java)
+
+        themeRepository.applyTheme()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/adapter/PlaylistAdapter.kt ====
+package com.practicum.playlistmaker.presentation.adapter
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.databinding.PlaylistItemBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.viewholder.PlaylistViewHolder
+
+class PlaylistAdapter(
+    private val onPlaylistClick: (Playlist) -> Unit
+) : RecyclerView.Adapter<PlaylistViewHolder>() {
+
+    private val items = mutableListOf<Playlist>()
+
+    fun submitList(list: List<Playlist>) {
+        items.clear()
+        items.addAll(list)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PlaylistViewHolder {
+        val binding = PlaylistItemBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return PlaylistViewHolder(binding, onPlaylistClick)
+    }
+
+    override fun onBindViewHolder(holder: PlaylistViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount(): Int = items.size
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/adapter/TrackAdapter.kt ====
+package com.practicum.playlistmaker.presentation.adapter
+
+import android.annotation.SuppressLint
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.databinding.RecordItemBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
+
+class TrackAdapter(
+    private val onTrackClick: (Track) -> Unit,
+    private val onTrackLongClick: (Track) -> Unit
+) : RecyclerView.Adapter<TrackViewHolder>() {
+    private val items = mutableListOf<Track>()
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun submitList(newList: List<Track>) {
+        items.clear()
+        items.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TrackViewHolder {
+        val binding = RecordItemBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return TrackViewHolder(binding, onTrackClick, onTrackLongClick)
+    }
+
+
+    override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
+        holder.bind(items[position])
+    }
+
+    override fun getItemCount() = items.size
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SingleLiveEvent.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Observer
+import java.util.concurrent.atomic.AtomicBoolean
+
+class SingleLiveEvent<T> : MutableLiveData<T>() {
+    private val pending = AtomicBoolean(false)
+
+    override fun observe(owner: LifecycleOwner, observer: Observer<in T>) {
+        super.observe(owner) { t ->
+            if (pending.compareAndSet(true, false)) {
+                observer.onChanged(t)
+            }
+        }
+    }
+
+    override fun setValue(t: T?) {
+        pending.set(true)
+        super.setValue(t)
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SettingsUiEvent.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+sealed class SettingsUiEvent {
+    object OpenPracticumOffer : SettingsUiEvent()
+    object SendToHelpdesk : SettingsUiEvent()
+    object ShareApp : SettingsUiEvent()
+    data class ShowError(val message: String) : SettingsUiEvent()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/settings/SettingsFragment.kt ====
+package com.practicum.playlistmaker.presentation.settings
+
+import android.app.ActivityOptions
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.core.net.toUri
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentSettingsBinding
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class SettingsFragment : Fragment() {
+
+    private var _binding: FragmentSettingsBinding? = null
+    private val binding get() = _binding!!
+
+    private val themeViewModel: ThemeViewModel by viewModel()
+    private var themeInitialized = false
+
+    companion object {
+        private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        themeViewModel.state.observe(viewLifecycleOwner) { state ->
+            if (!themeInitialized) {
+                binding.themeSwitcher.isChecked = state.isDarkMode
+                themeInitialized = true
+            }
+        }
+
+        binding.themeSwitcher.setOnCheckedChangeListener { _, isChecked ->
+            if (themeInitialized && isChecked != themeViewModel.state.value?.isDarkMode) {
+                themeViewModel.switchTheme(isChecked)
+            }
+        }
+
+        themeViewModel.uiEvent.observe(viewLifecycleOwner) { event ->
+            when (event) {
+                is SettingsUiEvent.OpenPracticumOffer -> openPracticumOffer()
+                is SettingsUiEvent.SendToHelpdesk -> openHelpdeskEmail()
+                is SettingsUiEvent.ShareApp -> shareApp()
+                is SettingsUiEvent.ShowError -> Toast.makeText(
+                    requireContext(),
+                    event.message,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
+        binding.practicumOffer.setOnClickListener {
+            themeViewModel.onPracticumOfferClicked()
+        }
+
+        binding.sendToHelpdesk.setOnClickListener {
+            themeViewModel.onSendToHelpdeskClicked()
+        }
+
+        binding.shareApp.setOnClickListener {
+            themeViewModel.onShareAppClicked()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private fun openPracticumOffer() {
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            data = getString(R.string.practicum_license).toUri()
+        }
+        startSafe(intent)
+    }
+
+    private fun openHelpdeskEmail() {
+        val email = getString(R.string.email)
+        val subject = getString(R.string.email_subject)
+        val body = getString(R.string.email_text)
+        val uri = "mailto:$email?subject=${Uri.encode(subject)}&body=${Uri.encode(body)}"
+        val intent = Intent(Intent.ACTION_SENDTO, uri.toUri())
+        startSafe(intent)
+    }
+
+    private fun shareApp() {
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = MIME_TYPE_TEXT_PLAIN
+            putExtra(
+                Intent.EXTRA_TEXT,
+                getString(R.string.https_practicum_yandex_ru_android_developer)
+            )
+        }
+        startSafe(Intent.createChooser(intent, null))
+    }
+
+    private fun startSafe(intent: Intent) {
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.no_intent_handle),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaViewPagerAdapter.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.Lifecycle
+import androidx.viewpager2.adapter.FragmentStateAdapter
+
+class MediaViewPagerAdapter(
+    fragmentManager: FragmentManager, lifecycle: Lifecycle, private val tabs: List<MediaTab>
+) : FragmentStateAdapter(fragmentManager, lifecycle) {
+
+    override fun getItemCount() = tabs.size
+
+    override fun createFragment(position: Int): Fragment {
+        return when (tabs[position]) {
+            MediaTab.FAVORITES -> FavoritesFragment.newInstance()
+            MediaTab.PLAYLISTS -> PlaylistsFragment.newInstance()
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentPlaylistBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import java.io.File
+
+class PlaylistFragment : Fragment() {
+
+    private var _binding: FragmentPlaylistBinding? = null
+    private val binding get() = _binding!!
+
+    private var playlistId: Long = -1
+    private val viewModel: PlaylistViewModel by viewModel()
+
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
+
+    private lateinit var trackAdapter: TrackAdapter
+
+    private lateinit var bottomSheetDialog: BottomSheetDialog
+
+    companion object {
+        private const val ARG_PLAYLIST_ID = "playlistId"
+
+        fun newInstance(playlistId: Long) = PlaylistFragment().apply {
+            arguments = Bundle().apply {
+                putLong(ARG_PLAYLIST_ID, playlistId)
+            }
+        }
+    }
+
+    private fun setupPlaylistMenu() {
+        bottomSheetDialog = BottomSheetDialog(
+            requireContext(),
+            R.style.BottomSheetMenuTheme
+        )
+
+        val view = layoutInflater.inflate(R.layout.bottom_sheet_playlist_menu, null)
+        bottomSheetDialog.setContentView(view)
+
+        view.post {
+            val screenHeight = resources.displayMetrics.heightPixels
+            val desiredHeight = (screenHeight * 0.53).toInt()
+
+            val parent =
+                view.parent as ViewGroup
+
+            parent.layoutParams = parent.layoutParams.apply {
+                height = desiredHeight
+            }
+        }
+
+        setupMenuContent(view)
+        setupMenuClickListeners(view)
+
+        binding.playlistHamburgerButton.setOnClickListener {
+            showPlaylistMenu()
+        }
+    }
+
+    private fun setupMenuContent(view: View) {
+        viewModel.state.value.playlist?.let { playlist ->
+            view.findViewById<TextView>(R.id.playlistMenuTitle).text = playlist.title
+
+            val trackCountText = resources.getQuantityString(
+                R.plurals.tracks_count,
+                playlist.trackCount,
+                playlist.trackCount
+            )
+            view.findViewById<TextView>(R.id.playlistMenuTrackCount).text = trackCountText
+
+            loadMenuCover(playlist.coverUri, view.findViewById(R.id.playlistMenuCover))
+        }
+    }
+
+    private fun loadMenuCover(coverUri: String?, imageView: ImageView) {
+        if (!coverUri.isNullOrEmpty()) {
+            try {
+                val file = File(coverUri)
+                if (file.exists()) {
+                    Glide.with(requireContext())
+                        .load(file)
+                        .centerCrop()
+                        .into(imageView)
+                    return
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        Glide.with(requireContext())
+            .load(R.drawable.ic_no_artwork_image)
+            .centerCrop()
+            .into(imageView)
+    }
+
+
+    private fun setupMenuClickListeners(view: View) {
+        view.findViewById<TextView>(R.id.menuShare).setOnClickListener {
+            sharePlaylist()
+            bottomSheetDialog.dismiss()
+        }
+
+        view.findViewById<TextView>(R.id.menuEdit).setOnClickListener {
+            editPlaylist()
+            bottomSheetDialog.dismiss()
+        }
+
+        view.findViewById<TextView>(R.id.menuDelete).setOnClickListener {
+            deletePlaylist()
+            bottomSheetDialog.dismiss()
+        }
+    }
+
+    private fun showPlaylistMenu() {
+        setupMenuContent(bottomSheetDialog.findViewById(android.R.id.content)!!)
+        bottomSheetDialog.show()
+    }
+    private fun sharePlaylist() {
+        // TODO: Реализовать функционал "Поделиться плейлистом"
+        Toast.makeText(requireContext(), "Поделиться плейлистом", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun editPlaylist() {
+        // TODO: Реализовать редактирование плейлиста
+        Toast.makeText(requireContext(), "Редактировать плейлист", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun deletePlaylist() {
+        Toast.makeText(requireContext(), "Удалить плейлист", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            playlistId = it.getLong(ARG_PLAYLIST_ID, -1)
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.overlay.alpha = 0.6f
+
+        binding.playlistBackButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        binding.playlistShareButton.setOnClickListener {
+            // TODO: реализовать в будущем
+        }
+
+        setupRecyclerView()
+        setupBottomSheet()
+        observeViewModel()
+        setupPlaylistMenu()
+
+        if (playlistId != -1L) {
+            viewModel.loadPlaylist(playlistId)
+        }
+    }
+
+    private fun setupRecyclerView() {
+        trackAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                navigateToPlayer(track)
+            },
+            onTrackLongClick = { track ->
+                showDeleteDialog(track)
+            }
+        )
+
+        binding.playlistRecyclerView.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = trackAdapter
+        }
+    }
+
+    private fun navigateToPlayer(track: Track) {
+        (requireActivity() as? MainActivity)?.hideBottomNav()
+        val bundle = Bundle().apply { putParcelable("track", track) }
+        findNavController().navigate(
+            R.id.action_playlistFragment_to_audioPlayerFragment,
+            bundle
+        )
+    }
+
+    private fun showDeleteDialog(track: Track) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(getString(R.string.delete_track_title))
+            .setMessage(getString(R.string.delete_track_message))
+            .setNegativeButton(getString(R.string.no)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setPositiveButton(getString(R.string.yes)) { dialog, _ ->
+                viewModel.deleteTrackFromPlaylist(track)
+                dialog.dismiss()
+            }
+            .show()
+    }
+
+    private fun setupBottomSheet() {
+        val bottomSheetContainer = binding.bottomSheet
+        val screenHeight = resources.displayMetrics.heightPixels
+
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
+            isFitToContents = false
+            expandedOffset = 0
+            skipCollapsed = false
+
+            maxHeight = screenHeight
+
+            peekHeight = (screenHeight * 0.35).toInt()
+
+            state = BottomSheetBehavior.STATE_HIDDEN
+        }
+
+        binding.overlay.isVisible = false
+
+        setupBottomSheetListeners()
+    }
+
+    private fun setupBottomSheetListeners() {
+        binding.overlay.setOnClickListener(null)
+        binding.overlay.setOnTouchListener(null)
+        binding.overlay.isClickable = false
+        binding.overlay.isFocusable = false
+        binding.overlay.isFocusableInTouchMode = false
+
+        binding.dragHandle.setOnClickListener {
+            val currentHasTracks = viewModel.state.value.tracks.isNotEmpty()
+            if (currentHasTracks) {
+                when (bottomSheetBehavior.state) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    }
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    }
+                    else -> {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    }
+                }
+            }
+        }
+
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN &&
+                    viewModel.state.value.tracks.isNotEmpty()) {
+                    bottomSheet.post {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    }
+                    return
+                }
+
+                when (newState) {
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        binding.overlay.isVisible = false
+                    }
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                val hasTracksNow = viewModel.state.value.tracks.isNotEmpty()
+
+                if (!hasTracksNow) {
+                    binding.overlay.isVisible = false
+                    return
+                }
+
+                when {
+                    slideOffset >= 0 -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+                    slideOffset < 0 -> {
+                        binding.overlay.isVisible = false
+                    }
+                }
+            }
+        })
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.state.collectLatest { state ->
+                binding.progressBar.isVisible = state.isLoading
+                binding.contentContainer.isVisible = !state.isLoading
+
+                state.playlist?.let { playlist ->
+                    binding.playlistTitle.text = playlist.title
+
+                    if (!playlist.description.isNullOrBlank()) {
+                        binding.playlistDescription.text = playlist.description
+                        binding.playlistDescription.visibility = View.VISIBLE
+                    } else {
+                        binding.playlistDescription.visibility = View.GONE
+                    }
+
+                    loadPlaylistCover(playlist.coverUri)
+
+                    binding.playlistTracksCount.text = resources.getQuantityString(
+                        R.plurals.tracks_count, state.trackCount, state.trackCount
+                    )
+
+                    val minutesText = if (state.totalDurationMinutes == 0L) {
+                        getString(R.string.zero_minutes)
+                    } else {
+                        resources.getQuantityString(
+                            R.plurals.tracks_minutes,
+                            state.totalDurationMinutes.toInt(),
+                            state.totalDurationMinutes
+                        )
+                    }
+                    binding.playlistMinutesCount.text = minutesText
+
+                    trackAdapter.submitList(state.tracks)
+
+                    updateBottomSheetVisibility(state.tracks)
+                }
+            }
+        }
+    }
+
+    private fun updateBottomSheetVisibility(tracks: List<Track>) {
+        if (!::bottomSheetBehavior.isInitialized) return
+
+        val screenHeight = resources.displayMetrics.heightPixels
+        val peekHeight = (screenHeight * 0.35).toInt()
+        val hasTracks = tracks.isNotEmpty()
+
+        bottomSheetBehavior.peekHeight = peekHeight
+
+        if (hasTracks) {
+            bottomSheetBehavior.isHideable = false
+            bottomSheetBehavior.isDraggable = true
+
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+
+            binding.overlay.isVisible = true
+            binding.overlay.alpha = 0.6f
+        } else {
+            bottomSheetBehavior.isHideable = true
+            bottomSheetBehavior.isDraggable = false
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+            binding.overlay.isVisible = false
+        }
+
+        binding.dragHandle.isVisible = hasTracks
+        binding.dragHandle.isClickable = hasTracks
+        binding.dragHandle.isEnabled = hasTracks
+    }
+    private fun loadPlaylistCover(coverUri: String?) {
+        if (!coverUri.isNullOrEmpty()) {
+            try {
+                val file = File(coverUri)
+                if (file.exists()) {
+                    binding.playlistCover.scaleType = ImageView.ScaleType.CENTER_CROP
+                    binding.playlistCover.setPadding(0, 0, 0, 0)
+
+                    Glide.with(requireContext()).load(file).into(binding.playlistCover)
+                    return
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        loadDefaultCover()
+    }
+
+    private fun loadDefaultCover() {
+        val paddingPx = (60 * resources.displayMetrics.density).toInt()
+        binding.playlistCover.scaleType = ImageView.ScaleType.FIT_CENTER
+        binding.playlistCover.setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
+
+        Glide.with(requireContext()).load(R.drawable.ic_no_artwork_image)
+            .into(binding.playlistCover)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        if (::bottomSheetBehavior.isInitialized) {
+            val displayMetrics = resources.displayMetrics
+            val peekHeight = (displayMetrics.heightPixels * 0.35).toInt()
+            bottomSheetBehavior.peekHeight = peekHeight
+
+            val hasTracks = viewModel.state.value.tracks.isNotEmpty()
+            if (hasTracks) {
+                if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_HIDDEN) {
+                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                    binding.overlay.isVisible = true
+                    binding.overlay.alpha = 0.6f
+                }
+                bottomSheetBehavior.isHideable = false
+                bottomSheetBehavior.isDraggable = true
+            } else {
+                bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+                binding.overlay.isVisible = false
+                bottomSheetBehavior.isHideable = true
+                bottomSheetBehavior.isDraggable = false
+            }
+        }
+
+        (activity as? MainActivity)?.showBottomNav()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+
+class MediaViewModel : ViewModel() {
+    val tabs = listOf(MediaTab.FAVORITES, MediaTab.PLAYLISTS)
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
+import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class PlaylistScreenState(
+    val playlist: Playlist? = null,
+    val tracks: List<Track> = emptyList(),
+    val isLoading: Boolean = false,
+    val totalDurationMinutes: Long = 0,
+    val trackCount: Int = 0
+)
+
+class PlaylistViewModel(
+    private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
+    private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase,
+    private val deleteTrackFromPlaylistUseCase: DeleteTrackFromPlaylistUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(PlaylistScreenState())
+    val state: StateFlow<PlaylistScreenState> = _state.asStateFlow()
+
+    fun loadPlaylist(playlistId: Long) {
+        _state.value = _state.value.copy(isLoading = true)
+
+        viewModelScope.launch {
+            val playlist = getPlaylistByIdUseCase.execute(playlistId)
+            val tracks = getTracksForPlaylistUseCase.execute(playlistId)
+
+            val totalDurationMinutes = calculateTotalDuration(tracks)
+            val trackCount = tracks.size
+
+            _state.value = _state.value.copy(
+                playlist = playlist,
+                tracks = tracks,
+                totalDurationMinutes = totalDurationMinutes,
+                trackCount = trackCount,
+                isLoading = false
+            )
+        }
+    }
+
+    fun deleteTrackFromPlaylist(track: Track) {
+        viewModelScope.launch {
+            _state.value.playlist?.let { playlist ->
+                deleteTrackFromPlaylistUseCase.execute(playlist.id, track.trackId)
+                loadPlaylist(playlist.id)
+            }
+        }
+    }
+
+    private fun calculateTotalDuration(tracks: List<Track>): Long {
+        if (tracks.isEmpty()) return 0
+
+        val totalMillis = tracks.sumOf { it.trackTimeMillis ?: 0L }
+        return totalMillis / (1000 * 60)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistsViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+class PlaylistsViewModel(
+    private val getPlaylistsUseCase: GetPlaylistsUseCase
+) : ViewModel() {
+
+    private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
+    val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
+
+    fun loadPlaylists() {
+        viewModelScope.launch {
+            getPlaylistsUseCase.execute().collect { list ->
+                _playlists.value = list
+            }
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/PlaylistsFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentPlaylistsBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.adapter.PlaylistAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import com.practicum.playlistmaker.presentation.util.GridSpacingItemDecoration
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+
+class PlaylistsFragment : Fragment() {
+
+    private var _binding: FragmentPlaylistsBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: PlaylistsViewModel by viewModel()
+
+    private lateinit var adapter: PlaylistAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPlaylistsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        adapter = PlaylistAdapter { playlist ->
+            navigateToPlaylistFragment(playlist)
+        }
+
+        val spacing = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
+
+        binding.playlistsItems.layoutManager = GridLayoutManager(requireContext(), 2)
+        binding.playlistsItems.addItemDecoration(GridSpacingItemDecoration(spacing))
+
+        binding.playlistsItems.adapter = adapter
+
+        binding.createPlaylistButton.setOnClickListener {
+            findNavController().navigate(
+                R.id.action_mediaFragment_to_newPlaylistFragment
+            )
+        }
+
+        observeViewModel()
+        viewModel.loadPlaylists()
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.playlists.collectLatest { list ->
+                adapter.submitList(list)
+                updateEmptyState(list)
+            }
+        }
+    }
+
+    private fun updateEmptyState(playlists: List<Playlist>) {
+        if (playlists.isEmpty()) {
+            binding.emptyPlaylistImage.visibility = View.VISIBLE
+            binding.mediaTab.visibility = View.VISIBLE
+        } else {
+            binding.emptyPlaylistImage.visibility = View.GONE
+            binding.mediaTab.visibility = View.GONE
+        }
+    }
+
+    private fun navigateToPlaylistFragment(playlist: Playlist) {
+        val bundle = Bundle().apply {
+            putLong("playlistId", playlist.id)
+        }
+        findNavController().navigate(
+            R.id.action_mediaFragment_to_playlistFragment, bundle
+        )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    companion object {
+        fun newInstance() = PlaylistsFragment()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/NewPlaylistViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.net.Uri
+import androidx.annotation.StringRes
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class NewPlaylistScreenState(
+    val title: String = "",
+    val description: String = "",
+    val coverUri: Uri? = null,
+    val isCreateEnabled: Boolean = false,
+    val isCreating: Boolean = false,
+    @StringRes val error: Int? = null,
+    val success: Boolean = false
+)
+
+class NewPlaylistViewModel(
+    private val createPlaylistUseCase: CreatePlaylistUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(NewPlaylistScreenState())
+    val state: StateFlow<NewPlaylistScreenState> = _state.asStateFlow()
+
+    fun onTitleChanged(title: String) {
+        _state.update { it.copy(title = title, isCreateEnabled = title.isNotBlank()) }
+    }
+
+    fun onDescriptionChanged(description: String) {
+        _state.update { it.copy(description = description) }
+    }
+
+    fun onCoverSelected(uri: Uri) {
+        _state.update { it.copy(coverUri = uri) }
+    }
+
+    fun createPlaylist() {
+        val current = _state.value
+        if (current.title.isBlank()) {
+            _state.update { it.copy(error = R.string.error_playlist_title_empty) }
+            return
+        }
+
+        _state.update { it.copy(isCreating = true, error = null) }
+
+        viewModelScope.launch {
+            try {
+                createPlaylistUseCase.execute(
+                    title = current.title,
+                    description = current.description,
+                    coverUri = current.coverUri
+                )
+                _state.update { it.copy(isCreating = false, success = true) }
+            } catch (e: Exception) {
+                _state.update { it.copy(isCreating = false, error = R.string.unknown_error) }
+            }
+        }
+    }
+
+    private fun <T> MutableStateFlow<T>.update(block: (T) -> T) {
+        value = block(value)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/FavoritesFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentFavoritesBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class FavoritesFragment : Fragment() {
+
+    private var _binding: FragmentFavoritesBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: FavoritesViewModel by viewModel()
+
+    private lateinit var trackAdapter: TrackAdapter
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentFavoritesBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        setupRecyclerView()
+        observeViewModel()
+        viewModel.loadFavorites()
+    }
+
+    private fun setupRecyclerView() {
+        trackAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                (requireActivity() as MainActivity).hideBottomNav()
+                val bundle = Bundle().apply { putParcelable("track", track) }
+                findNavController().navigate(R.id.action_mediaFragment_to_audioPlayerFragment, bundle)
+            },
+            onTrackLongClick = { }
+        )
+
+        binding.favoritesItems.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = trackAdapter
+        }
+    }
+
+    private fun observeViewModel() {
+        viewModel.favorites.observe(viewLifecycleOwner) { tracks ->
+            trackAdapter.submitList(tracks)
+            updateEmptyState(tracks)
+        }
+    }
+
+    private fun updateEmptyState(tracks: List<Track>) {
+        if (tracks.isEmpty()) {
+            binding.mediaIsEmptyImage.visibility = View.VISIBLE
+            binding.mediaIsEmptyText.visibility = View.VISIBLE
+        } else {
+            binding.mediaIsEmptyImage.visibility = View.GONE
+            binding.mediaIsEmptyText.visibility = View.GONE
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    companion object {
+        fun newInstance() = FavoritesFragment()
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/FavoritesViewModel.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.favorites.GetFavoritesUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.launch
+
+class FavoritesViewModel(
+    private val getFavoritesUseCase: GetFavoritesUseCase
+) : ViewModel() {
+
+    private val _favorites = MutableLiveData<List<Track>>()
+    val favorites: LiveData<List<Track>> = _favorites
+
+    fun loadFavorites() {
+        viewModelScope.launch {
+            getFavoritesUseCase.execute().collect { list ->
+                _favorites.value = list
+            }
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import com.google.android.material.tabs.TabLayoutMediator
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentMediaBinding
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class MediaFragment : Fragment() {
+
+    private var _binding: FragmentMediaBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: MediaViewModel by viewModel()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentMediaBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.viewPager.adapter =
+            MediaViewPagerAdapter(childFragmentManager, viewLifecycleOwner.lifecycle, viewModel.tabs)
+
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (viewModel.tabs[position]) {
+                MediaTab.FAVORITES -> getString(R.string.favourite_tracks)
+                MediaTab.PLAYLISTS -> getString(R.string.playlists)
+            }
+        }.attach()
+
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/MediaTab.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+enum class MediaTab {
+    FAVORITES,
+    PLAYLISTS
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/media/NewPlaylistFragment.kt ====
+package com.practicum.playlistmaker.presentation.media
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.addCallback
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.widget.addTextChangedListener
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentNewPlaylistBinding
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import com.practicum.playlistmaker.presentation.util.Useful
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class NewPlaylistFragment : Fragment() {
+
+    private var _binding: FragmentNewPlaylistBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: NewPlaylistViewModel by viewModel()
+
+    private val pickCoverLauncher =
+        registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+            if (uri != null) {
+                viewModel.onCoverSelected(uri)
+            }
+        }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentNewPlaylistBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        setupListeners()
+        observeViewModel()
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
+            handleBackPress()
+        }
+
+        (activity as? MainActivity)?.hideBottomNav()
+    }
+
+    private fun setupListeners() {
+        binding.playlistTitle.addTextChangedListener {
+            viewModel.onTitleChanged(it.toString())
+        }
+
+        binding.playlistDescription.addTextChangedListener {
+            viewModel.onDescriptionChanged(it.toString())
+        }
+
+        binding.newPlaylistImage.setOnClickListener {
+            if (hasGalleryPermission()) {
+                pickCoverLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                )
+            } else {
+                Toast.makeText(
+                    requireContext(), getString(R.string.no_photo_access), Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+
+        binding.createPlaylistButton.setOnClickListener {
+            viewModel.createPlaylist()
+        }
+
+        binding.newPlayListBack.setOnClickListener {
+            handleBackPress()
+        }
+    }
+
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            viewModel.state.collectLatest { state ->
+                binding.createPlaylistButton.isEnabled = state.isCreateEnabled
+
+                state.coverUri?.let { uri ->
+                    Glide.with(requireContext()).load(uri).transform(
+                        CenterCrop(), RoundedCorners(Useful.dpToPx(8f, requireContext()))
+                    ).into(binding.playlistCover)
+                    binding.addCoverIcon.visibility = View.GONE
+                }
+
+                if (state.success) {
+                    val message = getString(R.string.playlist_created, state.title)
+                    Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show()
+                    findNavController().navigateUp()
+                }
+
+                state.error?.let { error ->
+                    MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.Error))
+                        .setMessage(error).setPositiveButton(getString(R.string.okay), null).show()
+                }
+            }
+        }
+    }
+
+    private fun handleBackPress() {
+        val currentState = viewModel.state.value
+        val hasUnsaved =
+            currentState.title.isNotBlank() || currentState.description.isNotBlank() || currentState.coverUri != null
+
+        if (hasUnsaved) {
+            MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.abort_create_playlist))
+                .setMessage(getString(R.string.all_data_will_be_lost))
+                .setNegativeButton(getString(R.string.cancel_btn)) { dialog, _ -> dialog.dismiss() }
+                .setPositiveButton(getString(R.string.finish_btn)) { _, _ ->
+                    findNavController().navigateUp()
+                }.show()
+        } else {
+            findNavController().navigateUp()
+        }
+    }
+
+    private fun hasGalleryPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        return ContextCompat.checkSelfPermission(
+            requireContext(), permission
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.hideBottomNav()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/util/Useful.kt ====
+package com.practicum.playlistmaker.presentation.util
+
+import android.content.Context
+import android.util.TypedValue
+
+class Useful {
+    companion object {
+        fun dpToPx(dp: Float, context: Context): Int {
+            return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp, context.resources.displayMetrics
+            ).toInt()
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/util/GridSpacingItemDecoration.kt ====
+package com.practicum.playlistmaker.presentation.util
+
+import android.graphics.Rect
+import android.view.View
+import androidx.recyclerview.widget.RecyclerView
+
+class GridSpacingItemDecoration(
+    private val spacingPx: Int
+) : RecyclerView.ItemDecoration() {
+
+    override fun getItemOffsets(
+        outRect: Rect,
+        view: View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        outRect.left = spacingPx
+        outRect.right = spacingPx
+        outRect.bottom = spacingPx
+        outRect.top = spacingPx
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/util/IntentExtenstions.kt ====
+package com.practicum.playlistmaker.presentation.util
+
+import android.content.Intent
+import android.os.Build
+import android.os.Parcelable
+
+inline fun <reified T : Parcelable> Intent.parcelableExtra(key: String): T? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        getParcelableExtra(key, T::class.java)
+    } else {
+        @Suppress("DEPRECATION") getParcelableExtra(key)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchFragment.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import android.content.Context.INPUT_METHOD_SERVICE
+import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.EmptySearchBinding
+import com.practicum.playlistmaker.databinding.FragmentSearchBinding
+import com.practicum.playlistmaker.databinding.NoInternetBinding
+import com.practicum.playlistmaker.databinding.SearchHistoryBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import kotlinx.coroutines.flow.collectLatest
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class SearchFragment : Fragment() {
+
+    private var _binding: FragmentSearchBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: SearchViewModel by viewModel()
+
+    private lateinit var adapter: TrackAdapter
+    private lateinit var historyAdapter: TrackAdapter
+
+    private lateinit var emptySearchBinding: EmptySearchBinding
+    private lateinit var noInternetBinding: NoInternetBinding
+    private lateinit var searchHistoryBinding: SearchHistoryBinding
+
+    private var wasSearchFocused = false
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentSearchBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        initStubBindings()
+        initAdapters()
+        observeViewModel()
+        setupListeners()
+        setupKeyboardListener()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
+    private fun initStubBindings() {
+        emptySearchBinding = EmptySearchBinding.bind(binding.stubEmptySearchInc.root)
+        noInternetBinding = NoInternetBinding.bind(binding.stubNoInternetInc.root)
+        searchHistoryBinding = SearchHistoryBinding.bind(binding.stubSearchHistoryInc.root)
+    }
+
+    private fun initAdapters() {
+        adapter = TrackAdapter(
+            onTrackClick = { track ->
+                viewModel.onTrackClicked(track) {
+                    openPlayer(it)
+                }
+            },
+            onTrackLongClick = { }
+        )
+
+        binding.rcTrackData.layoutManager = LinearLayoutManager(requireContext())
+        binding.rcTrackData.adapter = adapter
+
+        historyAdapter = TrackAdapter(
+            onTrackClick = { track ->
+                viewModel.addTrackToHistory(track)
+                openPlayer(track)
+            },
+            onTrackLongClick = { }
+        )
+        searchHistoryBinding.rcTrackDataHistory.layoutManager =
+            LinearLayoutManager(requireContext())
+        searchHistoryBinding.rcTrackDataHistory.adapter = historyAdapter
+    }
+
+    private fun observeViewModel() {
+        viewLifecycleOwner.lifecycleScope.launchWhenStarted {
+            viewModel.state.collectLatest { state ->
+                adapter.submitList(state.tracks)
+                historyAdapter.submitList(state.history)
+
+                binding.stubEmptySearchInc.root.isVisible =
+                    state.tracks.isEmpty() && state.hasSearched
+                binding.stubNoInternetInc.root.isVisible = state.isError
+
+                binding.progressBar.isVisible = state.isLoading
+                updateSearchHistoryVisibility(state.history)
+            }
+        }
+    }
+
+    private fun setupListeners() {
+        binding.clearButton.setOnClickListener {
+            binding.searchEditText.text?.clear()
+            viewModel.clearSearchResults()
+            viewModel.loadHistory()
+            binding.searchEditText.requestFocus()
+            hideKeyboard()
+        }
+
+        binding.searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun afterTextChanged(s: Editable?) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString() ?: ""
+                binding.clearButton.isVisible = query.isNotEmpty()
+                viewModel.onQueryChanged(query)
+            }
+        })
+
+        binding.searchEditText.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus) {
+                viewModel.loadHistory()
+                updateSearchHistoryVisibility(viewModel.state.value.history)
+            }
+        }
+
+        binding.searchEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                val query = binding.searchEditText.text.toString()
+                if (query.isNotBlank()) {
+                    viewModel.onSearchDone(query)
+                    hideKeyboard()
+                }
+                true
+            } else false
+        }
+
+        noInternetBinding.buttonRetry.setOnClickListener {
+            val query = binding.searchEditText.text.toString()
+            if (query.isNotBlank()) {
+                binding.progressBar.isVisible = true
+                viewModel.onSearchDone(query)
+            }
+        }
+
+        searchHistoryBinding.buttonClearSearchHistory.setOnClickListener {
+            viewModel.clearHistory()
+        }
+    }
+
+    private fun updateSearchHistoryVisibility(history: List<Track>) {
+        val isEmptyQuery = binding.searchEditText.text.isEmpty()
+        val hasFocus = binding.searchEditText.hasFocus()
+
+        val showHistory = hasFocus && isEmptyQuery && history.isNotEmpty()
+        searchHistoryBinding.root.isVisible = showHistory
+        searchHistoryBinding.rcTrackDataHistory.isVisible = showHistory
+        searchHistoryBinding.buttonClearSearchHistory.isVisible = showHistory
+    }
+
+    private fun hideKeyboard() {
+        val imm = requireContext().getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(binding.searchEditText.windowToken, 0)
+    }
+
+    private fun openPlayer(track: Track) {
+        (requireActivity() as? MainActivity)?.hideBottomNav()
+        val bundle = Bundle().apply { putParcelable("track", track) }
+        findNavController().navigate(R.id.action_searchFragment_to_audioPlayerFragment, bundle)
+    }
+
+    private fun setupKeyboardListener() {
+        val rootView = requireActivity().findViewById<View>(R.id.container_view)
+        rootView.viewTreeObserver.addOnGlobalLayoutListener {
+            if (!isAdded) return@addOnGlobalLayoutListener
+            val rect = android.graphics.Rect()
+            rootView.getWindowVisibleDisplayFrame(rect)
+            val screenHeight = rootView.rootView.height
+            val keypadHeight = screenHeight - rect.bottom
+
+            val bottomNav =
+                requireActivity().findViewById<BottomNavigationView>(R.id.bottomNavigationView)
+            bottomNav.isVisible = keypadHeight < screenHeight * 0.15
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        wasSearchFocused = binding.searchEditText.hasFocus()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (wasSearchFocused) {
+            binding.searchEditText.requestFocus()
+            val imm = requireContext().getSystemService(InputMethodManager::class.java)
+            imm.showSoftInput(binding.searchEditText, InputMethodManager.SHOW_IMPLICIT)
+        }
+        (activity as? MainActivity)?.showBottomNav()
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchViewModel.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
+
+class SearchViewModel(
+    private val searchTracksUseCase: SearchTracksUseCase,
+    private val getHistoryUseCase: GetSearchHistoryUseCase,
+    private val addTrackUseCase: AddTrackToHistoryUseCase,
+    private val clearHistoryUseCase: ClearSearchHistoryUseCase
+) : ViewModel() {
+
+    private var searchFlowJob: Job? = null
+    private var clickJob: Job? = null
+    private val CLICK_DEBOUNCE_DELAY = 500L
+
+    private val _state = MutableStateFlow(SearchScreenState())
+    val state: StateFlow<SearchScreenState> = _state.asStateFlow()
+
+    private var searchJob: Job? = null
+
+    companion object {
+        private const val SEARCH_DEBOUNCE_DELAY = 500L
+    }
+
+    init {
+        loadHistory()
+    }
+
+    fun onQueryChanged(query: String) {
+        if (query.isBlank()) {
+            searchJob?.cancel()
+            _state.value = _state.value.copy(
+                tracks = emptyList(), hasSearched = false, isError = false, isLoading = false
+            )
+            loadHistory()
+            return
+        }
+
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_DELAY)
+            searchTracks(query)
+        }
+    }
+
+    fun onSearchDone(query: String) {
+        searchJob?.cancel()
+        _state.value = _state.value.copy(isLoading = true)
+        searchTracks(query)
+    }
+
+    private fun searchTracks(query: String) {
+        searchFlowJob?.cancel()
+
+        _state.value = _state.value.copy(isLoading = true)
+
+        searchFlowJob = searchTracksUseCase.execute(query).catch {
+                _state.value = _state.value.copy(
+                    tracks = emptyList(), hasSearched = true, isError = true, isLoading = false
+                )
+            }.onEach { tracks ->
+                _state.value = _state.value.copy(
+                    tracks = tracks, hasSearched = true, isError = false, isLoading = false
+                )
+            }.launchIn(viewModelScope)
+    }
+
+    fun loadHistory() {
+        _state.value = _state.value.copy(
+            history = getHistoryUseCase.execute()
+        )
+    }
+
+    fun addTrackToHistory(track: Track) {
+        addTrackUseCase.execute(track)
+        loadHistory()
+    }
+
+    fun clearHistory() {
+        clearHistoryUseCase.execute()
+        loadHistory()
+    }
+
+    fun clearSearchResults() {
+        searchJob?.cancel()
+        _state.value = _state.value.copy(
+            tracks = emptyList(), hasSearched = false, isError = false
+        )
+        loadHistory()
+    }
+
+
+    fun onTrackClicked(
+        track: Track, openPlayer: (Track) -> Unit
+    ) {
+        clickJob?.cancel()
+        clickJob = viewModelScope.launch {
+            delay(CLICK_DEBOUNCE_DELAY)
+            addTrackToHistory(track)
+            openPlayer(track)
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/search/SearchScreenState.kt ====
+package com.practicum.playlistmaker.presentation.search
+
+import com.practicum.playlistmaker.domain.track.Track
+
+data class SearchScreenState(
+    val tracks: List<Track> = emptyList(),
+    val history: List<Track> = emptyList(),
+    val isError: Boolean = false,
+    val hasSearched: Boolean = false,
+    val isLoading: Boolean = false
+)
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/main/MainActivity.kt ====
+package com.practicum.playlistmaker.presentation.main
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
+import androidx.navigation.fragment.NavHostFragment
+import androidx.navigation.ui.setupWithNavController
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.ActivityMainBinding
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+
+    private lateinit var permissionLauncher: ActivityResultLauncher<String>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        initPermissionLauncher()
+        checkGalleryPermission()
+
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.container_view) as? NavHostFragment
+        val navController = navHostFragment?.navController
+
+        navController?.let {
+            binding.bottomNavigationView.setupWithNavController(it)
+
+            navController.addOnDestinationChangedListener { _, destination, _ ->
+                when (destination.id) {
+                    R.id.audioPlayerFragment,
+                    R.id.newPlaylistFragment,
+                    R.id.playlistFragment -> hideBottomNav()
+                    else -> showBottomNav()
+                }
+            }
+        }
+    }
+
+    private fun initPermissionLauncher() {
+        permissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                if (granted) {
+                    Log.d("PERMISSION", "Доступ к фото разрешен")
+                } else {
+                    Log.d("PERMISSION", "Доступ к фото запрещен")
+                }
+            }
+    }
+
+    private fun checkGalleryPermission() {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        val granted = ContextCompat.checkSelfPermission(
+            this, permission
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!granted) {
+            permissionLauncher.launch(permission)
+        }
+    }
+
+    fun hideBottomNav() {
+        binding.bottomNavigationView.isVisible = false
+
+    }
+
+    fun showBottomNav() {
+        binding.bottomNavigationView.isVisible = true
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/viewholder/PlaylistBottomSheetViewHolder.kt ====
+package com.practicum.playlistmaker.presentation.viewholder
+
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.BottomSheetPlaylistItemBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.util.Useful
+import java.io.File
+
+class PlaylistBottomSheetViewHolder(
+    private val binding: BottomSheetPlaylistItemBinding
+) : RecyclerView.ViewHolder(binding.root) {
+
+    fun bind(item: Playlist) {
+        binding.playlistTitle.text = item.title
+
+        val tracksCount = item.trackCount
+        binding.tracksCount.text = itemView.context.resources.getQuantityString(
+            R.plurals.tracks_count,
+            tracksCount,
+            tracksCount
+        )
+
+        val radius = Useful.dpToPx(2f, itemView.context)
+
+        if (!item.coverUri.isNullOrEmpty()) {
+            try {
+                val file = File(item.coverUri)
+                if (file.exists()) {
+                    Glide.with(itemView.context).load(file)
+                        .placeholder(R.drawable.ic_no_artwork_image)
+                        .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+                        .into(binding.playlistCover)
+                } else {
+                    loadDefaultCover(radius)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                loadDefaultCover(radius)
+            }
+        } else {
+            loadDefaultCover(radius)
+        }
+    }
+
+    private fun loadDefaultCover(radius: Int) {
+        Glide.with(itemView.context).load(R.drawable.ic_no_artwork_image)
+            .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+            .into(binding.playlistCover)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/viewholder/TrackViewHolder.kt ====
+package com.practicum.playlistmaker.presentation.viewholder
+
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.RecordItemBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.Useful
+
+class TrackViewHolder(
+    private val binding: RecordItemBinding,
+    private val onTrackClick: (Track) -> Unit,
+    private val onTrackLongClick: (Track) -> Unit
+) : RecyclerView.ViewHolder(binding.root) {
+    fun bind(item: Track) {
+        binding.trackName.text = item.trackName
+        binding.artistsName.text = item.artistsName
+        binding.trackTime.text = item.trackTime
+
+        Glide.with(itemView).load(item.artworkUrl100).placeholder(R.drawable.ic_no_artwork_image)
+            .fitCenter().transform(RoundedCorners(Useful.dpToPx(2f, itemView.context)))
+            .into(binding.artworkImage)
+
+        itemView.setOnClickListener {
+            onTrackClick(item)
+        }
+
+        itemView.setOnLongClickListener {
+            onTrackLongClick(item)
+            true
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/viewholder/PlaylistViewHolder.kt ====
+package com.practicum.playlistmaker.presentation.viewholder
+
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.MultiTransformation
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.PlaylistItemBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.util.Useful
+import java.io.File
+
+class PlaylistViewHolder(
+    private val binding: PlaylistItemBinding,
+    private val onPlaylistClick: (Playlist) -> Unit
+) : RecyclerView.ViewHolder(binding.root) {

@@ -288,5 +288,12 @@
         <item name="android:textColor">@color/app_black</item>
     </style>
 
+    <style name="BottomSheetMenuTheme" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/BottomSheetMenuStyle</item>
+    </style>
+
+    <style name="BottomSheetMenuStyle" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
 
 </resources>

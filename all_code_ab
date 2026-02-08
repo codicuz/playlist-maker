@@ -1,0 +1,1920 @@
+
+    fun bind(item: Playlist) {
+        binding.playlistTitle.text = item.title
+
+        val tracksCount = item.trackCount
+        binding.tracksCount.text = itemView.context.resources.getQuantityString(
+            R.plurals.tracks_count,
+            tracksCount,
+            tracksCount
+        )
+
+        val radius = Useful.dpToPx(8f, itemView.context)
+
+        if (!item.coverUri.isNullOrEmpty()) {
+            try {
+                val file = File(item.coverUri)
+                if (file.exists()) {
+                    Glide.with(itemView.context).load(file)
+                        .placeholder(R.drawable.ic_no_artwork_image)
+                        .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+                        .into(binding.playlistCover)
+                } else {
+                    loadDefaultCover(radius)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                loadDefaultCover(radius)
+            }
+        } else {
+            loadDefaultCover(radius)
+        }
+
+        itemView.setOnClickListener {
+            onPlaylistClick(item)
+        }
+    }
+
+    private fun loadDefaultCover(radius: Int) {
+        Glide.with(itemView.context).load(R.drawable.ic_no_artwork_image)
+            .transform(MultiTransformation(CenterCrop(), RoundedCorners(radius)))
+            .into(binding.playlistCover)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerScreenState.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import com.practicum.playlistmaker.domain.track.Track
+
+data class AudioPlayerScreenState(
+    val track: Track? = null,
+    val isPlaying: Boolean = false,
+    val currentPosition: Int = 0,
+    val isFavorite: Boolean = false
+)==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerFragment.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import android.os.Bundle
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.Toast
+import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.practicum.playlistmaker.R
+import com.practicum.playlistmaker.databinding.FragmentAudioPlayerBinding
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.main.MainActivity
+import com.practicum.playlistmaker.presentation.util.Useful
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+class AudioPlayerFragment : Fragment() {
+
+    private var _binding: FragmentAudioPlayerBinding? = null
+    private val binding get() = _binding!!
+
+    private val viewModel: AudioPlayerViewModel by viewModel()
+
+    private var track: Track? = null
+
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
+
+    private lateinit var adapter: PlaylistBottomSheetAdapter
+
+    private var savedBottomSheetState: Int? = null
+    private var savedOverlayVisible: Boolean = false
+
+    private var returningFromNewPlaylist: Boolean = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            track = it.getParcelable(ARG_TRACK)
+        }
+
+        savedInstanceState?.let {
+            savedBottomSheetState =
+                it.getInt(KEY_BOTTOM_SHEET_STATE, BottomSheetBehavior.STATE_HIDDEN)
+            savedOverlayVisible = it.getBoolean(KEY_OVERLAY_VISIBLE, false)
+            returningFromNewPlaylist = it.getBoolean(KEY_RETURNING_FROM_NEW_PLAYLIST, false)
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentAudioPlayerBinding.inflate(inflater, container, false)
+        binding.audBackButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        (requireActivity() as? MainActivity)?.hideBottomNav()
+
+        binding.audBackButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        if (track == null) {
+            track = arguments?.getParcelable(ARG_TRACK)
+            if (track == null && savedInstanceState != null) {
+                track = savedInstanceState.getParcelable(ARG_TRACK)
+            }
+            if (track == null) {
+                binding.root.post {
+                    findNavController().popBackStack()
+                }
+                return
+            }
+        }
+
+        viewModel.setTrack(track!!)
+        observeViewModel()
+        setupPlayerButtons()
+        setupFavoriteButton()
+        setupBottomSheet()
+        restoreBottomSheetState()
+    }
+
+    private fun restoreBottomSheetState() {
+        if (returningFromNewPlaylist) {
+            savedBottomSheetState = BottomSheetBehavior.STATE_HIDDEN
+            savedOverlayVisible = false
+            returningFromNewPlaylist = false
+
+            binding.root.post {
+                binding.overlay.isVisible = false
+            }
+        }
+
+        savedBottomSheetState?.let { savedState ->
+            if (isValidBottomSheetState(savedState)) {
+                binding.root.post {
+                    if (::bottomSheetBehavior.isInitialized && bottomSheetBehavior.state != savedState) {
+                        try {
+                            bottomSheetBehavior.state = savedState
+                        } catch (e: Exception) {
+                            Log.e("AudioPlayer", "Error restoring bottom sheet state", e)
+                        }
+                    }
+                }
+            } else {
+                savedBottomSheetState = BottomSheetBehavior.STATE_HIDDEN
+                binding.root.post {
+                    if (::bottomSheetBehavior.isInitialized) {
+                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+                    }
+                    binding.overlay.isVisible = false
+                }
+            }
+        }
+
+        if (savedOverlayVisible && savedBottomSheetState != BottomSheetBehavior.STATE_HIDDEN) {
+            binding.root.post {
+                binding.overlay.isVisible = true
+                binding.overlay.alpha = 0.6f
+            }
+        }
+    }
+
+
+    private fun isValidBottomSheetState(state: Int): Boolean {
+        return state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED || state == BottomSheetBehavior.STATE_EXPANDED || state == BottomSheetBehavior.STATE_HALF_EXPANDED || state == BottomSheetBehavior.STATE_DRAGGING
+    }
+
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        track?.let {
+            outState.putParcelable(ARG_TRACK, it)
+        }
+        viewModel.savePlaybackState()
+
+        val stateToSave = if (::bottomSheetBehavior.isInitialized) {
+            val currentState = bottomSheetBehavior.state
+            if (isValidBottomSheetState(currentState) && currentState != BottomSheetBehavior.STATE_SETTLING) {
+                currentState
+            } else {
+                savedBottomSheetState ?: BottomSheetBehavior.STATE_HIDDEN
+            }
+        } else {
+            savedBottomSheetState ?: BottomSheetBehavior.STATE_HIDDEN
+        }
+
+        outState.putInt(KEY_BOTTOM_SHEET_STATE, stateToSave)
+        outState.putBoolean(KEY_OVERLAY_VISIBLE, binding.overlay.isVisible)
+        outState.putBoolean(KEY_RETURNING_FROM_NEW_PLAYLIST, returningFromNewPlaylist)
+    }
+
+    private fun observeViewModel() {
+        viewModel.state.observe(viewLifecycleOwner) { state ->
+            state.track?.let { track ->
+                binding.mainAlbumText.text = track.trackName ?: "-"
+                binding.artistName.text = track.artistsName ?: "-"
+                binding.audAlbumNameValue.text = track.collectionName ?: "-"
+                binding.audYearValue.text = track.releaseYear ?: "-"
+                binding.audGenreValue.text = track.primaryGenreName ?: "-"
+                binding.audCountryValue.text = track.country ?: "-"
+
+                Glide.with(requireContext()).load(track.getConvertArtwork())
+                    .placeholder(R.drawable.ic_no_artwork_image)
+                    .transform(RoundedCorners(Useful.dpToPx(8f, requireContext())))
+                    .into(binding.songPoster)
+            }
+
+            binding.currentTrackTime.text = formatTime(state.currentPosition)
+            binding.audPlayButton.setImageResource(
+                if (state.isPlaying) R.drawable.btn_aud_pause
+                else R.drawable.btn_aud_play
+            )
+
+            binding.audFavoriteButton.setImageResource(
+                if (state.isFavorite) R.drawable.btn_aud_like_true
+                else R.drawable.btn_aud_like_false
+            )
+        }
+
+        viewModel.addTrackStatus.observe(viewLifecycleOwner) { status ->
+            status?.let {
+                when (it) {
+                    is AddTrackStatus.Success -> {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.added_to_playlist, it.playlistName),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+
+                    is AddTrackStatus.AlreadyExists -> {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.allready_exists_in_playlist, it.playlistName),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+
+                    is AddTrackStatus.Error -> {
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.error, it.message),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        viewModel.resetAddTrackStatus()
+                    }
+                }
+            }
+        }
+
+        viewModel.shouldCloseBottomSheet.observe(viewLifecycleOwner) { shouldClose ->
+            if (shouldClose == true) {
+                hideBottomSheet()
+                viewModel.resetShouldCloseBottomSheet()
+            }
+        }
+    }
+
+    private fun setupPlayerButtons() {
+        binding.audPlayButton.setOnClickListener {
+            val isPlaying = viewModel.state.value?.isPlaying ?: false
+            if (isPlaying) viewModel.pausePlayer()
+            else viewModel.startPlayer()
+        }
+    }
+
+    private fun setupFavoriteButton() {
+        binding.audFavoriteButton.setOnClickListener {
+            viewModel.toggleFavorite()
+        }
+    }
+
+    private fun formatTime(ms: Int): String {
+        val seconds = ms / 1000
+        val minutes = seconds / 60
+        val remainingSeconds = seconds % 60
+        return String.format("%02d:%02d", minutes, remainingSeconds)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        if (!requireActivity().isChangingConfigurations) {
+            viewModel.state.value?.isPlaying?.let { isPlaying ->
+                if (isPlaying) {
+                    viewModel.pausePlayer()
+                }
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!requireActivity().isChangingConfigurations) {
+            viewModel.savePlaybackState()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (!requireActivity().isChangingConfigurations) {
+            (requireActivity() as? MainActivity)?.showBottomNav()
+        }
+        _binding = null
+    }
+
+    override fun onResume() {
+        super.onResume()
+        returningFromNewPlaylist = false
+    }
+
+    private fun setupBottomSheet() {
+        val bottomSheetContainer = binding.bottomSheet
+        val overlay = binding.overlay
+        val recyclerView = binding.playlistRecyclerView
+        val dragHandle = binding.dragHandle
+
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        adapter = PlaylistBottomSheetAdapter(mutableListOf()) { playlist ->
+            track?.let { viewModel.addTrackToPlaylist(playlist, it) }
+        }
+        recyclerView.adapter = adapter
+
+        viewModel.playlists.observe(viewLifecycleOwner) { playlists ->
+            adapter.update(playlists)
+        }
+
+        val displayMetrics = resources.displayMetrics
+        val screenHeight = displayMetrics.heightPixels
+        val peekHeightPx = (screenHeight * 0.40).toInt()
+
+
+
+        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
+            state = BottomSheetBehavior.STATE_HIDDEN
+            peekHeight = peekHeightPx
+            isHideable = true
+            isDraggable = true
+            isFitToContents = false
+            halfExpandedRatio = 0.40f
+            expandedOffset = 0
+            skipCollapsed = false
+        }
+
+        hideBottomSheet()
+
+        binding.audAddToPlaylist.setOnClickListener {
+            toggleBottomSheet()
+        }
+
+        overlay.setOnClickListener {
+            hideBottomSheet()
+        }
+
+        dragHandle.setOnClickListener {
+            when (bottomSheetBehavior.state) {
+                BottomSheetBehavior.STATE_COLLAPSED -> {
+                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+                }
+
+                BottomSheetBehavior.STATE_EXPANDED -> {
+                    bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+                }
+
+                else -> {
+                    showBottomSheet()
+                }
+            }
+        }
+
+        bottomSheetBehavior.addBottomSheetCallback(object :
+            BottomSheetBehavior.BottomSheetCallback() {
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState != BottomSheetBehavior.STATE_SETTLING) {
+                    savedBottomSheetState = newState
+                }
+
+                when (newState) {
+                    BottomSheetBehavior.STATE_HIDDEN -> {
+                        binding.overlay.isVisible = false
+                        savedOverlayVisible = false
+                    }
+
+                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                        binding.overlay.isVisible = true
+                        savedOverlayVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+
+                    BottomSheetBehavior.STATE_EXPANDED -> {
+                        binding.overlay.isVisible = true
+                        savedOverlayVisible = true
+                        binding.overlay.alpha = 0.6f
+                    }
+
+                    else -> {
+                        savedOverlayVisible = binding.overlay.isVisible
+                    }
+                }
+            }
+
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                when {
+                    slideOffset <= 0 -> {
+                        val progress = (slideOffset + 1).coerceIn(0f, 1f)
+                        if (progress > 0) {
+                            overlay.visibility = View.VISIBLE
+                            overlay.alpha = progress * 0.6f
+                        } else {
+                            overlay.visibility = View.GONE
+                        }
+                    }
+
+                    else -> {
+                        overlay.visibility = View.VISIBLE
+                        overlay.alpha = 0.6f
+                    }
+                }
+            }
+        })
+
+        binding.createNewPlaylistButtonSheet.setOnClickListener {
+            returningFromNewPlaylist = true
+            hideBottomSheet()
+            findNavController().navigate(
+                R.id.action_audioPlayerFragment_to_newPlaylistFragment
+            )
+        }
+
+    }
+
+    private fun toggleBottomSheet() {
+        when (bottomSheetBehavior.state) {
+            BottomSheetBehavior.STATE_HIDDEN -> {
+                showBottomSheet()
+            }
+
+            BottomSheetBehavior.STATE_COLLAPSED, BottomSheetBehavior.STATE_EXPANDED -> {
+                hideBottomSheet()
+            }
+
+            else -> {
+                hideBottomSheet()
+            }
+        }
+    }
+
+    private fun showBottomSheet() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+    }
+
+    private fun hideBottomSheet() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+    }
+
+    companion object {
+        private const val ARG_TRACK = "track"
+        private const val KEY_BOTTOM_SHEET_STATE = "bottom_sheet_state"
+        private const val KEY_OVERLAY_VISIBLE = "overlay_visible"
+        private const val KEY_RETURNING_FROM_NEW_PLAYLIST = "returning_from_new_playlist"
+
+        @JvmStatic
+        fun newInstance(track: Track) = AudioPlayerFragment().apply {
+            arguments = Bundle().apply { putParcelable(ARG_TRACK, track) }
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/PlaylistBottomSheetAdapter.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.practicum.playlistmaker.databinding.BottomSheetPlaylistItemBinding
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.viewholder.PlaylistBottomSheetViewHolder
+
+class PlaylistBottomSheetAdapter(
+    private val playlists: MutableList<Playlist>, private val onClick: (Playlist) -> Unit
+) : RecyclerView.Adapter<PlaylistBottomSheetViewHolder>() {
+
+    fun update(newList: List<Playlist>) {
+        playlists.clear()
+        playlists.addAll(newList)
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(
+        parent: ViewGroup,
+        viewType: Int
+    ): PlaylistBottomSheetViewHolder {
+        val binding = BottomSheetPlaylistItemBinding.inflate(
+            LayoutInflater.from(parent.context), parent, false
+        )
+        return PlaylistBottomSheetViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: PlaylistBottomSheetViewHolder, position: Int) {
+        val playlist = playlists[position]
+        holder.bind(playlist)
+        holder.itemView.setOnClickListener { onClick(playlist) }
+    }
+
+    override fun getItemCount(): Int = playlists.size
+}
+
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/player/AudioPlayerViewModel.kt ====
+package com.practicum.playlistmaker.presentation.player
+
+import android.media.MediaPlayer
+import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asLiveData
+import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.domain.favorites.AddToFavoritesUseCase
+import com.practicum.playlistmaker.domain.favorites.IsFavoriteUseCase
+import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
+import com.practicum.playlistmaker.domain.playlist.AddTrackResult
+import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+
+sealed class AddTrackStatus {
+    data class Success(val playlistName: String) : AddTrackStatus()
+    data class AlreadyExists(val playlistName: String) : AddTrackStatus()
+    class Error(val message: String) : AddTrackStatus()
+}
+
+class AudioPlayerViewModel(
+    private val mediaPlayer: MediaPlayer,
+    private val addToFavoritesUseCase: AddToFavoritesUseCase,
+    private val removeFromFavoritesUseCase: RemoveFromFavoritesUseCase,
+    private val isFavoriteUseCase: IsFavoriteUseCase,
+    private val getPlaylistsUseCase: GetPlaylistsUseCase,
+    private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase
+) : ViewModel() {
+
+    private val _state = MutableLiveData(AudioPlayerScreenState())
+    val state: LiveData<AudioPlayerScreenState> = _state
+
+    private var currentTrack: Track? = null
+    private var isPrepared = false
+    private var isCompleted = false
+    private var updateProgressJob: Job? = null
+
+    private var wasPlayingBeforeConfigChange = false
+    private var lastPositionBeforeConfigChange = 0
+
+    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
+
+    private val _addTrackStatus = MutableLiveData<AddTrackStatus?>()
+    val addTrackStatus: LiveData<AddTrackStatus> = _addTrackStatus as LiveData<AddTrackStatus>
+
+    private val _shouldCloseBottomSheet = MutableLiveData<Boolean?>()
+    val shouldCloseBottomSheet: LiveData<Boolean> = _shouldCloseBottomSheet as LiveData<Boolean>
+
+    fun setTrack(track: Track) {
+        if (currentTrack?.trackId == track.trackId && isPrepared) {
+            updateTrackState(track)
+            if (wasPlayingBeforeConfigChange && lastPositionBeforeConfigChange > 0) {
+                mediaPlayer.seekTo(lastPositionBeforeConfigChange)
+                if (wasPlayingBeforeConfigChange && !mediaPlayer.isPlaying) {
+                    mediaPlayer.start()
+                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
+                    startUpdatingProgress()
+                }
+                wasPlayingBeforeConfigChange = false
+                lastPositionBeforeConfigChange = 0
+            }
+            return
+        }
+
+        stopPlayer()
+
+        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
+        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+
+        currentTrack = track
+        updateTrackState(track)
+
+        track.previewUrl?.let { initPlayer(it) }
+    }
+
+    private fun updateTrackState(track: Track) {
+        viewModelScope.launch {
+            val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
+            _state.value = _state.value?.copy(
+                track = track,
+                isFavorite = isFav,
+                currentPosition = 0
+            )
+        }
+    }
+
+    fun startPlayer() {
+        if (isPrepared && !mediaPlayer.isPlaying) {
+            if (isCompleted) {
+                mediaPlayer.seekTo(0)
+                isCompleted = false
+            }
+            mediaPlayer.start()
+            _state.value = _state.value?.copy(isPlaying = true)
+            startUpdatingProgress()
+        } else if (!isPrepared) {
+            currentTrack?.previewUrl?.let {
+                initPlayer(it)
+                viewModelScope.launch {
+                    delay(100)
+                    if (isPrepared) {
+                        startPlayer()
+                    }
+                }
+            }
+        }
+    }
+
+    fun resetAddTrackStatus() {
+        _addTrackStatus.value = null
+    }
+
+    fun addTrackToPlaylist(playlist: Playlist, track: Track) {
+        if (playlist.trackIds.contains(track.trackId)) {
+            _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
+            _shouldCloseBottomSheet.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            when (val result = addTrackToPlaylistUseCase.execute(playlist.id, track)) {
+                is AddTrackResult.Success -> {
+                    _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
+                    _shouldCloseBottomSheet.value = true
+                    loadPlaylists()
+                }
+
+                is AddTrackResult.AlreadyExists -> {
+                    _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)
+                    _shouldCloseBottomSheet.value = false
+                }
+
+                is AddTrackResult.Error -> {
+                    _addTrackStatus.value = AddTrackStatus.Error(result.message)
+                    _shouldCloseBottomSheet.value = true
+                }
+            }
+        }
+    }
+
+    fun resetShouldCloseBottomSheet() {
+        _shouldCloseBottomSheet.value = null
+    }
+
+    private fun loadPlaylists() {
+        viewModelScope.launch {
+            getPlaylistsUseCase.execute().collect {}
+        }
+    }
+
+    fun pausePlayer() {
+        if (isPrepared && mediaPlayer.isPlaying) {
+            mediaPlayer.pause()
+            _state.value = _state.value?.copy(isPlaying = false)
+            stopUpdatingProgress()
+        }
+    }
+
+    private fun stopPlayer() {
+        if (isPrepared) {
+            try {
+                mediaPlayer.stop()
+            } catch (e: IllegalStateException) {
+            }
+        }
+        stopUpdatingProgress()
+        isPrepared = false
+        isCompleted = false
+    }
+
+    private fun startUpdatingProgress() {
+        stopUpdatingProgress()
+        updateProgressJob = viewModelScope.launch {
+            while (isActive) {
+                val position = try {
+                    if (isPrepared && mediaPlayer.isPlaying) {
+                        mediaPlayer.currentPosition
+                    } else {
+                        _state.value?.currentPosition ?: 0
+                    }
+                } catch (e: IllegalStateException) {
+                    _state.value?.currentPosition ?: 0
+                }
+                _state.value = _state.value?.copy(currentPosition = position)
+                delay(300)
+            }
+        }
+    }
+
+    private fun stopUpdatingProgress() {
+        updateProgressJob?.cancel()
+        updateProgressJob = null
+    }
+
+    private fun initPlayer(previewUrl: String) {
+        try {
+            stopUpdatingProgress()
+
+            mediaPlayer.reset()
+            isPrepared = false
+            isCompleted = false
+
+            mediaPlayer.setDataSource(previewUrl)
+
+            mediaPlayer.setOnPreparedListener {
+                isPrepared = true
+                if (wasPlayingBeforeConfigChange) {
+                    mediaPlayer.seekTo(lastPositionBeforeConfigChange)
+                    mediaPlayer.start()
+                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
+                    startUpdatingProgress()
+                    wasPlayingBeforeConfigChange = false
+                    lastPositionBeforeConfigChange = 0
+                }
+            }
+
+            mediaPlayer.setOnCompletionListener {
+                stopUpdatingProgress()
+                isCompleted = true
+                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
+            }
+
+            mediaPlayer.setOnErrorListener { mp, what, extra ->
+                Log.e("AudioPlayerViewModel", "MediaPlayer error: what=$what, extra=$extra")
+                false
+            }
+
+            mediaPlayer.prepareAsync()
+
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "Error init player", e)
+            isPrepared = false
+        }
+    }
+
+    fun toggleFavorite() {
+        viewModelScope.launch {
+            val currentFav = _state.value?.isFavorite ?: false
+            currentTrack?.trackId?.let { id ->
+                if (currentFav) removeFromFavoritesUseCase.execute(id)
+                else addToFavoritesUseCase.execute(currentTrack!!)
+                _state.value = _state.value?.copy(isFavorite = !currentFav)
+            }
+        }
+    }
+
+    fun savePlaybackState() {
+        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
+        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopUpdatingProgress()
+        try {
+            mediaPlayer.release()
+        } catch (e: Exception) {
+            Log.e("AudioPlayerViewModel", "Error releasing MediaPlayer", e)
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/presentation/theme/ThemeViewModel.kt ====
+package com.practicum.playlistmaker.presentation.theme
+
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
+import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
+import com.practicum.playlistmaker.presentation.settings.SingleLiveEvent
+
+class ThemeViewModel(
+    private val switchThemeUseCase: SwitchThemeUseCase,
+    private val getThemeUseCase: GetThemeUseCase
+) : ViewModel() {
+
+    private val _state = MutableLiveData(ThemeScreenState())
+    val state: LiveData<ThemeScreenState> = _state
+
+    private val _uiEvent = SingleLiveEvent<SettingsUiEvent>()
+    val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
+
+    init {
+        _state.value = ThemeScreenState(isDarkMode = getThemeUseCase.execute())
+    }
+
+    fun switchTheme(darkMode: Boolean) {
+        switchThemeUseCase.execute(darkMode)
+        _state.value = _state.value?.copy(isDarkMode = darkMode)
+    }
+
+    fun onPracticumOfferClicked() {
+        _uiEvent.value = SettingsUiEvent.OpenPracticumOffer
+    }
+
+    fun onSendToHelpdeskClicked() {
+        _uiEvent.value = SettingsUiEvent.SendToHelpdesk
+    }
+
+    fun onShareAppClicked() {
+        _uiEvent.value = SettingsUiEvent.ShareApp
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/presentation/theme/ThemeScreenState.kt ====
+package com.practicum.playlistmaker.presentation.theme
+
+data class ThemeScreenState(
+    val isDarkMode: Boolean = false
+)==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/SearchTracksUseCase.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import kotlinx.coroutines.flow.Flow
+
+class SearchTracksUseCase(private val repository: TracksRepository) {
+    fun execute(searchText: String): Flow<List<Track>> {
+        return repository.searchTrack(searchText)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/Track.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Parcelize
+data class Track(
+    val id: Long,
+    val trackId: Int?,
+    val trackName: String?,
+    val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+) : Parcelable {
+    val trackTime: String?
+        get() = trackTimeMillis?.let {
+            SimpleDateFormat("mm:ss", Locale.getDefault()).format(Date(it))
+        }
+
+    val releaseYear: String?
+        get() = releaseDate?.let {
+            try {
+                val inputFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                val date = inputFormat.parse(it)
+                val outputFormat = SimpleDateFormat("yyyy", Locale.getDefault())
+                outputFormat.format(date!!)
+            } catch (e: Exception) {
+                null
+            }
+        }
+
+    fun getConvertArtwork(): String {
+        return artworkUrl100?.replaceAfterLast("/", "512x512bb.jpg") ?: ""
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/track/TracksRepository.kt ====
+package com.practicum.playlistmaker.domain.track
+
+import kotlinx.coroutines.flow.Flow
+
+interface TracksRepository {
+    fun searchTrack(searchString: String): Flow<List<Track>>
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/favorites/AddToFavoritesUseCase.kt ====
+package com.practicum.playlistmaker.domain.favorites
+
+import com.practicum.playlistmaker.domain.track.Track
+
+class AddToFavoritesUseCase(private val repo: FavoritesRepository) {
+    suspend fun execute(track: Track) = repo.add(track)
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/favorites/GetFavoritesUseCase.kt ====
+package com.practicum.playlistmaker.domain.favorites
+
+class GetFavoritesUseCase(private val repo: FavoritesRepository) {
+    fun execute() = repo.getFavorites()
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/favorites/RemoveFromFavoritesUseCase.kt ====
+package com.practicum.playlistmaker.domain.favorites
+
+class RemoveFromFavoritesUseCase(private val repo: FavoritesRepository) {
+    suspend fun execute(trackId: Int) = repo.remove(trackId)
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/favorites/FavoritesRepository.kt ====
+package com.practicum.playlistmaker.domain.favorites
+
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.flow.Flow
+
+interface FavoritesRepository {
+    suspend fun add(track: Track)
+    suspend fun remove(trackId: Int)
+    fun getFavorites(): Flow<List<Track>>
+    suspend fun isFavorite(trackId: Int): Boolean
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/favorites/IsFavoriteUseCase.kt ====
+package com.practicum.playlistmaker.domain.favorites
+
+class IsFavoriteUseCase(private val repo: FavoritesRepository) {
+    suspend fun execute(trackId: Int) = repo.isFavorite(trackId)
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/AddTrackToHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+class AddTrackToHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(track: Track) {
+        repository.addTrack(track)
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/ClearSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+class ClearSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute() {
+        repository.clearHistory()
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/GetSearchHistoryUseCase.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+
+class GetSearchHistoryUseCase(
+    private val repository: SearchHistoryRepository
+) {
+    fun execute(): List<Track> = repository.getHistory()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/history/SearchHistoryRepository.kt ====
+package com.practicum.playlistmaker.domain.history
+
+import com.practicum.playlistmaker.domain.track.Track
+
+interface SearchHistoryRepository {
+
+    fun getHistory(): List<Track>
+
+    fun addTrack(track: Track)
+
+    fun clearHistory()
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/GetPlaylistByIdUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+class GetPlaylistByIdUseCase(
+    private val repository: NewPlaylistRepository
+) {
+    suspend fun execute(playlistId: Long): Playlist? {
+        return repository.getPlaylistById(playlistId)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/CoverFileManager.kt ====
+package com.practicum.playlistmaker.data.playlist
+
+import android.content.Context
+import android.net.Uri
+import java.io.File
+import java.io.FileOutputStream
+import java.util.UUID
+
+class CoverFileManager(private val context: Context) {
+
+    fun copyCoverToInternalStorage(uri: Uri): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            inputStream?.use { input ->
+                val coversDir = File(context.filesDir, "playlist_covers")
+                if (!coversDir.exists()) {
+                    coversDir.mkdirs()
+                }
+
+                val fileName = "cover_${UUID.randomUUID()}.jpg"
+                val outputFile = File(coversDir, fileName)
+
+                FileOutputStream(outputFile).use { output ->
+                    input.copyTo(output)
+                }
+
+                outputFile.absolutePath
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/NewPlaylistRepository.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import android.net.Uri
+import kotlinx.coroutines.flow.Flow
+
+interface NewPlaylistRepository {
+    suspend fun createPlaylist(title: String, description: String?, coverUri: Uri?)
+    fun getPlaylists(): Flow<List<Playlist>>
+    suspend fun getPlaylistById(id: Long): Playlist?
+    suspend fun updateTrackCount(id: Long, count: Int)
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/Playlist.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import com.practicum.playlistmaker.domain.track.Track
+
+
+data class Playlist(
+    val id: Long,
+    val title: String,
+    val description: String?,
+    val coverUri: String?,
+    val tracksCount: List<Track> = emptyList(),
+    val trackCount: Int = tracksCount.size
+) {
+    val trackIds: List<Int>
+        get() = tracksCount.mapNotNull { it.trackId }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/CreatePlaylistUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import android.net.Uri
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+class CreatePlaylistUseCase(
+    private val repository: NewPlaylistRepository
+) {
+    suspend fun execute(
+        title: String, description: String?, coverUri: Uri?
+    ) {
+        withContext(Dispatchers.IO) {
+            repository.createPlaylist(
+                title = title, description = description, coverUri = coverUri
+            )
+        }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/AddTrackToPlaylistUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import com.practicum.playlistmaker.domain.track.Track
+
+class AddTrackToPlaylistUseCase(
+    private val repository: PlaylistTracksRepository,
+    private val playlistRepository: NewPlaylistRepository
+) {
+    suspend fun execute(playlistId: Long, track: Track): AddTrackResult {
+        val playlist = playlistRepository.getPlaylistById(playlistId)
+        val playlistName = playlist?.title ?: "Unknown"
+
+        val existingTracks = repository.getTracksOnce(playlistId)
+        val isAlreadyInPlaylist = existingTracks.any { it.trackId == track.trackId }
+
+        if (isAlreadyInPlaylist) {
+            return AddTrackResult.AlreadyExists(playlistName)
+        }
+
+        try {
+            repository.addTrack(playlistId, track)
+            val tracks = repository.getTracksOnce(playlistId)
+            playlistRepository.updateTrackCount(playlistId, tracks.size)
+            return AddTrackResult.Success(playlistName)
+        } catch (e: Exception) {
+            return AddTrackResult.Error(e.message ?: "Неизвестная ошибка")
+        }
+    }
+}
+
+sealed interface AddTrackResult {
+    data class Success(val playlistName: String) : AddTrackResult
+    data class AlreadyExists(val playlistName: String) : AddTrackResult
+    data class Error(val message: String) : AddTrackResult
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/GetPlaylistsUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+class GetPlaylistsUseCase(
+    private val repository: NewPlaylistRepository
+) {
+    fun execute() = repository.getPlaylists()
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/DeleteTrackFromPlaylistUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+class DeleteTrackFromPlaylistUseCase(
+    private val repository: PlaylistTracksRepository,
+    private val playlistRepository: NewPlaylistRepository
+) {
+    suspend fun execute(playlistId: Long, trackId: Int?) {
+        if (trackId == null) return
+
+        repository.removeTrack(playlistId, trackId)
+
+        val tracks = repository.getTracksOnce(playlistId)
+        playlistRepository.updateTrackCount(playlistId, tracks.size)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/GetTracksForPlaylistUseCase.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import com.practicum.playlistmaker.domain.track.Track
+
+class GetTracksForPlaylistUseCase(
+    private val repository: PlaylistTracksRepository
+) {
+    suspend fun execute(playlistId: Long): List<Track> {
+        return repository.getTracksOnce(playlistId)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/playlist/PlaylistTracksRepository.kt ====
+package com.practicum.playlistmaker.domain.playlist
+
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.flow.Flow
+
+interface PlaylistTracksRepository {
+    suspend fun addTrack(playlistId: Long, track: Track)
+    fun getTracks(playlistId: Long): Flow<List<Track>>
+    suspend fun getTracksOnce(playlistId: Long): List<Track>
+    suspend fun removeTrack(playlistId: Long, trackId: Int)
+
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/ThemeRepository.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+interface ThemeRepository {
+    fun switchTheme(darkMode: Boolean)
+    fun isDarkMode(): Boolean
+    fun applyTheme()
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/GetThemeUseCase.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+class GetThemeUseCase(private val repository: ThemeRepository) {
+    fun execute(): Boolean {
+        return repository.isDarkMode()
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/domain/theme/SwitchThemeUseCase.kt ====
+package com.practicum.playlistmaker.domain.theme
+
+class SwitchThemeUseCase(private val repository: ThemeRepository) {
+    fun execute(darkMode: Boolean) {
+        repository.switchTheme(darkMode)
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/PresentationModule.kt ====
+package com.practicum.playlistmaker.di
+
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import com.practicum.playlistmaker.presentation.media.FavoritesViewModel
+import com.practicum.playlistmaker.presentation.media.MediaViewModel
+import com.practicum.playlistmaker.presentation.media.NewPlaylistViewModel
+import com.practicum.playlistmaker.presentation.media.PlaylistViewModel
+import com.practicum.playlistmaker.presentation.media.PlaylistsViewModel
+import com.practicum.playlistmaker.presentation.player.AudioPlayerViewModel
+import com.practicum.playlistmaker.presentation.search.SearchViewModel
+import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+
+val presentationModule = module {
+    viewModel { ThemeViewModel(get(), get()) }
+    viewModel { SearchViewModel(get(), get(), get(), get()) }
+    viewModel { MediaViewModel() }
+    viewModel { FavoritesViewModel(get()) }
+    viewModel { PlaylistsViewModel(get()) }
+
+    factory {
+        MediaPlayer().apply {
+            setAudioAttributes(
+                AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA).build()
+            )
+        }
+    }
+    viewModel { AudioPlayerViewModel(get(), get(), get(), get(), get(), get()) }
+
+    viewModel { NewPlaylistViewModel(get()) }
+
+    viewModel { PlaylistViewModel(get(), get(), get()) }
+
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/DomainModule.kt ====
+package com.practicum.playlistmaker.di
+
+import com.practicum.playlistmaker.domain.favorites.AddToFavoritesUseCase
+import com.practicum.playlistmaker.domain.favorites.GetFavoritesUseCase
+import com.practicum.playlistmaker.domain.favorites.IsFavoriteUseCase
+import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
+import com.practicum.playlistmaker.domain.history.AddTrackToHistoryUseCase
+import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
+import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
+import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
+import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
+import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
+import org.koin.dsl.module
+
+val domainModule = module {
+    // Theme
+    factory { GetThemeUseCase(get()) }
+    factory { SwitchThemeUseCase(get()) }
+
+    // History
+    factory { AddTrackToHistoryUseCase(get()) }
+    factory { ClearSearchHistoryUseCase(get()) }
+    factory { GetSearchHistoryUseCase(get()) }
+
+    // Search
+    factory { SearchTracksUseCase(get()) }
+
+    // Favorites
+    factory { AddToFavoritesUseCase(get()) }
+    factory { RemoveFromFavoritesUseCase(get()) }
+    factory { GetFavoritesUseCase(get()) }
+    factory { IsFavoriteUseCase(get()) }
+
+    // Playlist
+    factory { CreatePlaylistUseCase(get()) }
+    factory { GetPlaylistsUseCase(get()) }
+    factory { AddTrackToPlaylistUseCase(get(), get()) }
+    factory { GetPlaylistByIdUseCase(get()) }
+    factory { GetTracksForPlaylistUseCase(get()) }
+    factory { DeleteTrackFromPlaylistUseCase(get(), get()) }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/DataModule.kt ====
+package com.practicum.playlistmaker.di
+
+import android.app.Application
+import android.content.Context
+import android.content.SharedPreferences
+import androidx.room.Room
+import com.google.gson.Gson
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.favorites.FavoritesRepositoryImpl
+import com.practicum.playlistmaker.data.favorites.db.AppDatabase
+import com.practicum.playlistmaker.data.history.SearchHistoryRepositorImpl
+import com.practicum.playlistmaker.data.network.ITunesApi
+import com.practicum.playlistmaker.data.network.RetrofitNetworkClient
+import com.practicum.playlistmaker.data.playlist.CoverFileManager
+import com.practicum.playlistmaker.data.playlist.NewPlaylistRepositoryImpl
+import com.practicum.playlistmaker.data.playlist.PlaylistTracksRepositoryImpl
+import com.practicum.playlistmaker.data.repository.TracksRepositoryImpl
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.data.theme.ThemeRepositoryImpl
+import com.practicum.playlistmaker.domain.favorites.FavoritesRepository
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.playlist.NewPlaylistRepository
+import com.practicum.playlistmaker.domain.playlist.PlaylistTracksRepository
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+
+val dataModule = module {
+    single<SharedPreferences>(named(Qualifiers.SETTINGS_PREFS)) {
+        get<Application>().getSharedPreferences(
+            SharedPrefs.PREFS_SETTINGS, Context.MODE_PRIVATE
+        )
+    }
+
+    single<SharedPreferences>(named(Qualifiers.SEARCH_PREFS)) {
+        get<Application>().getSharedPreferences(
+            SharedPrefs.PREFS_SEARCH_HISTORY, Context.MODE_PRIVATE
+        )
+    }
+
+    // File Manager for playlist covers
+    single { CoverFileManager(get()) }
+
+    // Theme
+    single<ThemeRepository> {
+        ThemeRepositoryImpl(get(named(Qualifiers.SETTINGS_PREFS)), get<Application>())
+    }
+
+    // History
+    single<SearchHistoryRepository> {
+        SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)), get())
+    }
+
+    // Gson
+    single { Gson() }
+
+    // Retrofit
+    single {
+        Retrofit.Builder().baseUrl("https://itunes.apple.com")
+            .addConverterFactory(GsonConverterFactory.create()).build()
+    }
+    single { get<Retrofit>().create(ITunesApi::class.java) }
+    single<NetworkClient> { RetrofitNetworkClient(get()) }
+
+    // Tracks
+    single<TracksRepository> { TracksRepositoryImpl(get()) }
+
+    // Favorites
+    single {
+        Room.databaseBuilder(
+            get(), AppDatabase::class.java, "playlist_maker_db"
+        ).build()
+    }
+
+    single { get<AppDatabase>().favoritesDao() }
+
+    single<FavoritesRepository> { FavoritesRepositoryImpl(get()) }
+
+    // Playlist
+    single<NewPlaylistRepository> {
+        NewPlaylistRepositoryImpl(
+            playlistDao = get<AppDatabase>().playlistDao(),
+            playlistTrackDao = get<AppDatabase>().playlistTrackDao(),
+            coverFileManager = get()
+        )
+    }
+
+    single { get<AppDatabase>().playlistTrackDao() }
+
+    single<PlaylistTracksRepository> { PlaylistTracksRepositoryImpl(get()) }
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/Qualifiers.kt ====
+package com.practicum.playlistmaker.di
+
+object Qualifiers {
+    const val SETTINGS_PREFS = "settingsPrefs"
+    const val SEARCH_PREFS = "searchPrefs"
+}==== ./app/src/main/java/com/practicum/playlistmaker/di/AppModule.kt ====
+package com.practicum.playlistmaker.di
+
+import org.koin.dsl.module
+
+val appModule = module {
+    includes(
+        dataModule, domainModule, presentationModule
+    )
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/NetworkClient.kt ====
+package com.practicum.playlistmaker.data
+
+import com.practicum.playlistmaker.data.dto.Response
+
+interface NetworkClient {
+    suspend fun doRequest(dto: Any): Response
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/storage/SharedPrefs.kt ====
+package com.practicum.playlistmaker.data.storage
+
+class SharedPrefs {
+    companion object {
+        const val PREFS_SETTINGS = "settings"
+        const val DARK_MODE_KEY = "dark_mode"
+        const val PREFS_SEARCH_HISTORY = "search_history"
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/network/RetrofitNetworkClient.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.Response
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+
+class RetrofitNetworkClient(private val iTunesApi: ITunesApi) : NetworkClient {
+
+    override suspend fun doRequest(dto: Any): Response {
+        return if (dto is TracksSearchRequest) {
+            val response = iTunesApi.findSong(dto.expression)
+            response.apply { resultCode = 200 }
+        } else {
+            Response().apply { resultCode = 400 }
+        }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/network/ITunesApi.kt ====
+package com.practicum.playlistmaker.data.network
+
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import retrofit2.http.GET
+import retrofit2.http.Query
+
+interface ITunesApi {
+    @GET("/search?entity=song")
+    suspend fun findSong(@Query("term") text: String): TracksSearchResponse
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/favorites/FavoritesRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.favorites
+
+import com.practicum.playlistmaker.data.favorites.db.FavoritesDao
+import com.practicum.playlistmaker.data.favorites.mapper.toEntity
+import com.practicum.playlistmaker.data.favorites.mapper.toTrack
+import com.practicum.playlistmaker.domain.favorites.FavoritesRepository
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class FavoritesRepositoryImpl(
+    private val dao: FavoritesDao
+) : FavoritesRepository {
+
+    override suspend fun add(track: Track) {
+        dao.addTrack(track.toEntity())
+    }
+
+    override suspend fun remove(trackId: Int) {
+        dao.removeTrack(trackId)
+    }
+
+    override fun getFavorites(): Flow<List<Track>> =
+        dao.getFavorites().map { list -> list.map { it.toTrack() } }
+
+    override suspend fun isFavorite(trackId: Int): Boolean = dao.isFavorite(trackId)
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/favorites/entity/FavoriteTrackEntity.kt ====
+package com.practicum.playlistmaker.data.favorites.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "favorite_tracks")
+data class FavoriteTrackEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val trackId: Int,
+    val trackName: String?,
+    val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+)==== ./app/src/main/java/com/practicum/playlistmaker/data/favorites/mapper/FavoriteTrackMapper.kt ====
+package com.practicum.playlistmaker.data.favorites.mapper
+
+import com.practicum.playlistmaker.data.favorites.entity.FavoriteTrackEntity
+import com.practicum.playlistmaker.domain.track.Track
+
+
+fun FavoriteTrackEntity.toTrack(): Track =
+    Track(
+        id,
+        trackId,
+        trackName,
+        artistsName,
+        trackTimeMillis,
+        artworkUrl100,
+        previewUrl,
+        collectionName,
+        releaseDate,
+        primaryGenreName,
+        country
+    )
+
+fun Track.toEntity(): FavoriteTrackEntity =
+    FavoriteTrackEntity(
+        id,
+        trackId!!,
+        trackName,
+        artistsName,
+        trackTimeMillis,
+        artworkUrl100,
+        previewUrl,
+        collectionName,
+        releaseDate,
+        primaryGenreName,
+        country
+    )==== ./app/src/main/java/com/practicum/playlistmaker/data/favorites/db/AppDatabase.kt ====
+package com.practicum.playlistmaker.data.favorites.db
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import com.practicum.playlistmaker.data.favorites.entity.FavoriteTrackEntity
+import com.practicum.playlistmaker.data.playlist.db.PlaylistDao
+import com.practicum.playlistmaker.data.playlist.db.PlaylistTrackDao
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistEntity
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistTrackEntity
+
+@Database(
+    entities = [FavoriteTrackEntity::class, PlaylistEntity::class, PlaylistTrackEntity::class],
+    version = 1,
+    exportSchema = false
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun favoritesDao(): FavoritesDao
+    abstract fun playlistDao(): PlaylistDao
+    abstract fun playlistTrackDao(): PlaylistTrackDao
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/favorites/db/FavoritesDao.kt ====
+package com.practicum.playlistmaker.data.favorites.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.practicum.playlistmaker.data.favorites.entity.FavoriteTrackEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface FavoritesDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addTrack(track: FavoriteTrackEntity)
+
+    @Query("DELETE FROM favorite_tracks WHERE trackId = :trackId")
+    suspend fun removeTrack(trackId: Int)
+
+    @Query("SELECT * FROM favorite_tracks ORDER BY id DESC")
+    fun getFavorites(): Flow<List<FavoriteTrackEntity>>
+
+    @Query("SELECT EXISTS(SELECT 1 FROM favorite_tracks WHERE trackId = :trackId)")
+    suspend fun isFavorite(trackId: Int): Boolean
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/repository/TracksRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.repository
+
+import com.practicum.playlistmaker.data.NetworkClient
+import com.practicum.playlistmaker.data.dto.TracksSearchRequest
+import com.practicum.playlistmaker.data.dto.TracksSearchResponse
+import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.domain.track.TracksRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+class TracksRepositoryImpl(
+    private val networkClient: NetworkClient
+) : TracksRepository {
+
+    override fun searchTrack(searchString: String): Flow<List<Track>> = flow {
+        val response = networkClient.doRequest(TracksSearchRequest(searchString))
+        if (response.resultCode == 200) {
+            emit(
+                (response as TracksSearchResponse).results.map {
+                    Track(
+                        it.id,
+                        it.trackId,
+                        it.trackName,
+                        it.artistsName,
+                        it.trackTimeMillis,
+                        it.artworkUrl100,
+                        it.previewUrl,
+                        it.collectionName,
+                        it.releaseDate,
+                        it.primaryGenreName,
+                        it.country
+                    )
+                })
+        } else {
+            throw Exception("Network error: ${response.resultCode}")
+        }
+    }
+}
+
+==== ./app/src/main/java/com/practicum/playlistmaker/data/history/SearchHistoryRepositorImpl.kt ====
+package com.practicum.playlistmaker.data.history
+
+import android.content.SharedPreferences
+import androidx.core.content.edit
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.history.SearchHistoryRepository
+import com.practicum.playlistmaker.domain.track.Track
+
+class SearchHistoryRepositorImpl(
+    private val sharedPreferences: SharedPreferences, private val gson: Gson
+) : SearchHistoryRepository {
+
+    private val historyKey = SharedPrefs.PREFS_SEARCH_HISTORY
+    private val maxHistorySize = 10
+
+    override fun getHistory(): List<Track> {
+        val json = sharedPreferences.getString(historyKey, null) ?: return emptyList()
+        val type = object : TypeToken<List<Track>>() {}.type
+        return gson.fromJson(json, type)
+    }
+
+    override fun addTrack(track: Track) {
+        val history = getHistory().toMutableList()
+        history.removeAll { it.trackId == track.trackId }
+        history.add(0, track)
+        if (history.size > maxHistorySize) {
+            history.subList(maxHistorySize, history.size).clear()
+        }
+        saveHistory(history)
+    }
+
+    override fun clearHistory() {
+        sharedPreferences.edit { remove(historyKey) }
+    }
+
+    private fun saveHistory(history: List<Track>) {
+        val limitedHistory =
+            if (history.size > maxHistorySize) history.subList(0, maxHistorySize) else history
+        val json = gson.toJson(limitedHistory)
+        sharedPreferences.edit { putString(historyKey, json) }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/PlaylistTracksRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.playlist
+
+import com.practicum.playlistmaker.data.playlist.db.PlaylistTrackDao
+import com.practicum.playlistmaker.data.playlist.mapper.toEntity
+import com.practicum.playlistmaker.data.playlist.mapper.toTrack
+import com.practicum.playlistmaker.domain.playlist.PlaylistTracksRepository
+import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class PlaylistTracksRepositoryImpl(
+    private val dao: PlaylistTrackDao
+) : PlaylistTracksRepository {
+
+    override suspend fun addTrack(playlistId: Long, track: Track) {
+        val entity = track.toEntity(playlistId)
+        dao.addTrackToPlaylist(entity)
+    }
+
+    override fun getTracks(playlistId: Long): Flow<List<Track>> =
+        dao.getTracksFromPlaylist(playlistId).map { list ->
+            list.map { it.toTrack() }
+        }
+
+    override suspend fun removeTrack(playlistId: Long, trackId: Int) {
+        dao.removeTrackFromPlaylist(playlistId, trackId)
+    }
+
+    override suspend fun getTracksOnce(playlistId: Long): List<Track> {
+        return dao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
+    }
+}
+==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/entity/PlaylistEntity.kt ====
+package com.practicum.playlistmaker.data.playlist.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "playlists")
+data class PlaylistEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val description: String?,
+    val coverUri: String?,
+    val trackCount: Int = 0
+)
+==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/entity/PlaylistTrackEntity.kt ====
+package com.practicum.playlistmaker.data.playlist.entity
+
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "playlist_tracks")
+data class PlaylistTrackEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val playlistId: Long,
+    val trackId: Int,
+    val trackName: String?,
+    val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+)==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/mapper/PlaylistMapper.kt ====
+package com.practicum.playlistmaker.data.playlist.mapper
+
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistEntity
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.domain.track.Track
+
+fun PlaylistEntity.toDomain(tracks: List<Track> = emptyList()): Playlist {
+    return Playlist(
+        id = id, title = title, description = description, coverUri = coverUri, tracksCount = tracks
+    )
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/mapper/PlaylistTrackMapper.kt ====
+package com.practicum.playlistmaker.data.playlist.mapper
+
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistTrackEntity
+import com.practicum.playlistmaker.domain.track.Track
+
+fun Track.toEntity(playlistId: Long): PlaylistTrackEntity =
+    PlaylistTrackEntity(
+        playlistId = playlistId,
+        trackId = trackId ?: 0,
+        trackName = trackName,
+        artistsName = artistsName,
+        trackTimeMillis = trackTimeMillis,
+        artworkUrl100 = artworkUrl100,
+        previewUrl = previewUrl,
+        collectionName = collectionName,
+        releaseDate = releaseDate,
+        primaryGenreName = primaryGenreName,
+        country = country
+    )
+
+fun PlaylistTrackEntity.toTrack(): Track =
+    Track(
+        id = 0L,
+        trackId = trackId,
+        trackName = trackName,
+        artistsName = artistsName,
+        trackTimeMillis = trackTimeMillis,
+        artworkUrl100 = artworkUrl100,
+        previewUrl = previewUrl,
+        collectionName = collectionName,
+        releaseDate = releaseDate,
+        primaryGenreName = primaryGenreName,
+        country = country
+    )
+==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/db/PlaylistTrackDao.kt ====
+package com.practicum.playlistmaker.data.playlist.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistTrackEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface PlaylistTrackDao {
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun addTrackToPlaylist(track: PlaylistTrackEntity)
+
+    @Query("SELECT * FROM playlist_tracks WHERE playlistId = :playlistId ORDER BY id DESC")
+    fun getTracksFromPlaylist(playlistId: Long): Flow<List<PlaylistTrackEntity>>
+
+    @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId AND trackId = :trackId")
+    suspend fun removeTrackFromPlaylist(playlistId: Long, trackId: Int)
+
+    @Query("SELECT * FROM playlist_tracks WHERE playlistId = :playlistId")
+    suspend fun getTracksFromPlaylistOnce(playlistId: Long): List<PlaylistTrackEntity>
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/db/PlaylistDao.kt ====
+package com.practicum.playlistmaker.data.playlist.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistEntity
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistTrackEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface PlaylistDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addPlaylist(playlist: PlaylistEntity)
+
+    @Query("SELECT * FROM playlists ORDER BY id DESC")
+    fun getPlaylists(): Flow<List<PlaylistEntity>>
+
+    @Query("SELECT * FROM playlists WHERE id = :playlistId LIMIT 1")
+    suspend fun getPlaylistById(playlistId: Long): PlaylistEntity?
+
+    @Query("UPDATE playlists SET trackCount = :count WHERE id = :playlistId")
+    suspend fun updateTrackCount(playlistId: Long, count: Int)
+
+}
+
+==== ./app/src/main/java/com/practicum/playlistmaker/data/playlist/NewPlaylistRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.playlist
+
+import android.net.Uri
+import com.practicum.playlistmaker.data.playlist.db.PlaylistDao
+import com.practicum.playlistmaker.data.playlist.db.PlaylistTrackDao
+import com.practicum.playlistmaker.data.playlist.entity.PlaylistEntity
+import com.practicum.playlistmaker.data.playlist.mapper.toDomain
+import com.practicum.playlistmaker.data.playlist.mapper.toTrack
+import com.practicum.playlistmaker.domain.playlist.NewPlaylistRepository
+import com.practicum.playlistmaker.domain.playlist.Playlist
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+class NewPlaylistRepositoryImpl(
+    private val playlistDao: PlaylistDao,
+    private val playlistTrackDao: PlaylistTrackDao,
+    private val coverFileManager: CoverFileManager
+) : NewPlaylistRepository {
+
+    override suspend fun createPlaylist(title: String, description: String?, coverUri: Uri?) {
+        val internalCoverPath = coverUri?.let { coverFileManager.copyCoverToInternalStorage(it) }
+
+        val entity = PlaylistEntity(
+            title = title,
+            description = description,
+            coverUri = internalCoverPath
+        )
+        playlistDao.addPlaylist(entity)
+    }
+
+    override fun getPlaylists(): Flow<List<Playlist>> {
+        return playlistDao.getPlaylists().map { playlistEntities ->
+            playlistEntities.map { playlistEntity ->
+                val tracks = getTracksForPlaylist(playlistEntity.id)
+                playlistEntity.toDomain(tracks)
+            }
+        }
+    }
+
+    override suspend fun getPlaylistById(id: Long): Playlist? {
+        val entity = playlistDao.getPlaylistById(id) ?: return null
+        val tracks = playlistTrackDao.getTracksFromPlaylistOnce(id).map { it.toTrack() }
+        return entity.toDomain(tracks)
+    }
+
+    override suspend fun updateTrackCount(id: Long, count: Int) {
+        playlistDao.updateTrackCount(id, count)
+    }
+
+    private suspend fun getTracksForPlaylist(playlistId: Long): List<com.practicum.playlistmaker.domain.track.Track> {
+        return playlistTrackDao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
+    }
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TrackDto.kt ====
+package com.practicum.playlistmaker.data.dto
+
+import com.google.gson.annotations.SerializedName
+
+data class TrackDto(
+    val id: Long,
+    val trackId: Int?,
+    val trackName: String?,
+    @SerializedName("artistName") val artistsName: String?,
+    val trackTimeMillis: Long?,
+    val artworkUrl100: String?,
+    val previewUrl: String?,
+    val collectionName: String?,
+    val releaseDate: String?,
+    val primaryGenreName: String?,
+    val country: String?
+)
+==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/Response.kt ====
+package com.practicum.playlistmaker.data.dto
+
+open class Response() {
+    var resultCode = 0
+}==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TracksSearchResponse.kt ====
+package com.practicum.playlistmaker.data.dto
+
+class TracksSearchResponse(
+    val results: List<TrackDto>) : Response()==== ./app/src/main/java/com/practicum/playlistmaker/data/dto/TracksSearchRequest.kt ====
+package com.practicum.playlistmaker.data.dto
+
+data class TracksSearchRequest(val expression: String)==== ./app/src/main/java/com/practicum/playlistmaker/data/theme/ThemeRepositoryImpl.kt ====
+package com.practicum.playlistmaker.data.theme
+
+import android.app.Application
+import android.content.SharedPreferences
+import android.content.res.Configuration
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.edit
+import com.practicum.playlistmaker.data.storage.SharedPrefs
+import com.practicum.playlistmaker.domain.theme.ThemeRepository
+
+class ThemeRepositoryImpl(
+    private val sharedPreferences: SharedPreferences, private val app: Application
+) : ThemeRepository {
+
+    private val themeKey = SharedPrefs.DARK_MODE_KEY
+
+    override fun isDarkMode(): Boolean {
+        if (sharedPreferences.contains(themeKey)) {
+            return sharedPreferences.getBoolean(themeKey, false)
+        }
+        val uiMode = app.resources.configuration.uiMode
+        val systemDarkMode =
+            (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        sharedPreferences.edit {
+            putBoolean(themeKey, systemDarkMode)
+        }
+
+        return systemDarkMode
+    }
+
+    override fun switchTheme(darkMode: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(themeKey, darkMode)
+        }
+
+        applyThemeInternal(darkMode)
+    }
+
+    override fun applyTheme() {
+        applyThemeInternal(isDarkMode())
+    }
+
+    private fun applyThemeInternal(darkMode: Boolean) {
+        AppCompatDelegate.setDefaultNightMode(
+            if (darkMode) AppCompatDelegate.MODE_NIGHT_YES
+            else AppCompatDelegate.MODE_NIGHT_NO
+        )
+    }
+}
