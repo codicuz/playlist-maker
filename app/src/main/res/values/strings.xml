@@ -80,4 +80,7 @@
     <string name="delete_track_message">Хотите удалить трек?</string>
     <string name="yes">ДА</string>
     <string name="no">НЕТ</string>
+    <string name="share">Поделиться</string>
+    <string name="edit_information">Редактировать информацию</string>
+    <string name="delete_playlist">Удалить плейлист</string>
 </resources>
