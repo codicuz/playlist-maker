@@ -3,9 +3,9 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/audioPlayerCoordinator"
-    android:background="@color/white"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/white"
     tools:context=".presentation.player.AudioPlayerFragment">
 
     <ProgressBar
@@ -30,8 +30,8 @@
                 android:id="@+id/playlistCover"
                 android:layout_width="match_parent"
                 android:layout_height="360dp"
-                android:contentDescription="@string/todo"
                 android:layout_marginBottom="24dp"
+                android:contentDescription="@string/todo"
                 android:scaleType="centerCrop"
                 tools:src="@drawable/ic_no_artwork_image" />
 
@@ -84,12 +84,12 @@
                 <ImageView
                     android:id="@+id/point_image"
                     style="@style/RcDelimiterTimeButton"
-                    android:backgroundTint="@color/app_black"
                     android:layout_width="4dp"
                     android:layout_height="4dp"
                     android:layout_marginHorizontal="8dp"
                     android:layout_marginBottom="8dp"
                     android:background="@drawable/ic_artists_time_delimiter"
+                    android:backgroundTint="@color/app_black"
                     android:contentDescription="@string/todo" />
 
                 <TextView
@@ -108,18 +108,18 @@
 
                 <ImageButton
                     android:id="@+id/playlistShareButton"
-                    android:backgroundTint="@android:color/transparent"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_marginEnd="16dp"
+                    android:backgroundTint="@android:color/transparent"
                     android:contentDescription="@string/todo"
                     android:src="@drawable/share" />
 
                 <ImageButton
                     android:id="@+id/playlistHamburgerButton"
-                    android:backgroundTint="@android:color/transparent"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
+                    android:backgroundTint="@android:color/transparent"
                     android:contentDescription="@string/todo"
                     android:src="@drawable/playlist_hamburger" />
 
@@ -158,10 +158,22 @@
             android:layout_marginBottom="30dp"
             android:background="@drawable/bg_bottom_sheet_shape" />
 
+        <TextView
+            android:id="@+id/emptyStateTextView"
+            android:layout_gravity="center"
+            android:textSize="16sp"
+            android:fontFamily="@font/ys_display_regular"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/empty_playlist_message"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/playlistRecyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:overScrollMode="never" />
+
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

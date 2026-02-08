@@ -70,10 +70,8 @@ class EditPlaylistFragment : Fragment() {
         setupListeners()
         observeViewModel()
 
-        // Загружаем данные плейлиста для редактирования
         viewModel.loadPlaylist(playlistId)
 
-        // Обработчик кнопки Back с проверкой изменений
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
             if (viewModel.hasChanges()) {
                 showDiscardChangesDialog()
@@ -131,7 +129,6 @@ class EditPlaylistFragment : Fragment() {
             viewModel.state.collectLatest { state ->
                 binding.createPlaylistButton.isEnabled = state.isSaveEnabled
 
-                // Заполняем поля данными плейлиста
                 if (!isTitleManuallyChanged && state.title != binding.playlistTitle.text.toString()) {
                     binding.playlistTitle.setText(state.title)
                 }
@@ -140,16 +137,13 @@ class EditPlaylistFragment : Fragment() {
                     binding.playlistDescription.setText(state.description)
                 }
 
-                // Загружаем обложку
                 loadCover(state)
 
-                // Показываем ошибки
                 state.error?.let { error ->
                     MaterialAlertDialogBuilder(requireContext()).setTitle(getString(R.string.Error))
                         .setMessage(error).setPositiveButton(getString(R.string.okay), null).show()
                 }
 
-                // Если успешно сохранено, закрываем фрагмент
                 if (state.success) {
                     Toast.makeText(
                         requireContext(),
@@ -170,7 +164,6 @@ class EditPlaylistFragment : Fragment() {
     }
 
     private fun loadCover(state: EditPlaylistScreenState) {
-        // 1. Сначала проверяем новую выбранную обложку
         state.coverUri?.let { uri ->
             Glide.with(requireContext())
                 .load(uri)
@@ -180,7 +173,6 @@ class EditPlaylistFragment : Fragment() {
             return
         }
 
-        // 2. Если новой нет, проверяем существующую обложку плейлиста
         state.playlist?.coverUri?.let { path ->
             try {
                 val file = File(path)
@@ -193,21 +185,15 @@ class EditPlaylistFragment : Fragment() {
                     return
                 }
             } catch (e: Exception) {
-                // Если ошибка - показываем плейсхолдер КАК ПРИ СОЗДАНИИ
             }
         }
 
-        // 3. Если ничего нет - показываем плейсхолдер КАК ПРИ СОЗДАНИИ (без скругления!)
         showPlaceholder()
     }
 
     private fun showPlaceholder() {
-        // ВАЖНО: НЕ ИСПОЛЬЗОВАТЬ Glide! Просто оставляем как в макете
-        // Если в макете установлен src="@drawable/ic_no_artwork_image",
-        // то просто показываем иконку добавления
         binding.addCoverIcon.visibility = View.VISIBLE
 
-        // Очищаем Glide если что-то было загружено
         Glide.with(requireContext()).clear(binding.playlistCover)
     }
     private fun hasGalleryPermission(): Boolean {

@@ -2,6 +2,7 @@ package com.practicum.playlistmaker.presentation.media
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -141,7 +142,7 @@ class PlaylistFragment : Fragment() {
 
         val trackCount = tracks.size
         val tracksText = resources.getQuantityString(
-            R.plurals.tracks_count_bracers, trackCount, trackCount
+            R.plurals.tracks_count, trackCount, trackCount
         )
         builder.append("$tracksText\n\n")
 
@@ -254,11 +255,6 @@ class PlaylistFragment : Fragment() {
 
             if (updated && playlistId == this.playlistId) {
                 viewModel.loadPlaylist(playlistId)
-                Toast.makeText(
-                    requireContext(),
-                    getString(R.string.playlist_updated_success),
-                    Toast.LENGTH_SHORT
-                ).show()
             }
         }
 
@@ -310,12 +306,13 @@ class PlaylistFragment : Fragment() {
             skipCollapsed = false
             peekHeight = (screenHeight * 0.35).toInt()
             halfExpandedRatio = 0.7f
-            state = BottomSheetBehavior.STATE_HIDDEN
+            state = BottomSheetBehavior.STATE_COLLAPSED
             isHideable = false
             isDraggable = true
         }
 
-        binding.overlay.isVisible = false
+        binding.overlay.isVisible = true
+        binding.overlay.alpha = 0.6f
         setupBottomSheetListeners()
     }
 
@@ -349,7 +346,7 @@ class PlaylistFragment : Fragment() {
             BottomSheetBehavior.BottomSheetCallback() {
 
             override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if (newState == BottomSheetBehavior.STATE_HIDDEN && viewModel.state.value.tracks.isNotEmpty()) {
+                if (newState == BottomSheetBehavior.STATE_HIDDEN) {
                     bottomSheet.post {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
@@ -367,30 +364,16 @@ class PlaylistFragment : Fragment() {
                         binding.overlay.alpha = 0.6f
                     }
 
-                    BottomSheetBehavior.STATE_HIDDEN -> {
-                        binding.overlay.isVisible = false
+                    else -> {
+                        binding.overlay.isVisible = true
+                        binding.overlay.alpha = 0.6f
                     }
                 }
             }
 
             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                val hasTracksNow = viewModel.state.value.tracks.isNotEmpty()
-
-                if (!hasTracksNow) {
-                    binding.overlay.isVisible = false
-                    return
-                }
-
-                when {
-                    slideOffset >= 0 -> {
-                        binding.overlay.isVisible = true
-                        binding.overlay.alpha = 0.6f
-                    }
-
-                    slideOffset < 0 -> {
-                        binding.overlay.isVisible = false
-                    }
-                }
+                binding.overlay.isVisible = true
+                binding.overlay.alpha = 0.6f
             }
         })
     }
@@ -463,30 +446,23 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun updateBottomSheetVisibility(tracks: List<Track>) {
-        if (!::bottomSheetBehavior.isInitialized) return
-
-        val screenHeight = resources.displayMetrics.heightPixels
-        val peekHeight = (screenHeight * 0.35).toInt()
         val hasTracks = tracks.isNotEmpty()
 
-        bottomSheetBehavior.peekHeight = peekHeight
-
         if (hasTracks) {
-            bottomSheetBehavior.isHideable = false
+            binding.playlistRecyclerView.isVisible = true
+            binding.emptyStateTextView.isVisible = false
+            binding.dragHandle.isVisible = true
             bottomSheetBehavior.isDraggable = true
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-            binding.overlay.isVisible = true
-            binding.overlay.alpha = 0.6f
         } else {
-            bottomSheetBehavior.isHideable = true
+            binding.playlistRecyclerView.isVisible = false
+            binding.emptyStateTextView.isVisible = true
+            binding.dragHandle.isVisible = true
             bottomSheetBehavior.isDraggable = false
-            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-            binding.overlay.isVisible = false
         }
 
-        binding.dragHandle.isVisible = hasTracks
-        binding.dragHandle.isClickable = hasTracks
-        binding.dragHandle.isEnabled = hasTracks
+        binding.bottomSheet.isVisible = true
+        binding.overlay.isVisible = true
+        binding.overlay.alpha = 0.6f
     }
 
     private fun loadPlaylistCover(coverUri: String?) {

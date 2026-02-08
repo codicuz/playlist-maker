@@ -45,7 +45,6 @@ class EditPlaylistViewModel(
                     originalTitle = playlist.title
                     originalDescription = playlist.description ?: ""
 
-                    // Исправьте получение coverUri:
                     val coverUri = playlist.coverUri?.let {
                         val file = File(it)
                         if (file.exists()) Uri.fromFile(file) else null

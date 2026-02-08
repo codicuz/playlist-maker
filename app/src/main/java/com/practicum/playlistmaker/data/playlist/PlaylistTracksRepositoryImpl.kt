@@ -25,7 +25,6 @@ class PlaylistTracksRepositoryImpl(
     override suspend fun removeTrack(playlistId: Long, trackId: Int) {
         dao.removeTrackFromPlaylist(playlistId, trackId)
 
-        // Проверяем, используется ли трек в других плейлистах
         cleanupOrphanedTracks(trackId)
     }
 
@@ -34,23 +33,18 @@ class PlaylistTracksRepositoryImpl(
     }
 
     override suspend fun deleteTracksForPlaylist(playlistId: Long) {
-        // Получаем все треки этого плейлиста
         val tracks = dao.getTracksFromPlaylistOnce(playlistId)
 
-        // Удаляем связи плейлиста с треками
         dao.deleteTracksFromPlaylist(playlistId)
 
-        // Для каждого трека проверяем, используется ли он еще где-то
         tracks.forEach { trackEntity ->
             cleanupOrphanedTracks(trackEntity.trackId)
         }
     }
 
-    // Новый метод для очистки орфанов
     private suspend fun cleanupOrphanedTracks(trackId: Int) {
         val usageCount = dao.getTrackUsageCount(trackId)
         if (usageCount == 0) {
-            // Трек не используется ни в одном плейлисте - удаляем его
             dao.deleteTrackFromAllPlaylists(trackId)
         }
     }
