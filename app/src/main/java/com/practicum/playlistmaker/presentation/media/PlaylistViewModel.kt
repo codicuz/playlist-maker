@@ -13,6 +13,7 @@ import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class PlaylistScreenState(
@@ -46,7 +47,7 @@ class PlaylistViewModel(
     }
 
     fun loadPlaylist(playlistId: Long) {
-        _state.value = _state.value.copy(isLoading = true, error = null)
+        _state.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
             try {
@@ -56,18 +57,23 @@ class PlaylistViewModel(
                 val totalDurationMinutes = calculateTotalDuration(tracks)
                 val trackCount = tracks.size
 
-                _state.value = _state.value.copy(
-                    playlist = playlist,
-                    tracks = tracks,
-                    totalDurationMinutes = totalDurationMinutes,
-                    trackCount = trackCount,
-                    isLoading = false
-                )
+                _state.update {
+                    it.copy(
+                        playlist = playlist,
+                        tracks = tracks,
+                        totalDurationMinutes = totalDurationMinutes,
+                        trackCount = trackCount,
+                        isLoading = false
+                    )
+                }
             } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    isLoading = false,
-                    error = e.message ?: resources.getString(R.string.error_download_playlist, e.message ?: "")
-                )
+                _state.update {
+                    it.copy(
+                        isLoading = false, error = e.message ?: resources.getString(
+                            R.string.error_download_playlist, e.message ?: ""
+                        )
+                    )
+                }
             }
         }
     }
@@ -77,11 +83,32 @@ class PlaylistViewModel(
             _state.value.playlist?.let { playlist ->
                 try {
                     deleteTrackFromPlaylistUseCase.execute(playlist.id, track.trackId)
-                    loadPlaylist(playlist.id)
+
+                    _state.update { currentState ->
+                        val updatedTracks =
+                            currentState.tracks.filter { it.trackId != track.trackId }
+                        val totalDurationMinutes = calculateTotalDuration(updatedTracks)
+
+                        val updatedPlaylist = currentState.playlist?.let { pl ->
+                            pl.copy(tracksCount = updatedTracks)
+                        }
+
+                        currentState.copy(
+                            playlist = updatedPlaylist,
+                            tracks = updatedTracks,
+                            totalDurationMinutes = totalDurationMinutes,
+                            trackCount = updatedTracks.size
+                        )
+                    }
+
                 } catch (e: Exception) {
-                    _state.value = _state.value.copy(
-                        error = resources.getString(R.string.error_deleting_track, e.message ?: "")
-                    )
+                    _state.update {
+                        it.copy(
+                            error = resources.getString(
+                                R.string.error_deleting_track, e.message ?: ""
+                            )
+                        )
+                    }
                 }
             }
         }
@@ -90,15 +117,16 @@ class PlaylistViewModel(
     fun deletePlaylist() {
         viewModelScope.launch {
             _state.value.playlist?.let { playlist ->
-                _state.value = _state.value.copy(isDeleting = true, error = null)
+                _state.update { it.copy(isDeleting = true, error = null) }
 
                 try {
                     deletePlaylistUseCase.execute(playlist.id)
                     _deletionEvent.value = DeletionEvent.Success
                 } catch (e: Exception) {
-                    _state.value = _state.value.copy(isDeleting = false)
+                    _state.update { it.copy(isDeleting = false) }
                     _deletionEvent.value = DeletionEvent.Error(
-                        e.message ?: resources.getString(R.string.unknown_error_over_deleting_playlist)
+                        e.message
+                            ?: resources.getString(R.string.unknown_error_over_deleting_playlist)
                     )
                 }
             }
