@@ -24,6 +24,7 @@ import com.practicum.playlistmaker.databinding.FragmentPlaylistBinding
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.adapter.TrackAdapter
+import com.practicum.playlistmaker.presentation.util.CoverLoader
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -86,7 +87,7 @@ class PlaylistFragment : Fragment() {
             )
             view.findViewById<TextView>(R.id.playlistMenuTrackCount).text = trackCountText
 
-            loadMenuCover(playlist.coverUri, view.findViewById(R.id.playlistMenuCover))
+            CoverLoader.loadMenuCover(playlist.coverUri, view.findViewById(R.id.playlistMenuCover))
         }
     }
 
@@ -467,21 +468,7 @@ class PlaylistFragment : Fragment() {
     }
 
     private fun loadPlaylistCover(coverUri: String?) {
-        if (!coverUri.isNullOrEmpty()) {
-            try {
-                val file = File(coverUri)
-                if (file.exists()) {
-                    binding.playlistCover.scaleType = ImageView.ScaleType.CENTER_CROP
-                    binding.playlistCover.setPadding(0, 0, 0, 0)
-                    Glide.with(requireContext()).load(file).into(binding.playlistCover)
-                    return
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        loadDefaultCover()
+        CoverLoader.loadPlaylistCover(coverUri, binding.playlistCover)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -498,15 +485,6 @@ class PlaylistFragment : Fragment() {
                 bottomSheetBehavior.state = savedState
             }
         }
-    }
-
-    private fun loadDefaultCover() {
-        val paddingPx = (60 * resources.displayMetrics.density).toInt()
-        binding.playlistCover.scaleType = ImageView.ScaleType.FIT_CENTER
-        binding.playlistCover.setPadding(paddingPx, paddingPx, paddingPx, paddingPx)
-
-        Glide.with(requireContext()).load(R.drawable.ic_no_artwork_image)
-            .into(binding.playlistCover)
     }
 
     override fun onDestroyView() {

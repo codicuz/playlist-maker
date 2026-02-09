@@ -67,11 +67,7 @@ class EditPlaylistFragment : Fragment() {
         viewModel.loadPlaylist(playlistId)
 
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {
-            if (viewModel.hasChanges()) {
-                showDiscardChangesDialog()
-            } else {
-                findNavController().navigateUp()
-            }
+            findNavController().navigateUp()
         }
 
         (activity as? MainActivity)?.hideBottomNav()
@@ -119,11 +115,7 @@ class EditPlaylistFragment : Fragment() {
         }
 
         binding.newPlayListBack.setOnClickListener {
-            if (viewModel.hasChanges()) {
-                showDiscardChangesDialog()
-            } else {
-                findNavController().navigateUp()
-            }
+            findNavController().navigateUp()
         }
     }
 
@@ -207,18 +199,6 @@ class EditPlaylistFragment : Fragment() {
 
     private fun hasGalleryPermission(): Boolean {
         return PermissionUtils.hasGalleryPermission(requireContext())
-    }
-
-    private fun showDiscardChangesDialog() {
-        MaterialAlertDialogBuilder(
-            requireContext(), R.style.MyDialogButton
-        ).setTitle(getString(R.string.discard_changes_title))
-            .setMessage(getString(R.string.discard_changes_message))
-            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
-                dialog.dismiss()
-            }.setPositiveButton(getString(R.string.discard)) { _, _ ->
-                findNavController().navigateUp()
-            }.show()
     }
 
     override fun onResume() {
