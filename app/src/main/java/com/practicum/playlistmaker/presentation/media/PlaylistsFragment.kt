@@ -41,10 +41,16 @@ class PlaylistsFragment : Fragment() {
             navigateToPlaylistFragment(playlist)
         }
 
-        val spacing = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
+        val layoutManager = GridLayoutManager(requireContext(), 2)
+        binding.playlistsItems.layoutManager = layoutManager
 
-        binding.playlistsItems.layoutManager = GridLayoutManager(requireContext(), 2)
-        binding.playlistsItems.addItemDecoration(GridSpacingItemDecoration(spacing))
+        binding.playlistsItems.addItemDecoration(
+            GridSpacingItemDecoration(
+                spanCount = 2,
+                spacingPx = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
+            )
+        )
+
         binding.playlistsItems.adapter = adapter
 
         binding.createPlaylistButton.setOnClickListener {
@@ -54,8 +60,7 @@ class PlaylistsFragment : Fragment() {
         }
 
         parentFragmentManager.setFragmentResultListener(
-            "playlist_deleted",
-            viewLifecycleOwner
+            "playlist_deleted", viewLifecycleOwner
         ) { _, bundle ->
             if (bundle.getBoolean("deleted")) {
                 viewModel.loadPlaylists()

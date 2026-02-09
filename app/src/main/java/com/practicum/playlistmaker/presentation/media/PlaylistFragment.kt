@@ -305,7 +305,7 @@ class PlaylistFragment : Fragment() {
             isFitToContents = false
             expandedOffset = 0
             skipCollapsed = false
-            peekHeight = (screenHeight * 0.35).toInt()
+            peekHeight = (screenHeight * 0.30).toInt()
             halfExpandedRatio = 0.7f
             state = BottomSheetBehavior.STATE_COLLAPSED
             isHideable = false

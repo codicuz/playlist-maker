@@ -8,11 +8,11 @@
         android:id="@+id/progressBar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:visibility="gone" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/contentContainer"
@@ -31,12 +31,16 @@
 
         <FrameLayout
             android:id="@+id/new_playlist_image"
-            android:layout_width="312dp"
-            android:layout_height="312dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:layout_marginTop="18dp"
+            android:layout_marginHorizontal="24dp"
+            app:layout_constraintWidth_max="312dp"
+            app:layout_constraintHeight_max="312dp"
+            app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/newPlayListBack">
+            app:layout_constraintTop_toBottomOf="@id/newPlayListBack" >
 
             <ImageView
                 android:id="@+id/playlist_cover"
@@ -58,10 +62,11 @@
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/text_input_title"
             style="@style/NewPlaylistInputs"
-            android:layout_width="409dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
             android:hint="@string/pl_title"
+            android:maxWidth="409dp"
             app:hintTextAppearance="@style/FloatingHintStyle"
             app:hintTextColor="?attr/colorStrokeBx"
             app:layout_constraintEnd_toEndOf="parent"
@@ -76,10 +81,11 @@
 
         <com.google.android.material.textfield.TextInputLayout
             style="@style/NewPlaylistInputs"
-            android:layout_width="409dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/pl_description"
+            android:maxWidth="409dp"
             app:hintTextAppearance="@style/FloatingHintStyle"
             app:hintTextColor="?attr/colorStrokeBx"
             app:layout_constraintEnd_toEndOf="parent"
