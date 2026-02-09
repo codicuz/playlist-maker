@@ -23,6 +23,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentNewPlaylistBinding
 import com.practicum.playlistmaker.presentation.main.MainActivity
+import com.practicum.playlistmaker.presentation.util.PermissionUtils
 import com.practicum.playlistmaker.presentation.util.Useful
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -196,15 +197,8 @@ class EditPlaylistFragment : Fragment() {
     }
 
     private fun hasGalleryPermission(): Boolean {
-        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_IMAGES
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        }
+        return PermissionUtils.hasGalleryPermission(requireContext())
 
-        return ContextCompat.checkSelfPermission(
-            requireContext(), permission
-        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun showDiscardChangesDialog() {
