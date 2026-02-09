@@ -19,4 +19,12 @@ object PermissionUtils {
             context, permission
         ) == PackageManager.PERMISSION_GRANTED
     }
+
+    fun getGalleryPermission(): String {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+    }
 }

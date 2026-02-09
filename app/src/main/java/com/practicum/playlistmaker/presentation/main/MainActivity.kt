@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initPermissionLauncher()
+        // Убираем автоматическую проверку разрешений при запуске
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.container_view) as? NavHostFragment
@@ -55,6 +56,24 @@ class MainActivity : AppCompatActivity() {
                     Log.d("PERMISSION", "Photo access denied")
                 }
             }
+    }
+
+    fun requestGalleryPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            Manifest.permission.READ_MEDIA_IMAGES
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+
+        val granted = ContextCompat.checkSelfPermission(
+            this, permission
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!granted) {
+            permissionLauncher.launch(permission)
+            return false
+        }
+        return true
     }
 
     fun hideBottomNav() {
