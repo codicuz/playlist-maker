@@ -1,8 +1,6 @@
 package com.practicum.playlistmaker.presentation.media
 
-import android.content.Context
 import android.net.Uri
-import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.R
@@ -91,7 +89,8 @@ class EditPlaylistViewModel(
     fun savePlaylist() {
         val current = _state.value
         if (current.title.isBlank()) {
-            _state.value = current.copy(error = resources.getString(R.string.no_empty_playlist_title))
+            _state.value =
+                current.copy(error = resources.getString(R.string.no_empty_playlist_title))
             return
         }
 
@@ -119,7 +118,8 @@ class EditPlaylistViewModel(
                 }
             } catch (e: Exception) {
                 _state.value = current.copy(
-                    isSaving = false, error = resources.getString(R.string.save_error, e.message ?: "")
+                    isSaving = false,
+                    error = resources.getString(R.string.save_error, e.message ?: "")
                 )
             }
         }

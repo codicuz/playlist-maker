@@ -1,8 +1,5 @@
 package com.practicum.playlistmaker.presentation.media
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,7 +8,6 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -38,9 +34,6 @@ class EditPlaylistFragment : Fragment() {
     private val viewModel: EditPlaylistViewModel by viewModel()
 
     private var playlistId: Long = -1
-
-    private var isTitleManuallyChanged = false
-    private var isDescriptionManuallyChanged = false
 
     private val pickCoverLauncher =
         registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -89,14 +82,26 @@ class EditPlaylistFragment : Fragment() {
     }
 
     private fun setupListeners() {
+
+        var previousTitle = ""
+        var previousDescription = ""
+
         binding.playlistTitle.addTextChangedListener {
-            isTitleManuallyChanged = true
-            viewModel.onTitleChanged(it.toString())
+            val currentText = it.toString()
+
+            if (currentText != previousTitle) {
+                viewModel.onTitleChanged(currentText)
+                previousTitle = currentText
+            }
         }
 
         binding.playlistDescription.addTextChangedListener {
-            isDescriptionManuallyChanged = true
-            viewModel.onDescriptionChanged(it.toString())
+            val currentText = it.toString()
+
+            if (currentText != previousDescription) {
+                viewModel.onDescriptionChanged(currentText)
+                previousDescription = currentText
+            }
         }
 
         binding.newPlaylistImage.setOnClickListener {
@@ -129,11 +134,11 @@ class EditPlaylistFragment : Fragment() {
             viewModel.state.collectLatest { state ->
                 binding.createPlaylistButton.isEnabled = state.isSaveEnabled
 
-                if (!isTitleManuallyChanged && state.title != binding.playlistTitle.text.toString()) {
+                if (!binding.playlistTitle.hasFocus()) {
                     binding.playlistTitle.setText(state.title)
                 }
 
-                if (!isDescriptionManuallyChanged && state.description != binding.playlistDescription.text.toString()) {
+                if (!binding.playlistDescription.hasFocus()) {
                     binding.playlistDescription.setText(state.description)
                 }
 
@@ -177,9 +182,8 @@ class EditPlaylistFragment : Fragment() {
                 val file = File(path)
                 if (file.exists()) {
                     Glide.with(requireContext()).load(file).transform(
-                            CenterCrop(),
-                            RoundedCorners(Useful.dpToPx(8f, requireContext()))
-                        ).into(binding.playlistCover)
+                        CenterCrop(), RoundedCorners(Useful.dpToPx(8f, requireContext()))
+                    ).into(binding.playlistCover)
                     binding.addCoverIcon.visibility = View.GONE
                     return
                 }
@@ -192,13 +196,11 @@ class EditPlaylistFragment : Fragment() {
 
     private fun showPlaceholder() {
         binding.addCoverIcon.visibility = View.VISIBLE
-
         Glide.with(requireContext()).clear(binding.playlistCover)
     }
 
     private fun hasGalleryPermission(): Boolean {
         return PermissionUtils.hasGalleryPermission(requireContext())
-
     }
 
     private fun showDiscardChangesDialog() {
