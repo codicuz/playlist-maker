@@ -21,6 +21,7 @@ data class EditPlaylistScreenState(
     val coverUri: Uri? = null,
     val isSaveEnabled: Boolean = false,
     val isSaving: Boolean = false,
+    val isLoading: Boolean = false,
     val error: String? = null,
     val success: Boolean = false
 )
@@ -39,6 +40,8 @@ class EditPlaylistViewModel(
     private var originalCoverUri: Uri? = null
 
     fun loadPlaylist(playlistId: Long) {
+        _state.value = _state.value.copy(isLoading = true, error = null)
+
         viewModelScope.launch {
             try {
                 val playlist = getPlaylistByIdUseCase.execute(playlistId)
@@ -57,11 +60,17 @@ class EditPlaylistViewModel(
                         title = originalTitle,
                         description = originalDescription,
                         coverUri = coverUri,
-                        isSaveEnabled = originalTitle.isNotBlank()
+                        isSaveEnabled = originalTitle.isNotBlank(),
+                        isLoading = false
+                    )
+                } else {
+                    _state.value = _state.value.copy(
+                        isLoading = false, error = resources.getString(R.string.playlist_not_found)
                     )
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
+                    isLoading = false,
                     error = resources.getString(R.string.error_download_playlist, e.message ?: "")
                 )
             }
@@ -88,9 +97,11 @@ class EditPlaylistViewModel(
 
     fun savePlaylist() {
         val current = _state.value
+
         if (current.title.isBlank()) {
-            _state.value =
-                current.copy(error = resources.getString(R.string.no_empty_playlist_title))
+            _state.value = current.copy(
+                error = resources.getString(R.string.no_empty_playlist_title)
+            )
             return
         }
 

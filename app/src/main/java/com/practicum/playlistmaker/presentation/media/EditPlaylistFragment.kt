@@ -8,6 +8,7 @@ import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -82,13 +83,11 @@ class EditPlaylistFragment : Fragment() {
     }
 
     private fun setupListeners() {
-
         var previousTitle = ""
         var previousDescription = ""
 
         binding.playlistTitle.addTextChangedListener {
             val currentText = it.toString()
-
             if (currentText != previousTitle) {
                 viewModel.onTitleChanged(currentText)
                 previousTitle = currentText
@@ -97,7 +96,6 @@ class EditPlaylistFragment : Fragment() {
 
         binding.playlistDescription.addTextChangedListener {
             val currentText = it.toString()
-
             if (currentText != previousDescription) {
                 viewModel.onDescriptionChanged(currentText)
                 previousDescription = currentText
@@ -132,7 +130,15 @@ class EditPlaylistFragment : Fragment() {
     private fun observeViewModel() {
         lifecycleScope.launch {
             viewModel.state.collectLatest { state ->
-                binding.createPlaylistButton.isEnabled = state.isSaveEnabled
+                binding.progressBar.isVisible = state.isLoading
+                binding.contentContainer.isVisible = !state.isLoading
+
+                binding.createPlaylistButton.isEnabled = state.isSaveEnabled && !state.isSaving
+                binding.createPlaylistButton.text = if (state.isSaving) {
+                    getString(R.string.saving)
+                } else {
+                    getString(R.string.save)
+                }
 
                 if (!binding.playlistTitle.hasFocus()) {
                     binding.playlistTitle.setText(state.title)
