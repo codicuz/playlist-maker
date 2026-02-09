@@ -90,10 +90,21 @@
     <string name="unknown_track_name">Без названия</string>
     <string name="unknown_track_time">--:--</string>
     <string name="unknown_playlist">Неизвестный плейлист</string>
-
     <string name="edit_playlist">Редактировать</string>
     <string name="save">Сохранить</string>
     <string name="playlist_updated">Плейлист \"%1$s\" обновлен</string>
     <string name="playlist_updated_success">Плейлист обновлен успешно</string>
     <string name="empty_playlist_message">В этом плейлисте нет треков</string>
+    <string name="discard_changes_title">Отменить изменения?</string>
+    <string name="discard_changes_message">Все внесённые изменения будут потеряны</string>
+    <string name="cancel">Отмена</string>
+    <string name="discard">Завершить</string>
+    <string name="error_download_playlist">Ошибка загрузки плейлиста: %1$s</string>
+    <string name="no_empty_playlist_title">Название плейлиста не может быть пустым</string>
+    <string name="playlist_not_found">Плейлист не найден</string>
+    <string name="save_error">Ошибка сохранения: %1$s</string>
+    <string name="error_deleting_track">Ошибка удаления трека: %1$s</string>
+    <string name="unknown_error_over_deleting_playlist">Неизвестная ошибка при удалении плейлиста</string>
+    <string name="unknown">Неизвестно</string>
+    <string name="error_deleteing">Ошибка удаления: %1$s</string>
 </resources>

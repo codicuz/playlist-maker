@@ -433,7 +433,8 @@ class PlaylistFragment : Fragment() {
 
                     is PlaylistViewModel.DeletionEvent.Error -> {
                         Toast.makeText(
-                            requireContext(), "Ошибка удаления: ${event.message}", Toast.LENGTH_LONG
+                            requireContext(),
+                            getString(R.string.error_deleteing, event.message), Toast.LENGTH_LONG
                         ).show()
                         viewModel.resetDeletionEvent()
                     }

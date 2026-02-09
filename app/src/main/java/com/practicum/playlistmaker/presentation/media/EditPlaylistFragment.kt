@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.result.PickVisualMediaRequest
@@ -165,8 +164,7 @@ class EditPlaylistFragment : Fragment() {
 
     private fun loadCover(state: EditPlaylistScreenState) {
         state.coverUri?.let { uri ->
-            Glide.with(requireContext())
-                .load(uri)
+            Glide.with(requireContext()).load(uri)
                 .transform(CenterCrop(), RoundedCorners(Useful.dpToPx(8f, requireContext())))
                 .into(binding.playlistCover)
             binding.addCoverIcon.visibility = View.GONE
@@ -177,10 +175,10 @@ class EditPlaylistFragment : Fragment() {
             try {
                 val file = File(path)
                 if (file.exists()) {
-                    Glide.with(requireContext())
-                        .load(file)
-                        .transform(CenterCrop(), RoundedCorners(Useful.dpToPx(8f, requireContext())))
-                        .into(binding.playlistCover)
+                    Glide.with(requireContext()).load(file).transform(
+                            CenterCrop(),
+                            RoundedCorners(Useful.dpToPx(8f, requireContext()))
+                        ).into(binding.playlistCover)
                     binding.addCoverIcon.visibility = View.GONE
                     return
                 }
@@ -196,6 +194,7 @@ class EditPlaylistFragment : Fragment() {
 
         Glide.with(requireContext()).clear(binding.playlistCover)
     }
+
     private fun hasGalleryPermission(): Boolean {
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
@@ -210,12 +209,12 @@ class EditPlaylistFragment : Fragment() {
 
     private fun showDiscardChangesDialog() {
         MaterialAlertDialogBuilder(
-            requireContext(),
-            R.style.MyDialogButton
-        ).setTitle("Отменить изменения?").setMessage("Все внесённые изменения будут потеряны")
-            .setNegativeButton("Отмена") { dialog, _ ->
+            requireContext(), R.style.MyDialogButton
+        ).setTitle(getString(R.string.discard_changes_title))
+            .setMessage(getString(R.string.discard_changes_message))
+            .setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
                 dialog.dismiss()
-            }.setPositiveButton("Завершить") { _, _ ->
+            }.setPositiveButton(getString(R.string.discard)) { _, _ ->
                 findNavController().navigateUp()
             }.show()
     }

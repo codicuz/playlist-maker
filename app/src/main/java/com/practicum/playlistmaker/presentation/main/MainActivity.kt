@@ -51,9 +51,9 @@ class MainActivity : AppCompatActivity() {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) {
-                    Log.d("PERMISSION", "Доступ к фото разрешен")
+                    Log.d("PERMISSION", "Photo access granted")
                 } else {
-                    Log.d("PERMISSION", "Доступ к фото запрещен")
+                    Log.d("PERMISSION", "Photo access denied")
                 }
             }
     }

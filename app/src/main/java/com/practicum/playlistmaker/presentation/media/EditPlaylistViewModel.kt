@@ -5,9 +5,11 @@ import android.net.Uri
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.playlist.EditPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
+import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +29,8 @@ data class EditPlaylistScreenState(
 
 class EditPlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
-    private val editPlaylistUseCase: EditPlaylistUseCase
+    private val editPlaylistUseCase: EditPlaylistUseCase,
+    private val resources: ResourceProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(EditPlaylistScreenState())
@@ -61,30 +64,9 @@ class EditPlaylistViewModel(
                 }
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
-                    error = "Ошибка загрузки плейлиста: ${e.message}"
+                    error = resources.getString(R.string.error_download_playlist, e.message ?: "")
                 )
             }
-        }
-    }
-
-    private fun getCoverUriFromPath(path: String?, context: Context): Uri? {
-        return if (!path.isNullOrEmpty()) {
-            try {
-                val file = File(path)
-                if (file.exists()) {
-                    FileProvider.getUriForFile(
-                        context,
-                        "${context.packageName}.fileprovider",
-                        file
-                    )
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
-        } else {
-            null
         }
     }
 
@@ -109,7 +91,7 @@ class EditPlaylistViewModel(
     fun savePlaylist() {
         val current = _state.value
         if (current.title.isBlank()) {
-            _state.value = current.copy(error = "Название плейлиста не может быть пустым")
+            _state.value = current.copy(error = resources.getString(R.string.no_empty_playlist_title))
             return
         }
 
@@ -132,12 +114,12 @@ class EditPlaylistViewModel(
                     _state.value = current.copy(isSaving = false, success = true)
                 } ?: run {
                     _state.value = current.copy(
-                        isSaving = false, error = "Плейлист не найден"
+                        isSaving = false, error = resources.getString(R.string.playlist_not_found)
                     )
                 }
             } catch (e: Exception) {
                 _state.value = current.copy(
-                    isSaving = false, error = "Ошибка сохранения: ${e.message}"
+                    isSaving = false, error = resources.getString(R.string.save_error, e.message ?: "")
                 )
             }
         }

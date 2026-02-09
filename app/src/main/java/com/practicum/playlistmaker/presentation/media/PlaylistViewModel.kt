@@ -2,12 +2,14 @@ package com.practicum.playlistmaker.presentation.media
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.playlist.DeletePlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +30,8 @@ class PlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
     private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase,
     private val deleteTrackFromPlaylistUseCase: DeleteTrackFromPlaylistUseCase,
-    private val deletePlaylistUseCase: DeletePlaylistUseCase
+    private val deletePlaylistUseCase: DeletePlaylistUseCase,
+    private val resources: ResourceProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PlaylistScreenState())
@@ -63,7 +66,7 @@ class PlaylistViewModel(
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
                     isLoading = false,
-                    error = e.message ?: "Ошибка загрузки плейлиста"
+                    error = e.message ?: resources.getString(R.string.error_download_playlist, e.message ?: "")
                 )
             }
         }
@@ -77,7 +80,7 @@ class PlaylistViewModel(
                     loadPlaylist(playlist.id)
                 } catch (e: Exception) {
                     _state.value = _state.value.copy(
-                        error = "Ошибка удаления трека: ${e.message}"
+                        error = resources.getString(R.string.error_deleting_track, e.message ?: "")
                     )
                 }
             }
@@ -95,7 +98,7 @@ class PlaylistViewModel(
                 } catch (e: Exception) {
                     _state.value = _state.value.copy(isDeleting = false)
                     _deletionEvent.value = DeletionEvent.Error(
-                        e.message ?: "Неизвестная ошибка при удалении плейлиста"
+                        e.message ?: resources.getString(R.string.unknown_error_over_deleting_playlist)
                     )
                 }
             }
