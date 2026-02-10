@@ -1,53 +1,23 @@
 package com.practicum.playlistmaker.presentation.media
 
 import android.net.Uri
-import androidx.annotation.StringRes
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
-data class NewPlaylistScreenState(
-    val title: String = "",
-    val description: String = "",
-    val coverUri: Uri? = null,
-    val isCreateEnabled: Boolean = false,
-    val isCreating: Boolean = false,
-    @StringRes val error: Int? = null,
-    val success: Boolean = false
-)
 
 class NewPlaylistViewModel(
     private val createPlaylistUseCase: CreatePlaylistUseCase
-) : ViewModel() {
+) : BasePlaylistViewModel() {
 
-    private val _state = MutableStateFlow(NewPlaylistScreenState())
-    val state: StateFlow<NewPlaylistScreenState> = _state.asStateFlow()
-
-    fun onTitleChanged(title: String) {
-        _state.update { it.copy(title = title, isCreateEnabled = title.isNotBlank()) }
-    }
-
-    fun onDescriptionChanged(description: String) {
-        _state.update { it.copy(description = description) }
-    }
-
-    fun onCoverSelected(uri: Uri) {
-        _state.update { it.copy(coverUri = uri) }
-    }
-
-    fun createPlaylist() {
+    override fun save() {
         val current = _state.value
         if (current.title.isBlank()) {
-            _state.update { it.copy(error = R.string.error_playlist_title_empty) }
+            _state.value = current.copy(error = getString(R.string.error_playlist_title_empty))
             return
         }
 
-        _state.update { it.copy(isCreating = true, error = null) }
+        _state.value = current.copy(isCreating = true, error = null)
 
         viewModelScope.launch {
             try {
@@ -56,14 +26,18 @@ class NewPlaylistViewModel(
                     description = current.description,
                     coverUri = current.coverUri
                 )
-                _state.update { it.copy(isCreating = false, success = true) }
+                _state.value = current.copy(isCreating = false, success = true)
             } catch (e: Exception) {
-                _state.update { it.copy(isCreating = false, error = R.string.unknown_error) }
+                _state.value = current.copy(isCreating = false, error = getString(R.string.unknown_error))
             }
         }
     }
 
-    private fun <T> MutableStateFlow<T>.update(block: (T) -> T) {
-        value = block(value)
+    private fun getString(resId: Int): String {
+        return when (resId) {
+            R.string.error_playlist_title_empty -> "Название плейлиста не может быть пустым"
+            R.string.unknown_error -> "Неизвестная ошибка"
+            else -> ""
+        }
     }
 }

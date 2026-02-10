@@ -7,7 +7,9 @@ import com.practicum.playlistmaker.databinding.PlaylistItemBinding
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.presentation.viewholder.PlaylistViewHolder
 
-class PlaylistAdapter : RecyclerView.Adapter<PlaylistViewHolder>() {
+class PlaylistAdapter(
+    private val onPlaylistClick: (Playlist) -> Unit
+) : RecyclerView.Adapter<PlaylistViewHolder>() {
 
     private val items = mutableListOf<Playlist>()
 
@@ -23,7 +25,7 @@ class PlaylistAdapter : RecyclerView.Adapter<PlaylistViewHolder>() {
             parent,
             false
         )
-        return PlaylistViewHolder(binding)
+        return PlaylistViewHolder(binding, onPlaylistClick)
     }
 
     override fun onBindViewHolder(holder: PlaylistViewHolder, position: Int) {

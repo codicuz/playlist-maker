@@ -108,4 +108,20 @@
         <item name="android:backgroundTint">@color/white</item>
     </style>
 
+    <style name="PlaylistTitle" parent="PlaylistTitleBase">
+        <item name="android:textColor">@color/app_black</item>
+    </style>
+
+    <style name="PlaylistText" parent="PlaylistTextBase">
+        <item name="android:textColor">@color/app_black</item>
+    </style>
+
+    <style name="PlaylistMenuTitle" parent="PlaylistMenuTitleBase">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <style name="PlaylistMenuTrackCount" parent="PlaylistMenuTrackCountBase">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
 </resources>

@@ -24,9 +24,28 @@ class PlaylistTracksRepositoryImpl(
 
     override suspend fun removeTrack(playlistId: Long, trackId: Int) {
         dao.removeTrackFromPlaylist(playlistId, trackId)
+
+        cleanupOrphanedTracks(trackId)
     }
 
     override suspend fun getTracksOnce(playlistId: Long): List<Track> {
         return dao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
+    }
+
+    override suspend fun deleteTracksForPlaylist(playlistId: Long) {
+        val tracks = dao.getTracksFromPlaylistOnce(playlistId)
+
+        dao.deleteTracksFromPlaylist(playlistId)
+
+        tracks.forEach { trackEntity ->
+            cleanupOrphanedTracks(trackEntity.trackId)
+        }
+    }
+
+    private suspend fun cleanupOrphanedTracks(trackId: Int) {
+        val usageCount = dao.getTrackUsageCount(trackId)
+        if (usageCount == 0) {
+            dao.deleteTrackFromAllPlaylists(trackId)
+        }
     }
 }

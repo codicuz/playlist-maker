@@ -9,7 +9,12 @@ import com.practicum.playlistmaker.domain.history.ClearSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.CreatePlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.DeletePlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.DeleteTrackFromPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.EditPlaylistUseCase
+import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
+import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
 import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
@@ -37,7 +42,13 @@ val domainModule = module {
     // Playlist
     factory { CreatePlaylistUseCase(get()) }
     factory { GetPlaylistsUseCase(get()) }
-    factory { AddTrackToPlaylistUseCase(get(), get()) }
+    factory { AddTrackToPlaylistUseCase(get(), get(), get()) }
+    factory { GetPlaylistByIdUseCase(get()) }
+    factory { GetTracksForPlaylistUseCase(get()) }
+    factory { DeleteTrackFromPlaylistUseCase(get(), get()) }
 
+    factory { DeletePlaylistUseCase(get(), get()) }
+
+    factory { EditPlaylistUseCase(get()) }
 
 }

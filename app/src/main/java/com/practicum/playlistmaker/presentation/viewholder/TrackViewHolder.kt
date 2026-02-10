@@ -9,7 +9,9 @@ import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.Useful
 
 class TrackViewHolder(
-    private val binding: RecordItemBinding, private val onTrackClick: (Track) -> Unit
+    private val binding: RecordItemBinding,
+    private val onTrackClick: (Track) -> Unit,
+    private val onTrackLongClick: (Track) -> Unit
 ) : RecyclerView.ViewHolder(binding.root) {
     fun bind(item: Track) {
         binding.trackName.text = item.trackName
@@ -22,6 +24,11 @@ class TrackViewHolder(
 
         itemView.setOnClickListener {
             onTrackClick(item)
+        }
+
+        itemView.setOnLongClickListener {
+            onTrackLongClick(item)
+            true
         }
     }
 }

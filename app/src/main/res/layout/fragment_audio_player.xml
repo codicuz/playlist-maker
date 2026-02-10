@@ -263,32 +263,33 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#99000000"
-        android:visibility="gone"
         android:clickable="true"
-        android:focusable="true" />
+        android:focusable="true"
+        android:visibility="gone" />
 
     <LinearLayout
         android:id="@+id/bottomSheet"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:background="@drawable/bg_bottom_sheet"
-        android:paddingTop="8dp"
         android:orientation="vertical"
+        android:paddingTop="8dp"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
 
         <View
-            android:layout_width="50dp"
+            android:id="@+id/dragHandle"
             style="@style/BottomSheetCap"
+            android:layout_width="50dp"
             android:layout_height="4dp"
-            android:layout_marginBottom="30dp"
             android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="30dp"
             android:background="@drawable/bg_bottom_sheet_shape" />
 
         <TextView
             android:id="@+id/bottomSheetTitle"
-            android:layout_marginBottom="28dp"
-            style="@style/BottomSheetText" />
+            style="@style/BottomSheetText"
+            android:layout_marginBottom="28dp" />
 
         <Button
             android:id="@+id/createNewPlaylistButtonSheet"
@@ -300,7 +301,7 @@
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/playlistRecyclerView"
             android:layout_width="match_parent"
-            android:layout_height="200dp"
+            android:layout_height="match_parent"
             android:layout_marginTop="16dp"
             android:overScrollMode="never" />
     </LinearLayout>

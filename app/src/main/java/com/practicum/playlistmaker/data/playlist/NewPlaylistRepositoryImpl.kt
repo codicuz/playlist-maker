@@ -21,11 +21,28 @@ class NewPlaylistRepositoryImpl(
         val internalCoverPath = coverUri?.let { coverFileManager.copyCoverToInternalStorage(it) }
 
         val entity = PlaylistEntity(
-            title = title,
-            description = description,
-            coverUri = internalCoverPath
+            title = title, description = description, coverUri = internalCoverPath
         )
         playlistDao.addPlaylist(entity)
+    }
+
+    override suspend fun updatePlaylist(
+        playlistId: Long,
+        title: String,
+        description: String?,
+        coverUri: Uri?
+    ) {
+        val internalCoverPath = coverUri?.let { coverFileManager.copyCoverToInternalStorage(it) }
+
+        val existingPlaylist = playlistDao.getPlaylistById(playlistId)
+        if (existingPlaylist != null) {
+            val updatedEntity = existingPlaylist.copy(
+                title = title,
+                description = description,
+                coverUri = internalCoverPath ?: existingPlaylist.coverUri
+            )
+            playlistDao.updatePlaylist(updatedEntity)
+        }
     }
 
     override fun getPlaylists(): Flow<List<Playlist>> {
@@ -49,5 +66,9 @@ class NewPlaylistRepositoryImpl(
 
     private suspend fun getTracksForPlaylist(playlistId: Long): List<com.practicum.playlistmaker.domain.track.Track> {
         return playlistTrackDao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
+    }
+
+    override suspend fun deletePlaylist(playlistId: Long) {
+        playlistDao.deletePlaylist(playlistId)
     }
 }

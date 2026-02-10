@@ -9,7 +9,8 @@ import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.viewholder.TrackViewHolder
 
 class TrackAdapter(
-    private val onTrackClick: (Track) -> Unit
+    private val onTrackClick: (Track) -> Unit,
+    private val onTrackLongClick: (Track) -> Unit
 ) : RecyclerView.Adapter<TrackViewHolder>() {
     private val items = mutableListOf<Track>()
 
@@ -24,8 +25,9 @@ class TrackAdapter(
         val binding = RecordItemBinding.inflate(
             LayoutInflater.from(parent.context), parent, false
         )
-        return TrackViewHolder(binding, onTrackClick)
+        return TrackViewHolder(binding, onTrackClick, onTrackLongClick)
     }
+
 
     override fun onBindViewHolder(holder: TrackViewHolder, position: Int) {
         holder.bind(items[position])

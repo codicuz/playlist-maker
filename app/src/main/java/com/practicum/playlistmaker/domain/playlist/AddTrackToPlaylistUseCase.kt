@@ -1,14 +1,17 @@
 package com.practicum.playlistmaker.domain.playlist
 
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.util.ResourceProvider
 
 class AddTrackToPlaylistUseCase(
     private val repository: PlaylistTracksRepository,
-    private val playlistRepository: NewPlaylistRepository
+    private val playlistRepository: NewPlaylistRepository,
+    private val resources: ResourceProvider
 ) {
     suspend fun execute(playlistId: Long, track: Track): AddTrackResult {
         val playlist = playlistRepository.getPlaylistById(playlistId)
-        val playlistName = playlist?.title ?: "Unknown"
+        val playlistName = playlist?.title ?: resources.getString(R.string.unknown)
 
         val existingTracks = repository.getTracksOnce(playlistId)
         val isAlreadyInPlaylist = existingTracks.any { it.trackId == track.trackId }
@@ -23,7 +26,7 @@ class AddTrackToPlaylistUseCase(
             playlistRepository.updateTrackCount(playlistId, tracks.size)
             return AddTrackResult.Success(playlistName)
         } catch (e: Exception) {
-            return AddTrackResult.Error(e.message ?: "Неизвестная ошибка")
+            return AddTrackResult.Error(e.message ?: resources.getString(R.string.unknown_error))
         }
     }
 }

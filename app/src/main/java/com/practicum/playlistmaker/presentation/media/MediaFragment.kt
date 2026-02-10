@@ -8,6 +8,7 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.tabs.TabLayoutMediator
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.databinding.FragmentMediaBinding
+import com.practicum.playlistmaker.presentation.main.MainActivity
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class MediaFragment : Fragment() {
@@ -38,6 +39,11 @@ class MediaFragment : Fragment() {
             }
         }.attach()
 
+    }
+
+    override fun onResume() {
+        super.onResume()
+        (activity as? MainActivity)?.showBottomNav()
     }
 
     override fun onDestroyView() {

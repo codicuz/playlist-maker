@@ -23,6 +23,8 @@ import com.practicum.playlistmaker.domain.playlist.NewPlaylistRepository
 import com.practicum.playlistmaker.domain.playlist.PlaylistTracksRepository
 import com.practicum.playlistmaker.domain.theme.ThemeRepository
 import com.practicum.playlistmaker.domain.track.TracksRepository
+import com.practicum.playlistmaker.presentation.util.AndroidResourceProvider
+import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -91,4 +93,8 @@ val dataModule = module {
     single { get<AppDatabase>().playlistTrackDao() }
 
     single<PlaylistTracksRepository> { PlaylistTracksRepositoryImpl(get()) }
+
+    // Resource Provider
+    factory<ResourceProvider> { AndroidResourceProvider(get()) }
+
 }

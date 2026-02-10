@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initPermissionLauncher()
-        checkGalleryPermission()
+        // Убираем автоматическую проверку разрешений при запуске
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.container_view) as? NavHostFragment
@@ -38,7 +38,9 @@ class MainActivity : AppCompatActivity() {
 
             navController.addOnDestinationChangedListener { _, destination, _ ->
                 when (destination.id) {
-                    R.id.audioPlayerFragment, R.id.newPlaylistFragment -> hideBottomNav()
+                    R.id.audioPlayerFragment,
+                    R.id.newPlaylistFragment,
+                    R.id.playlistFragment -> hideBottomNav()
                     else -> showBottomNav()
                 }
             }
@@ -49,14 +51,14 @@ class MainActivity : AppCompatActivity() {
         permissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 if (granted) {
-                    Log.d("PERMISSION", "Доступ к фото разрешен")
+                    Log.d("PERMISSION", "Photo access granted")
                 } else {
-                    Log.d("PERMISSION", "Доступ к фото запрещен")
+                    Log.d("PERMISSION", "Photo access denied")
                 }
             }
     }
 
-    private fun checkGalleryPermission() {
+    fun requestGalleryPermission(): Boolean {
         val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Manifest.permission.READ_MEDIA_IMAGES
         } else {
@@ -69,7 +71,9 @@ class MainActivity : AppCompatActivity() {
 
         if (!granted) {
             permissionLauncher.launch(permission)
+            return false
         }
+        return true
     }
 
     fun hideBottomNav() {

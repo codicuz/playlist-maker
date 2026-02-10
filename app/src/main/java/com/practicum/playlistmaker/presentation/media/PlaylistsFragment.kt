@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
@@ -18,14 +19,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
-
 class PlaylistsFragment : Fragment() {
 
     private var _binding: FragmentPlaylistsBinding? = null
     private val binding get() = _binding!!
 
     private val viewModel: PlaylistsViewModel by viewModel()
-
     private lateinit var adapter: PlaylistAdapter
 
     override fun onCreateView(
@@ -38,12 +37,19 @@ class PlaylistsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        adapter = PlaylistAdapter()
+        adapter = PlaylistAdapter { playlist ->
+            navigateToPlaylistFragment(playlist)
+        }
 
-        val spacing = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
+        val layoutManager = GridLayoutManager(requireContext(), 2)
+        binding.playlistsItems.layoutManager = layoutManager
 
-        binding.playlistsItems.layoutManager = GridLayoutManager(requireContext(), 2)
-        binding.playlistsItems.addItemDecoration(GridSpacingItemDecoration(spacing))
+        binding.playlistsItems.addItemDecoration(
+            GridSpacingItemDecoration(
+                spanCount = 2,
+                spacingPx = resources.getDimensionPixelSize(R.dimen.grid_spacing_8)
+            )
+        )
 
         binding.playlistsItems.adapter = adapter
 
@@ -51,6 +57,19 @@ class PlaylistsFragment : Fragment() {
             findNavController().navigate(
                 R.id.action_mediaFragment_to_newPlaylistFragment
             )
+        }
+
+        parentFragmentManager.setFragmentResultListener(
+            "playlist_deleted", viewLifecycleOwner
+        ) { _, bundle ->
+            if (bundle.getBoolean("deleted")) {
+                viewModel.loadPlaylists()
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.playlist_deleted_success),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
         }
 
         observeViewModel()
@@ -76,11 +95,19 @@ class PlaylistsFragment : Fragment() {
         }
     }
 
+    private fun navigateToPlaylistFragment(playlist: Playlist) {
+        val bundle = Bundle().apply {
+            putLong("playlistId", playlist.id)
+        }
+        findNavController().navigate(
+            R.id.action_mediaFragment_to_playlistFragment, bundle
+        )
+    }
+
     override fun onResume() {
         super.onResume()
         (activity as? MainActivity)?.showBottomNav()
     }
-
 
     override fun onDestroyView() {
         super.onDestroyView()

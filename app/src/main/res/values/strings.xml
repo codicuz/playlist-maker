@@ -43,7 +43,6 @@
     <string name="empty_media">Ваша медиатека пуста</string>
     <string name="empty_playlists">Вы не создали\n ни одного плейлиста</string>
     <string name="audio_playback_attribution">This app plays audio</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="new_play_list">Новый плейлист</string>
     <string name="pl_title">Название*</string>
@@ -69,4 +68,44 @@
         <item quantity="many">%d трэков</item>
         <item quantity="other">%d трэков</item>
     </plurals>
+    <string name="zero_minutes">0 минут</string>
+    <plurals name="tracks_minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минут</item>
+    </plurals>
+    <string name="delete_track_title">Хотите удалить трек?</string>
+    <string name="yes">ДА</string>
+    <string name="no">НЕТ</string>
+    <string name="share">Поделиться</string>
+    <string name="edit_information">Редактировать информацию</string>
+    <string name="delete_playlist">Удалить плейлист</string>
+    <string name="delete_playlist_title">Хотите удалить плейлист «%1$s»? </string>
+    <string name="delete_playlist_message">Хотите удалить плейлист?</string>
+    <string name="playlist_deleted_success">Плейлист успешно удален</string>
+    <string name="no_intent_handle_">Не удалось выполнить действие</string>
+    <string name="no_shareable_playlist">В этом плейлисте нет списка треков, которым можно поделиться</string>
+    <string name="unknown_artist">Неизвестный исполнитель</string>
+    <string name="unknown_track_name">Без названия</string>
+    <string name="unknown_track_time">--:--</string>
+    <string name="unknown_playlist">Неизвестный плейлист</string>
+    <string name="edit_playlist">Редактировать</string>
+    <string name="save">Сохранить</string>
+    <string name="playlist_updated">Плейлист \"%1$s\" обновлен</string>
+    <string name="playlist_updated_success">Плейлист обновлен успешно</string>
+    <string name="empty_playlist_message">В этом плейлисте нет треков</string>
+    <string name="discard_changes_title">Отменить изменения?</string>
+    <string name="discard_changes_message">Все внесённые изменения будут потеряны</string>
+    <string name="cancel">Отмена</string>
+    <string name="discard">Завершить</string>
+    <string name="error_download_playlist">Ошибка загрузки плейлиста: %1$s</string>
+    <string name="no_empty_playlist_title">Название плейлиста не может быть пустым</string>
+    <string name="playlist_not_found">Плейлист не найден</string>
+    <string name="save_error">Ошибка сохранения: %1$s</string>
+    <string name="error_deleting_track">Ошибка удаления трека: %1$s</string>
+    <string name="unknown_error_over_deleting_playlist">Неизвестная ошибка при удалении плейлиста</string>
+    <string name="unknown">Неизвестно</string>
+    <string name="error_deleteing">Ошибка удаления: %1$s</string>
+    <string name="saving">Сохранение</string>
 </resources>
