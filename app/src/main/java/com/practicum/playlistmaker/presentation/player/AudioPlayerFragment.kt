@@ -179,11 +179,6 @@ class AudioPlayerFragment : Fragment() {
             }
 
             binding.currentTrackTime.text = formatTime(state.currentPosition)
-//            Оставлено для истории
-//            binding.audPlayButton.setImageResource(
-//                if (state.isPlaying) R.drawable.btn_aud_pause
-//                else R.drawable.btn_aud_play
-//            )
 
             binding.playbackButton.setPlaying(state.isPlaying)
 
@@ -235,12 +230,6 @@ class AudioPlayerFragment : Fragment() {
     }
 
     private fun setupPlayerButtons() {
-//        Оставлено для истории
-//        binding.audPlayButton.setOnClickListener {
-//            val isPlaying = viewModel.state.value?.isPlaying ?: false
-//            if (isPlaying) viewModel.pausePlayer()
-//            else viewModel.startPlayer()
-//        }
         binding.playbackButton.setOnClickListener {
             val isPlaying = viewModel.state.value?.isPlaying ?: false
             if (isPlaying) viewModel.pausePlayer()

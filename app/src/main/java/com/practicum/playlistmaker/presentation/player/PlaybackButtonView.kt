@@ -21,6 +21,9 @@ class PlaybackButtonView @JvmOverloads constructor(
     private var pauseDrawable: Drawable? = null
     private val rect = RectF()
 
+    private val currentDrawable: Drawable?
+        get() = if (isPlaying) pauseDrawable else playDrawable
+
     init {
         isClickable = true
 
@@ -72,8 +75,7 @@ class PlaybackButtonView @JvmOverloads constructor(
     }
 
     private fun calculateRect() {
-        val drawable = if (isPlaying) pauseDrawable else playDrawable
-        drawable?.let {
+        currentDrawable?.let {
             val drawableWidth = it.intrinsicWidth
             val drawableHeight = it.intrinsicHeight
 
@@ -101,9 +103,7 @@ class PlaybackButtonView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-
-        val drawable = if (isPlaying) pauseDrawable else playDrawable
-        drawable?.draw(canvas)
+        currentDrawable?.draw(canvas)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

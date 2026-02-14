@@ -63,18 +63,6 @@
                 app:layout_constraintTop_toBottomOf="@+id/mainAlbumText"
                 tools:text="The Beatles" />
 
-            <!--            Оставлено для истории-->
-            <!--            <ImageButton-->
-            <!--                android:id="@+id/audPlayButton"-->
-            <!--                style="@style/AudBtnPlay"-->
-            <!--                android:layout_width="100dp"-->
-            <!--                android:layout_height="100dp"-->
-            <!--                android:layout_marginTop="30dp"-->
-            <!--                android:contentDescription="@string/todo"-->
-            <!--                app:layout_constraintEnd_toEndOf="@+id/songPoster"-->
-            <!--                app:layout_constraintStart_toStartOf="@+id/songPoster"-->
-            <!--                app:layout_constraintTop_toBottomOf="@+id/artistName" />-->
-
             <com.practicum.playlistmaker.presentation.player.PlaybackButtonView
                 android:id="@+id/playbackButton"
                 android:layout_width="100dp"
