@@ -41,7 +41,6 @@ class AudioPlayerFragment : Fragment() {
     private var savedBottomSheetState: Int? = null
     private var savedOverlayVisible: Boolean = false
     private var returningFromNewPlaylist: Boolean = false
-    private var isConfigurationChange = false
     private var isExplicitBackPress = false
 
     companion object {
@@ -96,7 +95,9 @@ class AudioPlayerFragment : Fragment() {
         setupBottomSheet()
         restoreBottomSheetState()
 
-        checkNotificationPermission()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestNotificationPermissionIfNeeded()
+        }
     }
 
     private fun setupClickListeners() {
@@ -258,12 +259,10 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
-    private fun checkNotificationPermission() {
+    private fun requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(requireContext(),
-                    android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-                viewModel.startForegroundMode()
-            } else {
+                    android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(
                     arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
                     REQUEST_NOTIFICATION_PERMISSION
@@ -274,7 +273,10 @@ class AudioPlayerFragment : Fragment() {
 
     private fun checkNotificationPermissionAndStartForeground() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            checkNotificationPermission()
+            if (ContextCompat.checkSelfPermission(requireContext(),
+                    android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                viewModel.startForegroundMode()
+            }
         } else {
             viewModel.startForegroundMode()
         }
@@ -289,7 +291,6 @@ class AudioPlayerFragment : Fragment() {
         when (requestCode) {
             REQUEST_NOTIFICATION_PERMISSION -> {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    viewModel.startForegroundMode()
                 }
             }
         }
@@ -304,15 +305,10 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
-    override fun onStop() {
-        super.onStop()
-        isConfigurationChange = requireActivity().isChangingConfigurations
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
 
-        if (!isConfigurationChange) {
+        if (!requireActivity().isChangingConfigurations) {
             if (isExplicitBackPress) {
                 viewModel.stopAndUnbindService(requireContext())
             } else {
@@ -326,7 +322,7 @@ class AudioPlayerFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (!isConfigurationChange) {
+        if (!requireActivity().isChangingConfigurations) {
             viewModel.cleanup()
         }
     }
