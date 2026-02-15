@@ -271,7 +271,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Воспроизведение музыки", NotificationManager.IMPORTANCE_LOW
+                getString(R.string.playing_track), NotificationManager.IMPORTANCE_LOW
             ).apply {
                 setSound(null, null)
                 enableLights(false)

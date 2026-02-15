@@ -108,4 +108,5 @@
     <string name="unknown">Неизвестно</string>
     <string name="error_deleteing">Ошибка удаления: %1$s</string>
     <string name="saving">Сохранение</string>
+    <string name="playing_track">Воспроизведение музыки</string>
 </resources>
