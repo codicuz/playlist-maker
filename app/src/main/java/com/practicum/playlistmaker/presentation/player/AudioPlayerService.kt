@@ -97,14 +97,14 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             )
 
             mediaPlayer.setOnPreparedListener {
-                _state.value = _state.value?.copy(isPrepared = true)
+                _state.postValue(_state.value?.copy(isPrepared = true))
             }
 
             mediaPlayer.setOnCompletionListener {
                 stopUpdatingProgress()
-                _state.value = _state.value?.copy(
+                _state.postValue(_state.value?.copy(
                     isPlaying = false, currentPosition = 0, isCompleted = true
-                )
+                ))
                 stopForegroundMode()
             }
 
