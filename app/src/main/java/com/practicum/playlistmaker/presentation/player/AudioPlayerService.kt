@@ -1,6 +1,10 @@
 package com.practicum.playlistmaker.presentation.player
 
-import android.app.*
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
@@ -14,7 +18,12 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.track.Track
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 private const val TAG = "AudioPlayerService"
 
@@ -55,7 +64,6 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private val CHANNEL_ID = "playback_channel"
 
     private var isForeground = false
-    private var clientCount = 0
 
     inner class AudioPlayerBinder : Binder() {
         fun getService(): AudioPlayerServiceInterface = this@AudioPlayerService
@@ -73,9 +81,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.seekTo(0)
             }
             _state.value = _state.value?.copy(
-                currentPosition = 0,
-                isPlaying = false,
-                isCompleted = false
+                currentPosition = 0, isPlaying = false, isCompleted = false
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error resetting player", e)
@@ -85,10 +91,8 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private fun initMediaPlayer() {
         try {
             mediaPlayer.setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA)
-                    .build()
+                AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                    .setUsage(AudioAttributes.USAGE_MEDIA).build()
             )
 
             mediaPlayer.setOnPreparedListener {
@@ -98,9 +102,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             mediaPlayer.setOnCompletionListener {
                 stopUpdatingProgress()
                 _state.value = _state.value?.copy(
-                    isPlaying = false,
-                    currentPosition = 0,
-                    isCompleted = true
+                    isPlaying = false, currentPosition = 0, isCompleted = true
                 )
                 stopForegroundMode()
             }
@@ -111,19 +113,11 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     }
 
     override fun onBind(intent: Intent?): IBinder {
-        clientCount++
         return binder
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
-        clientCount--
-
-        if (_state.value?.isPlaying == true) {
-            return true
-        }
-
-        if (clientCount <= 0) {
-            stopForegroundMode()
+        if (_state.value?.isPlaying != true) {
             stopSelf()
         }
         return true
@@ -221,13 +215,21 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
 
                 when {
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-                        startForeground(NOTIFICATION_ID, notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                        )
                     }
+
                     Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                        startForeground(NOTIFICATION_ID, notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                        )
                     }
+
                     else -> {
                         startForeground(NOTIFICATION_ID, notification)
                     }
@@ -253,29 +255,21 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private fun createNotification(): Notification {
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText("$artistName - $trackTitle")
-            .setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentIntent(pendingIntent)
+            .setSmallIcon(android.R.drawable.ic_media_play).setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
-            .build()
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).build()
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Воспроизведение музыки",
-                NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, "Воспроизведение музыки", NotificationManager.IMPORTANCE_LOW
             ).apply {
                 setSound(null, null)
                 enableLights(false)
