@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -18,7 +19,11 @@ import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+private const val TAG = "AudioPlayerViewModel"
 
 sealed class AddTrackStatus {
     data class Success(val playlistName: String) : AddTrackStatus()
@@ -50,17 +55,24 @@ class AudioPlayerViewModel(
     private var currentTrack: Track? = null
     private var isBound = false
     private var serviceConnection: ServiceConnection? = null
+    private var wasInBackground = false
+    private var pendingStartPlayer = false
 
-    private val updateStateCallback = { playerState: PlayerState ->
-        _state.value = _state.value?.copy(
-            isPlaying = playerState.isPlaying,
-            currentPosition = playerState.currentPosition
-        )
-    }
+    private var pollJob: Job? = null
 
     fun bindService(context: Context) {
-        // Если уже привязаны, не привязываемся повторно
-        if (isBound) return
+        if (isBound && audioPlayerService != null) {
+            updateStateFromService()
+            if (pendingStartPlayer) {
+                pendingStartPlayer = false
+                startPlayer()
+            }
+            return
+        }
+
+        if (serviceConnection != null) {
+            return
+        }
 
         serviceConnection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -68,91 +80,166 @@ class AudioPlayerViewModel(
                 isBound = true
 
                 currentTrack?.let { track ->
-                    audioPlayerService?.setTrack(
-                        track,
-                        track.artistsName ?: "",
-                        track.trackName ?: ""
-                    )
+                    if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
+                        audioPlayerService?.setTrack(
+                            track,
+                            track.artistsName ?: "",
+                            track.trackName ?: ""
+                        )
+                    }
+                }
 
-                    audioPlayerService?.getState()?.observeForever(updateStateCallback)
+                updateStateFromService()
 
-                    // Восстанавливаем состояние плеера
-                    val serviceState = audioPlayerService?.getState()?.value
-                    _state.value = _state.value?.copy(
-                        isPlaying = serviceState?.isPlaying ?: false,
-                        currentPosition = serviceState?.currentPosition ?: 0
-                    )
+                startPolling()
+
+                if (pendingStartPlayer) {
+                    pendingStartPlayer = false
+                    startPlayer()
                 }
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
                 audioPlayerService = null
                 isBound = false
+                stopPolling()
             }
         }
 
-        val intent = Intent(context, AudioPlayerService::class.java).apply {
-            putExtra("TRACK", currentTrack)
-            putExtra("ARTIST_NAME", currentTrack?.artistsName ?: "")
-            putExtra("TRACK_TITLE", currentTrack?.trackName ?: "")
-        }
+        val intent = Intent(context, AudioPlayerService::class.java)
         context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
     }
 
     fun unbindService(context: Context) {
-        if (isBound) {
+        stopPolling()
+        if (isBound && serviceConnection != null) {
             try {
-                audioPlayerService?.getState()?.removeObserver(updateStateCallback)
                 context.unbindService(serviceConnection!!)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Service already unregistered")
             } catch (e: Exception) {
-                // Игнорируем ошибку, если сервис уже не зарегистрирован
+                Log.e(TAG, "Error unbinding service", e)
             } finally {
                 audioPlayerService = null
                 isBound = false
                 serviceConnection = null
+                pendingStartPlayer = false
             }
         }
     }
 
-    fun startForegroundMode() {
-        audioPlayerService?.startForegroundMode()
-    }
-
-    fun stopForegroundMode() {
+    fun stopAndUnbindService(context: Context) {
+        audioPlayerService?.pause()
+        audioPlayerService?.reset()
         audioPlayerService?.stopForegroundMode()
+
+        unbindService(context)
     }
 
-    fun setTrack(track: Track) {
-        currentTrack = track
-        updateTrackState(track)
+    fun cleanup() {
+        stopPolling()
+        audioPlayerService = null
+        isBound = false
+        serviceConnection = null
+        pendingStartPlayer = false
+    }
 
-        if (isBound) {
-            audioPlayerService?.setTrack(
-                track,
-                track.artistsName ?: "",
-                track.trackName ?: ""
-            )
+    private fun updateStateFromService() {
+        audioPlayerService?.let { service ->
+            try {
+                val serviceState = service.getState().value
+                _state.value = _state.value?.copy(
+                    isPlaying = serviceState?.isPlaying ?: false,
+                    currentPosition = serviceState?.currentPosition ?: 0
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating state from service", e)
+            }
         }
     }
 
+    private fun startPolling() {
+        stopPolling()
+        pollJob = viewModelScope.launch {
+            while (true) {
+                delay(300)
+                if (isBound) {
+                    updateStateFromService()
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    private fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
+    }
+
+
+    fun setTrack(track: Track) {
+        currentTrack = track
+
+        _state.value = AudioPlayerScreenState(
+            track = track,
+            isPlaying = false,
+            currentPosition = 0,
+            isFavorite = false
+        )
+
+        updateTrackState(track)
+
+        if (isBound && audioPlayerService != null) {
+            if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
+                audioPlayerService?.setTrack(
+                    track,
+                    track.artistsName ?: "",
+                    track.trackName ?: ""
+                )
+            }
+        } else {
+            Log.d(TAG, "Service not ready, track will be set when connected")
+        }
+    }
     private fun updateTrackState(track: Track) {
         viewModelScope.launch {
             val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
             _state.value = _state.value?.copy(
-                track = track,
-                isFavorite = isFav,
-                currentPosition = audioPlayerService?.getState()?.value?.currentPosition ?: 0,
-                isPlaying = audioPlayerService?.getState()?.value?.isPlaying ?: false
+                isFavorite = isFav
             )
         }
     }
 
     fun startPlayer() {
-        audioPlayerService?.play()
+        if (audioPlayerService == null) {
+            Log.e(TAG, "Cannot start player - service is null")
+            pendingStartPlayer = true
+            return
+        }
+
+        try {
+            audioPlayerService?.play()
+            pendingStartPlayer = false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting player", e)
+            pendingStartPlayer = true
+        }
     }
 
     fun pausePlayer() {
-        audioPlayerService?.pause()
+        if (audioPlayerService == null) {
+            Log.e(TAG, "Cannot pause player - service is null")
+            pendingStartPlayer = false
+            return
+        }
+
+        try {
+            audioPlayerService?.pause()
+            pendingStartPlayer = false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error pausing player", e)
+        }
     }
 
     fun toggleFavorite() {
@@ -199,20 +286,28 @@ class AudioPlayerViewModel(
         _shouldCloseBottomSheet.value = null
     }
 
-    fun shouldStopOnExit(): Boolean {
-        return _state.value?.isPlaying == true
+    fun startForegroundMode() {
+        try {
+            audioPlayerService?.startForegroundMode()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting foreground", e)
+        }
     }
 
-    fun releasePlayer() {
-        audioPlayerService?.release()
+    fun stopForegroundMode() {
+        try {
+            audioPlayerService?.stopForegroundMode()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping foreground", e)
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
+        stopPolling()
         audioPlayerService = null
+        pendingStartPlayer = false
     }
-
-    private var wasInBackground = false
 
     fun onAppBackgrounded() {
         wasInBackground = true
@@ -223,5 +318,9 @@ class AudioPlayerViewModel(
             stopForegroundMode()
             wasInBackground = false
         }
+    }
+
+    fun isServiceReady(): Boolean {
+        return isBound && audioPlayerService != null
     }
 }
