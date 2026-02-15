@@ -1,7 +1,5 @@
 package com.practicum.playlistmaker.di
 
-import android.media.AudioAttributes
-import android.media.MediaPlayer
 import com.practicum.playlistmaker.presentation.media.EditPlaylistViewModel
 import com.practicum.playlistmaker.presentation.media.FavoritesViewModel
 import com.practicum.playlistmaker.presentation.media.MediaViewModel
@@ -21,15 +19,7 @@ val presentationModule = module {
     viewModel { FavoritesViewModel(get()) }
     viewModel { PlaylistsViewModel(get()) }
 
-    factory {
-        MediaPlayer().apply {
-            setAudioAttributes(
-                AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(AudioAttributes.USAGE_MEDIA).build()
-            )
-        }
-    }
-    viewModel { AudioPlayerViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { AudioPlayerViewModel(get(), get(), get(), get(), get()) }
 
     viewModel { NewPlaylistViewModel(get()) }
 

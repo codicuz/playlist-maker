@@ -27,7 +27,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initPermissionLauncher()
-        // Убираем автоматическую проверку разрешений при запуске
 
         val navHostFragment =
             supportFragmentManager.findFragmentById(R.id.container_view) as? NavHostFragment

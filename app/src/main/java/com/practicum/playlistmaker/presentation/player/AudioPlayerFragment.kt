@@ -1,14 +1,17 @@
 package com.practicum.playlistmaker.presentation.player
 
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
@@ -23,6 +26,8 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 
 class AudioPlayerFragment : Fragment() {
 
+    private val REQUEST_NOTIFICATION_PERMISSION = 1002
+
     private var _binding: FragmentAudioPlayerBinding? = null
     private val binding get() = _binding!!
 
@@ -31,18 +36,33 @@ class AudioPlayerFragment : Fragment() {
     private var track: Track? = null
 
     private lateinit var bottomSheetBehavior: BottomSheetBehavior<LinearLayout>
-
     private lateinit var adapter: PlaylistBottomSheetAdapter
 
     private var savedBottomSheetState: Int? = null
     private var savedOverlayVisible: Boolean = false
-
     private var returningFromNewPlaylist: Boolean = false
+
+    companion object {
+        private const val ARG_TRACK = "track"
+        private const val KEY_BOTTOM_SHEET_STATE = "bottom_sheet_state"
+        private const val KEY_OVERLAY_VISIBLE = "overlay_visible"
+        private const val KEY_RETURNING_FROM_NEW_PLAYLIST = "returning_from_new_playlist"
+
+        @JvmStatic
+        fun newInstance(track: Track) = AudioPlayerFragment().apply {
+            arguments = Bundle().apply { putParcelable(ARG_TRACK, track) }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         arguments?.let {
-            track = it.getParcelable(ARG_TRACK)
+            track = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                it.getParcelable(ARG_TRACK, Track::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                it.getParcelable(ARG_TRACK)
+            }
         }
 
         savedInstanceState?.let {
@@ -57,9 +77,6 @@ class AudioPlayerFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         _binding = FragmentAudioPlayerBinding.inflate(inflater, container, false)
-        binding.audBackButton.setOnClickListener {
-            findNavController().popBackStack()
-        }
         return binding.root
     }
 
@@ -67,29 +84,33 @@ class AudioPlayerFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         (requireActivity() as? MainActivity)?.hideBottomNav()
 
-        binding.audBackButton.setOnClickListener {
-            findNavController().popBackStack()
-        }
+        setupClickListeners()
 
         if (track == null) {
-            track = arguments?.getParcelable(ARG_TRACK)
-            if (track == null && savedInstanceState != null) {
-                track = savedInstanceState.getParcelable(ARG_TRACK)
-            }
-            if (track == null) {
-                binding.root.post {
-                    findNavController().popBackStack()
-                }
-                return
-            }
+            findNavController().popBackStack()
+            return
         }
 
+        // Всегда привязываем сервис при создании view
+        viewModel.bindService(requireContext())
         viewModel.setTrack(track!!)
+
         observeViewModel()
         setupPlayerButtons()
         setupFavoriteButton()
         setupBottomSheet()
         restoreBottomSheetState()
+    }
+
+    private fun setupClickListeners() {
+        binding.audBackButton.setOnClickListener {
+            handleBackPress()
+        }
+    }
+
+    private fun handleBackPress() {
+        viewModel.unbindService(requireContext())
+        findNavController().popBackStack()
     }
 
     private fun restoreBottomSheetState() {
@@ -110,7 +131,7 @@ class AudioPlayerFragment : Fragment() {
                         try {
                             bottomSheetBehavior.state = savedState
                         } catch (e: Exception) {
-                            Log.e("AudioPlayer", "Error restoring bottom sheet state", e)
+                            // Игнорируем
                         }
                     }
                 }
@@ -133,18 +154,19 @@ class AudioPlayerFragment : Fragment() {
         }
     }
 
-
     private fun isValidBottomSheetState(state: Int): Boolean {
-        return state == BottomSheetBehavior.STATE_HIDDEN || state == BottomSheetBehavior.STATE_COLLAPSED || state == BottomSheetBehavior.STATE_EXPANDED || state == BottomSheetBehavior.STATE_HALF_EXPANDED || state == BottomSheetBehavior.STATE_DRAGGING
+        return state == BottomSheetBehavior.STATE_HIDDEN ||
+                state == BottomSheetBehavior.STATE_COLLAPSED ||
+                state == BottomSheetBehavior.STATE_EXPANDED ||
+                state == BottomSheetBehavior.STATE_HALF_EXPANDED ||
+                state == BottomSheetBehavior.STATE_DRAGGING
     }
-
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         track?.let {
             outState.putParcelable(ARG_TRACK, it)
         }
-        viewModel.savePlaybackState()
 
         val stateToSave = if (::bottomSheetBehavior.isInitialized) {
             val currentState = bottomSheetBehavior.state
@@ -172,14 +194,14 @@ class AudioPlayerFragment : Fragment() {
                 binding.audGenreValue.text = track.primaryGenreName ?: "-"
                 binding.audCountryValue.text = track.country ?: "-"
 
-                Glide.with(requireContext()).load(track.getConvertArtwork())
+                Glide.with(requireContext())
+                    .load(track.getConvertArtwork())
                     .placeholder(R.drawable.ic_no_artwork_image)
                     .transform(RoundedCorners(Useful.dpToPx(8f, requireContext())))
                     .into(binding.songPoster)
             }
 
             binding.currentTrackTime.text = formatTime(state.currentPosition)
-
             binding.playbackButton.setPlaying(state.isPlaying)
 
             binding.audFavoriteButton.setImageResource(
@@ -199,7 +221,6 @@ class AudioPlayerFragment : Fragment() {
                         ).show()
                         viewModel.resetAddTrackStatus()
                     }
-
                     is AddTrackStatus.AlreadyExists -> {
                         Toast.makeText(
                             requireContext(),
@@ -208,7 +229,6 @@ class AudioPlayerFragment : Fragment() {
                         ).show()
                         viewModel.resetAddTrackStatus()
                     }
-
                     is AddTrackStatus.Error -> {
                         Toast.makeText(
                             requireContext(),
@@ -226,6 +246,10 @@ class AudioPlayerFragment : Fragment() {
                 hideBottomSheet()
                 viewModel.resetShouldCloseBottomSheet()
             }
+        }
+
+        viewModel.playlists.observe(viewLifecycleOwner) { playlists ->
+            adapter.update(playlists)
         }
     }
 
@@ -253,19 +277,59 @@ class AudioPlayerFragment : Fragment() {
     override fun onPause() {
         super.onPause()
         if (!requireActivity().isChangingConfigurations) {
-            viewModel.state.value?.isPlaying?.let { isPlaying ->
-                if (isPlaying) {
-                    viewModel.pausePlayer()
+            // Только при сворачивании, не при повороте
+            viewModel.onAppBackgrounded()
+            checkNotificationPermissionAndStartForeground()
+        }
+    }
+
+    private fun checkNotificationPermissionAndStartForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(requireContext(),
+                    android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                viewModel.startForegroundMode()
+            } else {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    REQUEST_NOTIFICATION_PERMISSION
+                )
+            }
+        } else {
+            viewModel.startForegroundMode()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            REQUEST_NOTIFICATION_PERMISSION -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    viewModel.startForegroundMode()
                 }
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        returningFromNewPlaylist = false
+
+        if (requireActivity().isChangingConfigurations) {
+            // При повороте экрана - перепривязываем сервис
+            viewModel.bindService(requireContext())
+        } else if (!requireActivity().isChangingConfigurations) {
+            // Только при возвращении из фона, не при повороте
+            viewModel.onAppForegrounded()
+        }
+    }
+
     override fun onStop() {
         super.onStop()
-        if (!requireActivity().isChangingConfigurations) {
-            viewModel.savePlaybackState()
-        }
+        // Не отвязываем сервис при остановке
     }
 
     override fun onDestroyView() {
@@ -273,9 +337,12 @@ class AudioPlayerFragment : Fragment() {
         _binding = null
     }
 
-    override fun onResume() {
-        super.onResume()
-        returningFromNewPlaylist = false
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!requireActivity().isChangingConfigurations) {
+            // Только при реальном закрытии фрагмента, не при повороте
+            viewModel.unbindService(requireContext())
+        }
     }
 
     private fun setupBottomSheet() {
@@ -290,15 +357,9 @@ class AudioPlayerFragment : Fragment() {
         }
         recyclerView.adapter = adapter
 
-        viewModel.playlists.observe(viewLifecycleOwner) { playlists ->
-            adapter.update(playlists)
-        }
-
         val displayMetrics = resources.displayMetrics
         val screenHeight = displayMetrics.heightPixels
         val peekHeightPx = (screenHeight * 0.40).toInt()
-
-
 
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheetContainer).apply {
             state = BottomSheetBehavior.STATE_HIDDEN
@@ -326,11 +387,9 @@ class AudioPlayerFragment : Fragment() {
                 BottomSheetBehavior.STATE_COLLAPSED -> {
                     bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                 }
-
                 BottomSheetBehavior.STATE_EXPANDED -> {
                     bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                 }
-
                 else -> {
                     showBottomSheet()
                 }
@@ -350,19 +409,11 @@ class AudioPlayerFragment : Fragment() {
                         binding.overlay.isVisible = false
                         savedOverlayVisible = false
                     }
-
-                    BottomSheetBehavior.STATE_COLLAPSED -> {
+                    BottomSheetBehavior.STATE_COLLAPSED, BottomSheetBehavior.STATE_EXPANDED -> {
                         binding.overlay.isVisible = true
                         savedOverlayVisible = true
                         binding.overlay.alpha = 0.6f
                     }
-
-                    BottomSheetBehavior.STATE_EXPANDED -> {
-                        binding.overlay.isVisible = true
-                        savedOverlayVisible = true
-                        binding.overlay.alpha = 0.6f
-                    }
-
                     else -> {
                         savedOverlayVisible = binding.overlay.isVisible
                     }
@@ -380,7 +431,6 @@ class AudioPlayerFragment : Fragment() {
                             overlay.visibility = View.GONE
                         }
                     }
-
                     else -> {
                         overlay.visibility = View.VISIBLE
                         overlay.alpha = 0.6f
@@ -396,22 +446,13 @@ class AudioPlayerFragment : Fragment() {
                 R.id.action_audioPlayerFragment_to_newPlaylistFragment
             )
         }
-
     }
 
     private fun toggleBottomSheet() {
         when (bottomSheetBehavior.state) {
-            BottomSheetBehavior.STATE_HIDDEN -> {
-                showBottomSheet()
-            }
-
-            BottomSheetBehavior.STATE_COLLAPSED, BottomSheetBehavior.STATE_EXPANDED -> {
-                hideBottomSheet()
-            }
-
-            else -> {
-                hideBottomSheet()
-            }
+            BottomSheetBehavior.STATE_HIDDEN -> showBottomSheet()
+            BottomSheetBehavior.STATE_COLLAPSED, BottomSheetBehavior.STATE_EXPANDED -> hideBottomSheet()
+            else -> hideBottomSheet()
         }
     }
 
@@ -421,17 +462,5 @@ class AudioPlayerFragment : Fragment() {
 
     private fun hideBottomSheet() {
         bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
-    }
-
-    companion object {
-        private const val ARG_TRACK = "track"
-        private const val KEY_BOTTOM_SHEET_STATE = "bottom_sheet_state"
-        private const val KEY_OVERLAY_VISIBLE = "overlay_visible"
-        private const val KEY_RETURNING_FROM_NEW_PLAYLIST = "returning_from_new_playlist"
-
-        @JvmStatic
-        fun newInstance(track: Track) = AudioPlayerFragment().apply {
-            arguments = Bundle().apply { putParcelable(ARG_TRACK, track) }
-        }
     }
 }
