@@ -42,13 +42,68 @@ class PlaylistFragment : Fragment() {
     private lateinit var trackAdapter: TrackAdapter
     private lateinit var bottomSheetDialog: BottomSheetDialog
 
+    private var savedBottomSheetState: Int? = null
+
     companion object {
         private const val ARG_PLAYLIST_ID = "playlistId"
+        private const val KEY_BOTTOM_SHEET_STATE = "bottom_sheet_state"
 
         fun newInstance(playlistId: Long) = PlaylistFragment().apply {
             arguments = Bundle().apply {
                 putLong(ARG_PLAYLIST_ID, playlistId)
             }
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        arguments?.let {
+            playlistId = it.getLong(ARG_PLAYLIST_ID, -1)
+        }
+
+        savedInstanceState?.let {
+            savedBottomSheetState = it.getInt(KEY_BOTTOM_SHEET_STATE, BottomSheetBehavior.STATE_COLLAPSED)
+        }
+    }
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.overlay.alpha = 0.6f
+
+        binding.playlistBackButton.setOnClickListener {
+            findNavController().popBackStack()
+        }
+
+        binding.playlistShareButton.setOnClickListener {
+            sharePlaylist()
+        }
+
+        setupRecyclerView()
+        setupBottomSheet()
+        observeViewModel()
+        setupPlaylistMenu()
+
+        parentFragmentManager.setFragmentResultListener(
+            "playlist_updated", viewLifecycleOwner
+        ) { _, bundle ->
+            val updated = bundle.getBoolean("updated", false)
+            val playlistId = bundle.getLong("playlist_id", -1)
+
+            if (updated && playlistId == this.playlistId) {
+                viewModel.loadPlaylist(playlistId)
+            }
+        }
+
+        if (playlistId != -1L) {
+            viewModel.loadPlaylist(playlistId)
         }
     }
 
@@ -89,23 +144,6 @@ class PlaylistFragment : Fragment() {
 
             CoverLoader.loadMenuCover(playlist.coverUri, view.findViewById(R.id.playlistMenuCover))
         }
-    }
-
-    private fun loadMenuCover(coverUri: String?, imageView: ImageView) {
-        if (!coverUri.isNullOrEmpty()) {
-            try {
-                val file = File(coverUri)
-                if (file.exists()) {
-                    Glide.with(requireContext()).load(file).centerCrop().into(imageView)
-                    return
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        Glide.with(requireContext()).load(R.drawable.ic_no_artwork_image).centerCrop()
-            .into(imageView)
     }
 
     private fun setupMenuClickListeners(view: View) {
@@ -216,54 +254,6 @@ class PlaylistFragment : Fragment() {
             }.show()
     }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            playlistId = it.getLong(ARG_PLAYLIST_ID, -1)
-        }
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
-        _binding = FragmentPlaylistBinding.inflate(inflater, container, false)
-        return binding.root
-    }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        binding.overlay.alpha = 0.6f
-
-        binding.playlistBackButton.setOnClickListener {
-            findNavController().popBackStack()
-        }
-
-        binding.playlistShareButton.setOnClickListener {
-            sharePlaylist()
-        }
-
-        setupRecyclerView()
-        setupBottomSheet()
-        observeViewModel()
-        setupPlaylistMenu()
-
-        parentFragmentManager.setFragmentResultListener(
-            "playlist_updated", viewLifecycleOwner
-        ) { _, bundle ->
-            val updated = bundle.getBoolean("updated", false)
-            val playlistId = bundle.getLong("playlist_id", -1)
-
-            if (updated && playlistId == this.playlistId) {
-                viewModel.loadPlaylist(playlistId)
-            }
-        }
-
-        if (playlistId != -1L) {
-            viewModel.loadPlaylist(playlistId)
-        }
-    }
-
     private fun setupRecyclerView() {
         trackAdapter = TrackAdapter(onTrackClick = { track ->
             navigateToPlayer(track)
@@ -307,13 +297,17 @@ class PlaylistFragment : Fragment() {
             skipCollapsed = false
             peekHeight = (screenHeight * 0.30).toInt()
             halfExpandedRatio = 0.7f
-            state = BottomSheetBehavior.STATE_COLLAPSED
             isHideable = false
             isDraggable = true
+
+            savedBottomSheetState?.let { state ->
+                this.state = state
+            }
         }
 
-        binding.overlay.isVisible = true
+        binding.overlay.isVisible = bottomSheetBehavior.state != BottomSheetBehavior.STATE_COLLAPSED
         binding.overlay.alpha = 0.6f
+
         setupBottomSheetListeners()
     }
 
@@ -331,11 +325,9 @@ class PlaylistFragment : Fragment() {
                     BottomSheetBehavior.STATE_COLLAPSED -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     }
-
                     BottomSheetBehavior.STATE_EXPANDED -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
-
                     else -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
@@ -359,12 +351,10 @@ class PlaylistFragment : Fragment() {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
                     }
-
                     BottomSheetBehavior.STATE_EXPANDED -> {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
                     }
-
                     else -> {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
@@ -431,7 +421,6 @@ class PlaylistFragment : Fragment() {
                         findNavController().popBackStack()
                         viewModel.resetDeletionEvent()
                     }
-
                     is PlaylistViewModel.DeletionEvent.Error -> {
                         Toast.makeText(
                             requireContext(),
@@ -439,7 +428,6 @@ class PlaylistFragment : Fragment() {
                         ).show()
                         viewModel.resetDeletionEvent()
                     }
-
                     null -> {
                     }
                 }
@@ -474,16 +462,7 @@ class PlaylistFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         if (::bottomSheetBehavior.isInitialized) {
-            outState.putInt("BOTTOM_SHEET_STATE", bottomSheetBehavior.state)
-        }
-    }
-
-    override fun onViewStateRestored(savedInstanceState: Bundle?) {
-        super.onViewStateRestored(savedInstanceState)
-        savedInstanceState?.getInt("BOTTOM_SHEET_STATE")?.let { savedState ->
-            if (::bottomSheetBehavior.isInitialized) {
-                bottomSheetBehavior.state = savedState
-            }
+            outState.putInt(KEY_BOTTOM_SHEET_STATE, bottomSheetBehavior.state)
         }
     }
 

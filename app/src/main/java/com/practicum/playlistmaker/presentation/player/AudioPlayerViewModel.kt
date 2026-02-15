@@ -1,6 +1,10 @@
 package com.practicum.playlistmaker.presentation.player
 
-import android.media.MediaPlayer
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
+import android.os.IBinder
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,8 +21,9 @@ import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+private const val TAG = "AudioPlayerViewModel"
 
 sealed class AddTrackStatus {
     data class Success(val playlistName: String) : AddTrackStatus()
@@ -27,7 +32,6 @@ sealed class AddTrackStatus {
 }
 
 class AudioPlayerViewModel(
-    private val mediaPlayer: MediaPlayer,
     private val addToFavoritesUseCase: AddToFavoritesUseCase,
     private val removeFromFavoritesUseCase: RemoveFromFavoritesUseCase,
     private val isFavoriteUseCase: IsFavoriteUseCase,
@@ -35,18 +39,10 @@ class AudioPlayerViewModel(
     private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase
 ) : ViewModel() {
 
+    private var audioPlayerService: AudioPlayerServiceInterface? = null
+
     private val _state = MutableLiveData(AudioPlayerScreenState())
     val state: LiveData<AudioPlayerScreenState> = _state
-
-    private var currentTrack: Track? = null
-    private var isPrepared = false
-    private var isCompleted = false
-    private var updateProgressJob: Job? = null
-
-    private var wasPlayingBeforeConfigChange = false
-    private var lastPositionBeforeConfigChange = 0
-
-    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
 
     private val _addTrackStatus = MutableLiveData<AddTrackStatus?>()
     val addTrackStatus: LiveData<AddTrackStatus> = _addTrackStatus as LiveData<AddTrackStatus>
@@ -54,190 +50,195 @@ class AudioPlayerViewModel(
     private val _shouldCloseBottomSheet = MutableLiveData<Boolean?>()
     val shouldCloseBottomSheet: LiveData<Boolean> = _shouldCloseBottomSheet as LiveData<Boolean>
 
-    fun setTrack(track: Track) {
-        if (currentTrack?.trackId == track.trackId && isPrepared) {
-            updateTrackState(track)
-            if (wasPlayingBeforeConfigChange && lastPositionBeforeConfigChange > 0) {
-                mediaPlayer.seekTo(lastPositionBeforeConfigChange)
-                if (wasPlayingBeforeConfigChange && !mediaPlayer.isPlaying) {
-                    mediaPlayer.start()
-                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
-                    startUpdatingProgress()
-                }
-                wasPlayingBeforeConfigChange = false
-                lastPositionBeforeConfigChange = 0
+    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
+
+    private var currentTrack: Track? = null
+    private var isBound = false
+    private var serviceConnection: ServiceConnection? = null
+    private var wasInBackground = false
+    private var pendingStartPlayer = false
+
+    private var pollJob: Job? = null
+
+    fun bindService(context: Context) {
+        if (isBound && audioPlayerService != null) {
+            updateStateFromService()
+            if (pendingStartPlayer) {
+                pendingStartPlayer = false
+                startPlayer()
             }
             return
         }
 
-        stopPlayer()
+        if (serviceConnection != null) {
+            return
+        }
 
-        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
-        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+        serviceConnection = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                audioPlayerService = (service as AudioPlayerService.AudioPlayerBinder).getService()
+                isBound = true
 
-        currentTrack = track
-        updateTrackState(track)
+                currentTrack?.let { track ->
+                    if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
+                        audioPlayerService?.setTrack(
+                            track,
+                            track.artistsName ?: "",
+                            track.trackName ?: ""
+                        )
+                    }
+                }
 
-        track.previewUrl?.let { initPlayer(it) }
+                updateStateFromService()
+
+                startPolling()
+
+                if (pendingStartPlayer) {
+                    pendingStartPlayer = false
+                    startPlayer()
+                }
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                audioPlayerService = null
+                isBound = false
+                stopPolling()
+            }
+        }
+
+        val intent = Intent(context, AudioPlayerService::class.java)
+        context.bindService(intent, serviceConnection!!, Context.BIND_AUTO_CREATE)
     }
 
+    fun unbindService(context: Context) {
+        stopPolling()
+        if (isBound && serviceConnection != null) {
+            try {
+                context.unbindService(serviceConnection!!)
+            } catch (e: IllegalArgumentException) {
+                Log.e(TAG, "Service already unregistered")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unbinding service", e)
+            } finally {
+                audioPlayerService = null
+                isBound = false
+                serviceConnection = null
+                pendingStartPlayer = false
+            }
+        }
+    }
+
+    fun stopAndUnbindService(context: Context) {
+        audioPlayerService?.pause()
+        audioPlayerService?.reset()
+        audioPlayerService?.stopForegroundMode()
+
+        unbindService(context)
+    }
+
+    fun cleanup() {
+        stopPolling()
+        audioPlayerService = null
+        isBound = false
+        serviceConnection = null
+        pendingStartPlayer = false
+    }
+
+    private fun updateStateFromService() {
+        audioPlayerService?.let { service ->
+            try {
+                val serviceState = service.getState().value
+                _state.value = _state.value?.copy(
+                    isPlaying = serviceState?.isPlaying ?: false,
+                    currentPosition = serviceState?.currentPosition ?: 0
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error updating state from service", e)
+            }
+        }
+    }
+
+    private fun startPolling() {
+        stopPolling()
+        pollJob = viewModelScope.launch {
+            while (true) {
+                delay(300)
+                if (isBound) {
+                    updateStateFromService()
+                } else {
+                    break
+                }
+            }
+        }
+    }
+
+    private fun stopPolling() {
+        pollJob?.cancel()
+        pollJob = null
+    }
+
+
+    fun setTrack(track: Track) {
+        currentTrack = track
+
+        _state.value = AudioPlayerScreenState(
+            track = track,
+            isPlaying = false,
+            currentPosition = 0,
+            isFavorite = false
+        )
+
+        updateTrackState(track)
+
+        if (isBound && audioPlayerService != null) {
+            if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
+                audioPlayerService?.setTrack(
+                    track,
+                    track.artistsName ?: "",
+                    track.trackName ?: ""
+                )
+            }
+        } else {
+            Log.d(TAG, "Service not ready, track will be set when connected")
+        }
+    }
     private fun updateTrackState(track: Track) {
         viewModelScope.launch {
             val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
             _state.value = _state.value?.copy(
-                track = track,
-                isFavorite = isFav,
-                currentPosition = 0
+                isFavorite = isFav
             )
         }
     }
 
     fun startPlayer() {
-        if (isPrepared && !mediaPlayer.isPlaying) {
-            if (isCompleted) {
-                mediaPlayer.seekTo(0)
-                isCompleted = false
-            }
-            mediaPlayer.start()
-            _state.value = _state.value?.copy(isPlaying = true)
-            startUpdatingProgress()
-        } else if (!isPrepared) {
-            currentTrack?.previewUrl?.let {
-                initPlayer(it)
-                viewModelScope.launch {
-                    delay(100)
-                    if (isPrepared) {
-                        startPlayer()
-                    }
-                }
-            }
-        }
-    }
-
-    fun resetAddTrackStatus() {
-        _addTrackStatus.value = null
-    }
-
-    fun addTrackToPlaylist(playlist: Playlist, track: Track) {
-        if (playlist.trackIds.contains(track.trackId)) {
-            _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
-            _shouldCloseBottomSheet.value = false
+        if (audioPlayerService == null) {
+            Log.e(TAG, "Cannot start player - service is null")
+            pendingStartPlayer = true
             return
         }
 
-        viewModelScope.launch {
-            when (val result = addTrackToPlaylistUseCase.execute(playlist.id, track)) {
-                is AddTrackResult.Success -> {
-                    _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
-                    _shouldCloseBottomSheet.value = true
-                    loadPlaylists()
-                }
-
-                is AddTrackResult.AlreadyExists -> {
-                    _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)
-                    _shouldCloseBottomSheet.value = false
-                }
-
-                is AddTrackResult.Error -> {
-                    _addTrackStatus.value = AddTrackStatus.Error(result.message)
-                    _shouldCloseBottomSheet.value = true
-                }
-            }
-        }
-    }
-
-    fun resetShouldCloseBottomSheet() {
-        _shouldCloseBottomSheet.value = null
-    }
-
-    private fun loadPlaylists() {
-        viewModelScope.launch {
-            getPlaylistsUseCase.execute().collect {}
+        try {
+            audioPlayerService?.play()
+            pendingStartPlayer = false
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting player", e)
+            pendingStartPlayer = true
         }
     }
 
     fun pausePlayer() {
-        if (isPrepared && mediaPlayer.isPlaying) {
-            mediaPlayer.pause()
-            _state.value = _state.value?.copy(isPlaying = false)
-            stopUpdatingProgress()
+        if (audioPlayerService == null) {
+            Log.e(TAG, "Cannot pause player - service is null")
+            pendingStartPlayer = false
+            return
         }
-    }
 
-    private fun stopPlayer() {
-        if (isPrepared) {
-            try {
-                mediaPlayer.stop()
-            } catch (e: IllegalStateException) {
-            }
-        }
-        stopUpdatingProgress()
-        isPrepared = false
-        isCompleted = false
-    }
-
-    private fun startUpdatingProgress() {
-        stopUpdatingProgress()
-        updateProgressJob = viewModelScope.launch {
-            while (isActive) {
-                val position = try {
-                    if (isPrepared && mediaPlayer.isPlaying) {
-                        mediaPlayer.currentPosition
-                    } else {
-                        _state.value?.currentPosition ?: 0
-                    }
-                } catch (e: IllegalStateException) {
-                    _state.value?.currentPosition ?: 0
-                }
-                _state.value = _state.value?.copy(currentPosition = position)
-                delay(300)
-            }
-        }
-    }
-
-    private fun stopUpdatingProgress() {
-        updateProgressJob?.cancel()
-        updateProgressJob = null
-    }
-
-    private fun initPlayer(previewUrl: String) {
         try {
-            stopUpdatingProgress()
-
-            mediaPlayer.reset()
-            isPrepared = false
-            isCompleted = false
-
-            mediaPlayer.setDataSource(previewUrl)
-
-            mediaPlayer.setOnPreparedListener {
-                isPrepared = true
-                if (wasPlayingBeforeConfigChange) {
-                    mediaPlayer.seekTo(lastPositionBeforeConfigChange)
-                    mediaPlayer.start()
-                    _state.value = _state.value?.copy(isPlaying = true, currentPosition = lastPositionBeforeConfigChange)
-                    startUpdatingProgress()
-                    wasPlayingBeforeConfigChange = false
-                    lastPositionBeforeConfigChange = 0
-                }
-            }
-
-            mediaPlayer.setOnCompletionListener {
-                stopUpdatingProgress()
-                isCompleted = true
-                _state.value = _state.value?.copy(isPlaying = false, currentPosition = 0)
-            }
-
-            mediaPlayer.setOnErrorListener { mp, what, extra ->
-                Log.e("AudioPlayerViewModel", "MediaPlayer error: what=$what, extra=$extra")
-                false
-            }
-
-            mediaPlayer.prepareAsync()
-
+            audioPlayerService?.pause()
+            pendingStartPlayer = false
         } catch (e: Exception) {
-            Log.e("AudioPlayerViewModel", "Error init player", e)
-            isPrepared = false
+            Log.e(TAG, "Error pausing player", e)
         }
     }
 
@@ -252,21 +253,74 @@ class AudioPlayerViewModel(
         }
     }
 
-    fun savePlaybackState() {
-        wasPlayingBeforeConfigChange = _state.value?.isPlaying == true
-        lastPositionBeforeConfigChange = _state.value?.currentPosition ?: 0
+    fun addTrackToPlaylist(playlist: Playlist, track: Track) {
+        if (playlist.trackIds.contains(track.trackId)) {
+            _addTrackStatus.value = AddTrackStatus.AlreadyExists(playlist.title)
+            _shouldCloseBottomSheet.value = false
+            return
+        }
+
+        viewModelScope.launch {
+            when (val result = addTrackToPlaylistUseCase.execute(playlist.id, track)) {
+                is AddTrackResult.Success -> {
+                    _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
+                    _shouldCloseBottomSheet.value = true
+                }
+                is AddTrackResult.AlreadyExists -> {
+                    _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)
+                    _shouldCloseBottomSheet.value = false
+                }
+                is AddTrackResult.Error -> {
+                    _addTrackStatus.value = AddTrackStatus.Error(result.message)
+                    _shouldCloseBottomSheet.value = true
+                }
+            }
+        }
+    }
+
+    fun resetAddTrackStatus() {
+        _addTrackStatus.value = null
+    }
+
+    fun resetShouldCloseBottomSheet() {
+        _shouldCloseBottomSheet.value = null
+    }
+
+    fun startForegroundMode() {
+        try {
+            audioPlayerService?.startForegroundMode()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting foreground", e)
+        }
+    }
+
+    fun stopForegroundMode() {
+        try {
+            audioPlayerService?.stopForegroundMode()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping foreground", e)
+        }
     }
 
     override fun onCleared() {
         super.onCleared()
-        stopUpdatingProgress()
-        try {
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.stop()
-            }
-            mediaPlayer.release()
-        } catch (e: Exception) {
-            Log.e("AudioPlayerViewModel", "Error releasing MediaPlayer", e)
+        stopPolling()
+        audioPlayerService = null
+        pendingStartPlayer = false
+    }
+
+    fun onAppBackgrounded() {
+        wasInBackground = true
+    }
+
+    fun onAppForegrounded() {
+        if (wasInBackground) {
+            stopForegroundMode()
+            wasInBackground = false
         }
+    }
+
+    fun isServiceReady(): Boolean {
+        return isBound && audioPlayerService != null
     }
 }
