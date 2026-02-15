@@ -59,11 +59,12 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private var currentTrack: Track? = null
     private var artistName: String = ""
     private var trackTitle: String = ""
-
-    private val NOTIFICATION_ID = 1001
-    private val CHANNEL_ID = "playback_channel"
-
     private var isForeground = false
+
+    companion object {
+        private const val NOTIFICATION_ID = 1001
+        private const val CHANNEL_ID = "playback_channel"
+    }
 
     inner class AudioPlayerBinder : Binder() {
         fun getService(): AudioPlayerServiceInterface = this@AudioPlayerService
@@ -269,7 +270,8 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "Воспроизведение музыки", NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID,
+                "Воспроизведение музыки", NotificationManager.IMPORTANCE_LOW
             ).apply {
                 setSound(null, null)
                 enableLights(false)
