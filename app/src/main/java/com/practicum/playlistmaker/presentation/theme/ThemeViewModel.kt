@@ -16,8 +16,8 @@ class ThemeViewModel(
     private val _state = MutableLiveData(ThemeScreenState())
     val state: LiveData<ThemeScreenState> = _state
 
-    private val _uiEvent = SingleLiveEvent<SettingsUiEvent>()
-    val uiEvent: LiveData<SettingsUiEvent> = _uiEvent
+    private val _uiEvent = SingleLiveEvent<SettingsUiEvent?>()
+    val uiEvent: LiveData<SettingsUiEvent?> = _uiEvent
 
     init {
         _state.value = ThemeScreenState(isDarkMode = getThemeUseCase.execute())
@@ -38,5 +38,9 @@ class ThemeViewModel(
 
     fun onShareAppClicked() {
         _uiEvent.value = SettingsUiEvent.ShareApp
+    }
+
+    fun resetUiEvent() {
+        _uiEvent.value = null
     }
 }
