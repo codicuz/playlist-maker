@@ -3,20 +3,25 @@ package com.practicum.playlistmaker.presentation.settings.compose
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +29,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -40,8 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun SettingsScreen(
-    viewModel: ThemeViewModel = koinViewModel(),
-    onNavigateBack: () -> Unit
+    viewModel: ThemeViewModel = koinViewModel(), onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
     val state by viewModel.state.observeAsState()
@@ -53,18 +58,22 @@ fun SettingsScreen(
                 openPracticumOffer(context)
                 viewModel.resetUiEvent()
             }
+
             is com.practicum.playlistmaker.presentation.settings.SettingsUiEvent.SendToHelpdesk -> {
                 openHelpdeskEmail(context)
                 viewModel.resetUiEvent()
             }
+
             is com.practicum.playlistmaker.presentation.settings.SettingsUiEvent.ShareApp -> {
                 shareApp(context)
                 viewModel.resetUiEvent()
             }
+
             is com.practicum.playlistmaker.presentation.settings.SettingsUiEvent.ShowError -> {
                 Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 viewModel.resetUiEvent()
             }
+
             else -> {}
         }
     }
@@ -100,11 +109,9 @@ fun SettingsContent(
                 .fillMaxWidth()
                 .clickable(
                     indication = null,
-                    interactionSource = remember { MutableInteractionSource() }
-                ) { onBackClick() }
+                    interactionSource = remember { MutableInteractionSource() }) { onBackClick() }
                 .padding(start = 16.dp, top = 14.dp, bottom = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.settings),
                 style = AppTextStyles.ActivityTitle,
@@ -172,8 +179,7 @@ fun SettingsSwitchItem(
     Row(
         modifier = modifier.clickable(
             indication = null,
-            interactionSource = remember { MutableInteractionSource() }
-        ) { onCheckedChange(!checked) },
+            interactionSource = remember { MutableInteractionSource() }) { onCheckedChange(!checked) },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -183,15 +189,53 @@ fun SettingsSwitchItem(
             color = if (isDarkMode) AppColors.White else AppColors.Black
         )
 
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = AppColors.White,
-                checkedTrackColor = AppColors.Blue,
-                uncheckedThumbColor = AppColors.Gray,
-                uncheckedTrackColor = AppColors.LightGray
-            )
+        SmallSwitch(
+            checked = checked, onCheckedChange = onCheckedChange
+        )
+    }
+}
+
+@Composable
+fun SmallSwitch(
+    checked: Boolean, onCheckedChange: (Boolean) -> Unit
+) {
+    val trackWidth = 40.dp
+    val trackHeight = 16.dp
+    val thumbSize = 24.dp
+
+    val offset by animateDpAsState(
+        targetValue = if (checked) trackWidth - thumbSize
+        else 0.dp, label = ""
+    )
+
+    Box(
+        modifier = Modifier
+            .width(trackWidth)
+            .height(thumbSize)
+            .clickable { onCheckedChange(!checked) }, contentAlignment = Alignment.CenterStart
+    ) {
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(trackHeight)
+                .align(Alignment.Center)
+                .clip(RoundedCornerShape(trackHeight / 2))
+                .background(
+                    if (checked) AppColors.LightBlue
+                    else AppColors.LightGray
+                )
+        )
+
+        Box(
+            modifier = Modifier
+                .offset(x = offset)
+                .size(thumbSize)
+                .clip(CircleShape)
+                .background(
+                    if (checked) AppColors.Blue
+                    else AppColors.Gray
+                )
         )
     }
 }
@@ -208,9 +252,8 @@ fun SettingsClickableItem(
 ) {
     Row(
         modifier = modifier.clickable(
-            indication = null,
-            interactionSource = remember { MutableInteractionSource() }
-        ) { onClick() },
+        indication = null,
+        interactionSource = remember { MutableInteractionSource() }) { onClick() },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -261,9 +304,7 @@ private fun startSafe(intent: Intent, context: android.content.Context) {
         ContextCompat.startActivity(context, intent, null)
     } catch (e: Exception) {
         Toast.makeText(
-            context,
-            context.getString(R.string.no_intent_handle),
-            Toast.LENGTH_LONG
+            context, context.getString(R.string.no_intent_handle), Toast.LENGTH_LONG
         ).show()
     }
 }
@@ -278,8 +319,7 @@ fun SettingsScreenLightPreview() {
             onPracticumOfferClick = {},
             onSendToHelpdeskClick = {},
             onShareAppClick = {},
-            onBackClick = {}
-        )
+            onBackClick = {})
     }
 }
 
@@ -292,6 +332,5 @@ fun SettingsScreenDarkPreview() {
         onPracticumOfferClick = {},
         onSendToHelpdeskClick = {},
         onShareAppClick = {},
-        onBackClick = {}
-    )
+        onBackClick = {})
 }
