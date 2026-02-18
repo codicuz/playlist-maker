@@ -109,4 +109,7 @@
     <string name="error_deleteing">Ошибка удаления: %1$s</string>
     <string name="saving">Сохранение</string>
     <string name="playing_track">Воспроизведение музыки</string>
+    <string name="nothing_found">Ничего не нашлось</string>
+    <string name="update_btn">Обновить</string>
+    <string name="you_searched">Вы искали</string>
 </resources>

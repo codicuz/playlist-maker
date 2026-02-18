@@ -21,25 +21,20 @@ import com.practicum.playlistmaker.domain.track.SearchTracksUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
-    // Theme
     factory { GetThemeUseCase(get()) }
     factory { SwitchThemeUseCase(get()) }
 
-    // History
     factory { AddTrackToHistoryUseCase(get()) }
     factory { ClearSearchHistoryUseCase(get()) }
     factory { GetSearchHistoryUseCase(get()) }
 
-    // Search
     factory { SearchTracksUseCase(get()) }
 
-    // Favorites
     factory { AddToFavoritesUseCase(get()) }
     factory { RemoveFromFavoritesUseCase(get()) }
     factory { GetFavoritesUseCase(get()) }
     factory { IsFavoriteUseCase(get()) }
 
-    // Playlist
     factory { CreatePlaylistUseCase(get()) }
     factory { GetPlaylistsUseCase(get()) }
     factory { AddTrackToPlaylistUseCase(get(), get(), get()) }
