@@ -16,6 +16,10 @@ class PlaylistsViewModel(
     private val _playlists = MutableStateFlow<List<Playlist>>(emptyList())
     val playlists: StateFlow<List<Playlist>> = _playlists.asStateFlow()
 
+    init {
+        loadPlaylists()
+    }
+
     fun loadPlaylists() {
         viewModelScope.launch {
             getPlaylistsUseCase.execute().collect { list ->

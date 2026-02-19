@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/mediaFragment"
         android:name="com.practicum.playlistmaker.presentation.media.MediaFragment"
-        android:label="fragment_media"
+        android:label="MediaFragment"
         tools:layout="@layout/fragment_media">
         <action
             android:id="@+id/action_mediaFragment_to_audioPlayerFragment"
@@ -64,7 +64,6 @@
         android:id="@+id/editPlaylistFragment"
         android:name="com.practicum.playlistmaker.presentation.media.EditPlaylistFragment"
         android:label="EditPlaylistFragment"
-        tools:layout="@layout/fragment_new_playlist"
-        />
+        tools:layout="@layout/fragment_new_playlist" />
 
 </navigation>
