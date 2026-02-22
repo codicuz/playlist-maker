@@ -1,4 +1,4 @@
-package com.practicum.playlistmaker.presentation.media
+package com.practicum.playlistmaker.presentation.playlist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,17 +19,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class PlaylistScreenState(
-    val playlist: Playlist? = null,
-    val tracks: List<Track> = emptyList(),
-    val isLoading: Boolean = false,
-    val totalDurationMinutes: Long = 0,
-    val trackCount: Int = 0,
-    val isDeleting: Boolean = false,
-    val deletionSuccess: Boolean = false,
-    val error: String? = null
-)
-
 class PlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,
     private val getTracksForPlaylistUseCase: GetTracksForPlaylistUseCase,
@@ -41,18 +30,22 @@ class PlaylistViewModel(
     private val _state = MutableStateFlow(PlaylistScreenState())
     val state: StateFlow<PlaylistScreenState> = _state.asStateFlow()
 
-    private val _deletionEvent = MutableStateFlow<DeletionEvent?>(null)
-    val deletionEvent: StateFlow<DeletionEvent?> = _deletionEvent.asStateFlow()
+    private val _uiEvent = MutableSharedFlow<PlaylistUiEvent>()
+    val uiEvent: SharedFlow<PlaylistUiEvent> = _uiEvent.asSharedFlow()
 
-    private val _playlistUpdatedEvent = MutableSharedFlow<Long>()
-    val playlistUpdatedEvent: SharedFlow<Long> = _playlistUpdatedEvent.asSharedFlow()
+    private var playlistId: Long = -1
+    private var trackToDelete: Track? = null
 
-    sealed class DeletionEvent {
-        object Success : DeletionEvent()
-        data class Error(val message: String) : DeletionEvent()
+    fun setPlaylistId(id: Long) {
+        if (playlistId != id) {
+            playlistId = id
+            loadPlaylist()
+        }
     }
 
-    fun loadPlaylist(playlistId: Long) {
+    fun loadPlaylist() {
+        if (playlistId == -1L) return
+
         _state.update { it.copy(isLoading = true, error = null) }
 
         viewModelScope.launch {
@@ -84,7 +77,21 @@ class PlaylistViewModel(
         }
     }
 
-    fun deleteTrackFromPlaylist(track: Track) {
+    fun onTrackClick(track: Track) {
+        viewModelScope.launch {
+            _uiEvent.emit(PlaylistUiEvent.NavigateToPlayer(track))
+        }
+    }
+
+    fun onTrackLongClick(track: Track) {
+        trackToDelete = track
+        viewModelScope.launch {
+            _uiEvent.emit(PlaylistUiEvent.ShowDeleteTrackDialog(track))
+        }
+    }
+
+    fun confirmDeleteTrack() {
+        val track = trackToDelete ?: return
         viewModelScope.launch {
             _state.value.playlist?.let { playlist ->
                 try {
@@ -106,8 +113,10 @@ class PlaylistViewModel(
                             trackCount = updatedTracks.size
                         )
                     }
+                    trackToDelete = null
 
-                    _playlistUpdatedEvent.emit(playlist.id)
+                    // Уведомляем об обновлении плейлиста
+                    _uiEvent.emit(PlaylistUiEvent.PlaylistUpdated(playlist.id))
 
                 } catch (e: Exception) {
                     _state.update {
@@ -122,33 +131,108 @@ class PlaylistViewModel(
         }
     }
 
-    fun deletePlaylist() {
+    fun onShareClick() {
+        val tracks = _state.value.tracks
+        val playlist = _state.value.playlist
+
+        if (tracks.isEmpty()) {
+            viewModelScope.launch {
+                _uiEvent.emit(
+                    PlaylistUiEvent.ShowToast(
+                        resources.getString(R.string.no_shareable_playlist)
+                    )
+                )
+            }
+            return
+        }
+
+        val shareText = buildShareText(playlist, tracks)
+        viewModelScope.launch {
+            _uiEvent.emit(PlaylistUiEvent.SharePlaylist(shareText))
+        }
+    }
+
+    fun onEditClick() {
+        _state.value.playlist?.let { playlist ->
+            viewModelScope.launch {
+                _uiEvent.emit(PlaylistUiEvent.NavigateToEditPlaylist(playlist.id))
+            }
+        }
+    }
+
+    fun onDeletePlaylistClick() {
+        viewModelScope.launch {
+            _uiEvent.emit(PlaylistUiEvent.ShowDeletePlaylistDialog)
+        }
+    }
+
+    fun confirmDeletePlaylist() {
         viewModelScope.launch {
             _state.value.playlist?.let { playlist ->
                 _state.update { it.copy(isDeleting = true, error = null) }
 
                 try {
                     deletePlaylistUseCase.execute(playlist.id)
-                    _deletionEvent.value = DeletionEvent.Success
+                    _uiEvent.emit(PlaylistUiEvent.NavigateBack)
                 } catch (e: Exception) {
                     _state.update { it.copy(isDeleting = false) }
-                    _deletionEvent.value = DeletionEvent.Error(
-                        e.message
-                            ?: resources.getString(R.string.unknown_error_over_deleting_playlist)
+                    _uiEvent.emit(
+                        PlaylistUiEvent.ShowToast(
+                            e.message
+                                ?: resources.getString(R.string.unknown_error_over_deleting_playlist)
+                        )
                     )
                 }
             }
         }
     }
 
-    fun resetDeletionEvent() {
-        _deletionEvent.value = null
+    fun onBottomSheetStateChange(state: BottomSheetState) {
+        _state.update { it.copy(bottomSheetState = state) }
+    }
+
+    fun onBackClick() {
+        viewModelScope.launch {
+            _uiEvent.emit(PlaylistUiEvent.NavigateBack)
+        }
+    }
+
+    private fun buildShareText(playlist: Playlist?, tracks: List<Track>): String {
+        val builder = StringBuilder()
+
+        playlist?.title?.let { title ->
+            builder.append(title).append("\n")
+        }
+
+        playlist?.description?.takeIf { it.isNotBlank() }?.let { description ->
+            builder.append(description).append("\n")
+        }
+
+        val trackCount = tracks.size
+        val tracksText = resources.getQuantityString(
+            R.plurals.tracks_count, trackCount, trackCount
+        )
+        builder.append("$tracksText\n\n")
+
+        tracks.forEachIndexed { index, track ->
+            val trackNumber = index + 1
+            val artist = track.artistsName ?: resources.getString(R.string.unknown_artist)
+            val trackName = track.trackName ?: resources.getString(R.string.unknown_track_name)
+            val duration = track.trackTime ?: resources.getString(R.string.unknown_track_time)
+
+            builder.append("$trackNumber. $artist - $trackName ($duration)\n")
+        }
+
+        return builder.toString()
     }
 
     private fun calculateTotalDuration(tracks: List<Track>): Long {
         if (tracks.isEmpty()) return 0
-
         val totalMillis = tracks.sumOf { it.trackTimeMillis ?: 0L }
         return totalMillis / (1000 * 60)
+    }
+
+    fun clearError() {
+        _state.update { it.copy(error = null) }
     }
 }

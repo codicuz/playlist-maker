@@ -60,10 +60,16 @@ class PlaylistsFragment : Fragment() {
         }
 
         parentFragmentManager.setFragmentResultListener(
+            "playlist_updated", viewLifecycleOwner
+        ) { _, _ ->
+            viewModel.refreshPlaylists()
+        }
+
+        parentFragmentManager.setFragmentResultListener(
             "playlist_deleted", viewLifecycleOwner
         ) { _, bundle ->
             if (bundle.getBoolean("deleted")) {
-                viewModel.loadPlaylists()
+                viewModel.refreshPlaylists()
                 Toast.makeText(
                     requireContext(),
                     getString(R.string.playlist_deleted_success),

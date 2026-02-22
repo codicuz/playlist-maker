@@ -48,7 +48,7 @@ class NewPlaylistRepositoryImpl(
     override fun getPlaylists(): Flow<List<Playlist>> {
         return playlistDao.getPlaylists().map { playlistEntities ->
             playlistEntities.map { playlistEntity ->
-                val tracks = getTracksForPlaylist(playlistEntity.id)
+                val tracks = getTracksForPlaylistSynchronously(playlistEntity.id)
                 playlistEntity.toDomain(tracks)
             }
         }
@@ -64,7 +64,7 @@ class NewPlaylistRepositoryImpl(
         playlistDao.updateTrackCount(id, count)
     }
 
-    private suspend fun getTracksForPlaylist(playlistId: Long): List<com.practicum.playlistmaker.domain.track.Track> {
+    private suspend fun getTracksForPlaylistSynchronously(playlistId: Long): List<com.practicum.playlistmaker.domain.track.Track> {
         return playlistTrackDao.getTracksFromPlaylistOnce(playlistId).map { it.toTrack() }
     }
 

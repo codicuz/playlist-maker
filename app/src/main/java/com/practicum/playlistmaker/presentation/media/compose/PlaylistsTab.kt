@@ -60,12 +60,10 @@ fun PlaylistsTab(
     val playlists by viewModel.playlists.collectAsStateWithLifecycle(initialValue = emptyList())
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // Обновляем плейлисты при каждом появлении таба
     LaunchedEffect(Unit) {
         viewModel.loadPlaylists()
     }
 
-    // Также обновляем при возвращении на экран
     LaunchedEffect(lifecycleOwner.lifecycle) {
         viewModel.loadPlaylists()
     }
