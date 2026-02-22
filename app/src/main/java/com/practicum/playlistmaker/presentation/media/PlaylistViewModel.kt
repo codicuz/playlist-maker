@@ -10,8 +10,11 @@ import com.practicum.playlistmaker.domain.playlist.GetTracksForPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -40,6 +43,9 @@ class PlaylistViewModel(
 
     private val _deletionEvent = MutableStateFlow<DeletionEvent?>(null)
     val deletionEvent: StateFlow<DeletionEvent?> = _deletionEvent.asStateFlow()
+
+    private val _playlistUpdatedEvent = MutableSharedFlow<Long>()
+    val playlistUpdatedEvent: SharedFlow<Long> = _playlistUpdatedEvent.asSharedFlow()
 
     sealed class DeletionEvent {
         object Success : DeletionEvent()
@@ -100,6 +106,9 @@ class PlaylistViewModel(
                             trackCount = updatedTracks.size
                         )
                     }
+
+                    // Отправляем событие об обновлении плейлиста
+                    _playlistUpdatedEvent.emit(playlist.id)
 
                 } catch (e: Exception) {
                     _state.update {

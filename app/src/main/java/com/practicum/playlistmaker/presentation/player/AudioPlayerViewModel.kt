@@ -50,7 +50,8 @@ class AudioPlayerViewModel(
     private val _shouldCloseBottomSheet = MutableLiveData<Boolean?>()
     val shouldCloseBottomSheet: LiveData<Boolean> = _shouldCloseBottomSheet as LiveData<Boolean>
 
-    val playlists: LiveData<List<Playlist>> = getPlaylistsUseCase.execute().asLiveData()
+    private val _playlists = MutableLiveData<List<Playlist>>()
+    val playlists: LiveData<List<Playlist>> = _playlists
 
     private var currentTrack: Track? = null
     private var isBound = false
@@ -59,6 +60,18 @@ class AudioPlayerViewModel(
     private var pendingStartPlayer = false
 
     private var pollJob: Job? = null
+
+    init {
+        loadPlaylists()
+    }
+
+    private fun loadPlaylists() {
+        viewModelScope.launch {
+            getPlaylistsUseCase.execute().collect { list ->
+                _playlists.value = list
+            }
+        }
+    }
 
     fun bindService(context: Context) {
         if (isBound && audioPlayerService != null) {
@@ -202,6 +215,7 @@ class AudioPlayerViewModel(
             Log.d(TAG, "Service not ready, track will be set when connected")
         }
     }
+
     private fun updateTrackState(track: Track) {
         viewModelScope.launch {
             val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
@@ -265,6 +279,8 @@ class AudioPlayerViewModel(
                 is AddTrackResult.Success -> {
                     _addTrackStatus.value = AddTrackStatus.Success(result.playlistName)
                     _shouldCloseBottomSheet.value = true
+                    // Обновляем список плейлистов после добавления
+                    loadPlaylists()
                 }
                 is AddTrackResult.AlreadyExists -> {
                     _addTrackStatus.value = AddTrackStatus.AlreadyExists(result.playlistName)

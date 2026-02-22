@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.practicum.playlistmaker.R
@@ -57,6 +58,17 @@ fun PlaylistsTab(
     onCreatePlaylistClick: () -> Unit
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle(initialValue = emptyList())
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Обновляем плейлисты при каждом появлении таба
+    LaunchedEffect(Unit) {
+        viewModel.loadPlaylists()
+    }
+
+    // Также обновляем при возвращении на экран
+    LaunchedEffect(lifecycleOwner.lifecycle) {
+        viewModel.loadPlaylists()
+    }
 
     PlaylistsContent(
         playlists = playlists,
@@ -189,6 +201,8 @@ fun PlaylistGridItem(
         )
     }
 }
+
+
 
 @Preview(showBackground = true, name = "Playlists Tab - Empty", showSystemUi = false)
 @Composable

@@ -2,11 +2,9 @@ package com.practicum.playlistmaker.presentation.media
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -15,7 +13,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bumptech.glide.Glide
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -28,7 +25,6 @@ import com.practicum.playlistmaker.presentation.util.CoverLoader
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import java.io.File
 
 class PlaylistFragment : Fragment() {
 
@@ -62,7 +58,8 @@ class PlaylistFragment : Fragment() {
         }
 
         savedInstanceState?.let {
-            savedBottomSheetState = it.getInt(KEY_BOTTOM_SHEET_STATE, BottomSheetBehavior.STATE_COLLAPSED)
+            savedBottomSheetState =
+                it.getInt(KEY_BOTTOM_SHEET_STATE, BottomSheetBehavior.STATE_COLLAPSED)
         }
     }
 
@@ -230,8 +227,7 @@ class PlaylistFragment : Fragment() {
                 putLong("playlistId", playlist.id)
             }
             findNavController().navigate(
-                R.id.action_playlistFragment_to_editPlaylistFragment,
-                bundle
+                R.id.action_playlistFragment_to_editPlaylistFragment, bundle
             )
         }
     }
@@ -241,8 +237,7 @@ class PlaylistFragment : Fragment() {
             viewModel.state.value.playlist?.title ?: getString(R.string.unknown_playlist)
 
         MaterialAlertDialogBuilder(
-            requireContext(),
-            R.style.MyDialogButton
+            requireContext(), R.style.MyDialogButton
         ).setTitle(getString(R.string.delete_playlist_title, playlistName))
             .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
@@ -276,8 +271,7 @@ class PlaylistFragment : Fragment() {
 
     private fun showDeleteDialog(track: Track) {
         MaterialAlertDialogBuilder(
-            requireContext(),
-            R.style.MyDialogButton
+            requireContext(), R.style.MyDialogButton
         ).setTitle(getString(R.string.delete_track_title))
             .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
@@ -325,9 +319,11 @@ class PlaylistFragment : Fragment() {
                     BottomSheetBehavior.STATE_COLLAPSED -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     }
+
                     BottomSheetBehavior.STATE_EXPANDED -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
+
                     else -> {
                         bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
                     }
@@ -351,10 +347,12 @@ class PlaylistFragment : Fragment() {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
                     }
+
                     BottomSheetBehavior.STATE_EXPANDED -> {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
                     }
+
                     else -> {
                         binding.overlay.isVisible = true
                         binding.overlay.alpha = 0.6f
@@ -421,15 +419,32 @@ class PlaylistFragment : Fragment() {
                         findNavController().popBackStack()
                         viewModel.resetDeletionEvent()
                     }
+
                     is PlaylistViewModel.DeletionEvent.Error -> {
                         Toast.makeText(
                             requireContext(),
-                            getString(R.string.error_deleteing, event.message), Toast.LENGTH_LONG
+                            getString(R.string.error_deleteing, event.message),
+                            Toast.LENGTH_LONG
                         ).show()
                         viewModel.resetDeletionEvent()
                     }
+
                     null -> {
                     }
+                }
+            }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.playlistUpdatedEvent.collectLatest { updatedPlaylistId ->
+                if (updatedPlaylistId == playlistId) {
+                    viewModel.loadPlaylist(playlistId)
+
+                    parentFragmentManager.setFragmentResult(
+                        "playlist_updated", Bundle().apply {
+                            putBoolean("updated", true)
+                            putLong("playlist_id", playlistId)
+                        })
                 }
             }
         }

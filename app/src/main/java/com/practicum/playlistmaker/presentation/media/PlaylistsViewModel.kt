@@ -27,4 +27,8 @@ class PlaylistsViewModel(
             }
         }
     }
+
+    fun refreshPlaylists() {
+        loadPlaylists()
+    }
 }
