@@ -64,8 +64,14 @@ class AudioPlayerViewModel(
     private var pendingStartPlayer = false
     private var pollJob: Job? = null
 
+    private var isConfigurationChange = false
+
     init {
         loadPlaylists()
+    }
+
+    fun onConfigurationChange() {
+        isConfigurationChange = true
     }
 
     private fun loadPlaylists() {
@@ -217,6 +223,35 @@ class AudioPlayerViewModel(
         }
     }
 
+    // НОВЫЙ МЕТОД для обновления трека без сброса состояния
+    fun updateTrackIfNeeded(track: Track) {
+        if (currentTrack?.trackId != track.trackId) {
+            currentTrack = track
+
+            // Запускаем корутину для получения статуса избранного
+            viewModelScope.launch {
+                val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
+                _state.update {
+                    it.copy(
+                        track = track,
+                        isFavorite = isFav
+                    )
+                }
+            }
+
+            if (isBound && audioPlayerService != null) {
+                audioPlayerService?.setTrack(
+                    track,
+                    track.artistsName ?: "",
+                    track.trackName ?: ""
+                )
+            }
+        } else {
+            // Если тот же трек, просто обновляем состояние из сервиса
+            updateStateFromService()
+        }
+    }
+
     fun startPlayer() {
         if (audioPlayerService == null) {
             Log.e(TAG, "Cannot start player - service is null")
@@ -326,10 +361,16 @@ class AudioPlayerViewModel(
 
     fun onAppBackgrounded() {
         wasInBackground = true
-        if (_state.value.isPlaying) {
+        // Запускаем foreground ТОЛЬКО если приложение реально сворачивают, а не поворачивают
+        if (_state.value.isPlaying && !isConfigurationChange) {
             startForegroundMode()
         }
     }
+
+    fun onConfigurationChangeFinished() {
+        isConfigurationChange = false
+    }
+
 
     fun onAppForegrounded() {
         if (wasInBackground) {

@@ -264,7 +264,10 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             .setContentText("$artistName - $trackTitle")
             .setSmallIcon(android.R.drawable.ic_media_play).setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).build()
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setColorized(true)
+            .build()
     }
 
     private fun createNotificationChannel() {
