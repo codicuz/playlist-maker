@@ -9,7 +9,7 @@ object AppColors {
     val White = Color(0xFFFFFFFF)
     val Gray = Color(0xFFAEAFB4)
     val LightGray = Color(0xFFE6E8EB)
-    val Red = Color(0xFFDC3B3B)
+    val Red = Color(0xFFF56B6C)
 
     val ButtonBackgroundLight = Black
     val ButtonTextLight = White
