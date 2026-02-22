@@ -2,7 +2,15 @@ package com.practicum.playlistmaker.presentation.theme.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -19,18 +27,15 @@ import com.practicum.playlistmaker.domain.track.Track
 
 @Composable
 fun TrackItem(
-    track: Track,
-    onClick: () -> Unit
+    track: Track, onClick: () -> Unit
 ) {
     val isDarkTheme = isDarkTheme()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .clickable { onClick() }
+        .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(
             model = track.artworkUrl100,
             contentDescription = null,
@@ -57,9 +62,7 @@ fun TrackItem(
             Spacer(modifier = Modifier.height(1.dp))
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = track.artistsName ?: "-",
@@ -67,24 +70,28 @@ fun TrackItem(
                     color = if (isDarkTheme()) AppColors.White else AppColors.Gray,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(
+                        1f, fill = false
+                    )
                 )
+
+                Spacer(modifier = Modifier.width(4.dp))
 
                 Box(
                     modifier = Modifier
                         .size(4.dp)
                         .background(
-                            color = AppColors.Gray,
-                            shape = RoundedCornerShape(2.dp)
+                            color = AppColors.Gray, shape = RoundedCornerShape(2.dp)
                         )
                 )
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
                     text = track.trackTime ?: "-",
                     style = AppTextStyles.TrackArtistTime,
-                    color = if (isDarkTheme()) AppColors.White else AppColors.Gray
+                    color = if (isDarkTheme()) AppColors.White else AppColors.Gray,
+                    maxLines = 1
                 )
             }
         }
