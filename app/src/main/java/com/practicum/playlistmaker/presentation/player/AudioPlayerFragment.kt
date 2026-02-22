@@ -74,6 +74,7 @@ class AudioPlayerFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         (requireActivity() as? MainActivity)?.hideBottomNav()
+        viewModel.stopForegroundMode()
     }
 
     override fun onPause() {

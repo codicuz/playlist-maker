@@ -326,6 +326,9 @@ class AudioPlayerViewModel(
 
     fun onAppBackgrounded() {
         wasInBackground = true
+        if (_state.value.isPlaying) {
+            startForegroundMode()
+        }
     }
 
     fun onAppForegrounded() {
