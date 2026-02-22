@@ -186,10 +186,6 @@ class PlaylistViewModel(
         }
     }
 
-    fun onBottomSheetStateChange(state: BottomSheetState) {
-        _state.update { it.copy(bottomSheetState = state) }
-    }
-
     fun onBackClick() {
         viewModelScope.launch {
             _uiEvent.emit(PlaylistUiEvent.NavigateBack)

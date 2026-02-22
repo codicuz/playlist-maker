@@ -118,7 +118,6 @@ class PlaylistFragment : Fragment() {
         MaterialAlertDialogBuilder(
             requireContext(), R.style.MyDialogButton
         ).setTitle(getString(R.string.delete_track_title))
-            .setMessage(getString(R.string.delete_track_title))
             .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
             }.setPositiveButton(getString(R.string.yes)) { dialog, _ ->
@@ -131,7 +130,6 @@ class PlaylistFragment : Fragment() {
         MaterialAlertDialogBuilder(
             requireContext(), R.style.MyDialogButton
         ).setTitle(getString(R.string.delete_playlist_title, playlistName))
-            .setMessage(getString(R.string.delete_playlist_title))
             .setNegativeButton(getString(R.string.no)) { dialog, _ ->
                 dialog.dismiss()
             }.setPositiveButton(getString(R.string.yes)) { dialog, _ ->
