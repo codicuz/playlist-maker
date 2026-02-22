@@ -26,5 +26,5 @@ sealed class PlaylistUiEvent {
     object ShowDeletePlaylistDialog : PlaylistUiEvent()
     data class ShowToast(val message: String) : PlaylistUiEvent()
     data class SharePlaylist(val text: String) : PlaylistUiEvent()
-    data class PlaylistUpdated(val playlistId: Long) : PlaylistUiEvent() // Добавлено
+    data class PlaylistUpdated(val playlistId: Long) : PlaylistUiEvent()
 }

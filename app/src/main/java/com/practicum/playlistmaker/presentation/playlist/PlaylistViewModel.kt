@@ -115,7 +115,6 @@ class PlaylistViewModel(
                     }
                     trackToDelete = null
 
-                    // Уведомляем об обновлении плейлиста
                     _uiEvent.emit(PlaylistUiEvent.PlaylistUpdated(playlist.id))
 
                 } catch (e: Exception) {

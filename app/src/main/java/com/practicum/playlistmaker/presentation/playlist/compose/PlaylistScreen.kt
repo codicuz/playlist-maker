@@ -102,7 +102,6 @@ fun PlaylistScreen(
                 is PlaylistUiEvent.ShowToast -> onShowToast(event.message)
                 is PlaylistUiEvent.SharePlaylist -> onShareText(event.text)
                 is PlaylistUiEvent.PlaylistUpdated -> {
-                    // Обновляем данные плейлиста при изменении
                     viewModel.loadPlaylist()
                 }
             }
@@ -560,6 +559,8 @@ fun TrackItem(
     }
 }
 
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistMenuSheet(
@@ -586,7 +587,8 @@ fun PlaylistMenuSheet(
             Box(
                 modifier = Modifier
                     .width(50.dp)
-                    .height(4.dp)
+                    .height(12.dp)
+                    .padding(top = 8.dp)
                     .background(
                         color = if (isDarkTheme) Color.White else AppColors.LightGray,
                         shape = RoundedCornerShape(2.dp)
@@ -805,7 +807,6 @@ fun PlaylistScreenPreviewContent(
             modifier = Modifier.fillMaxSize()
         ) {
 
-            // Контент плейлиста
             PlaylistHeader(
                 playlist = mockPlaylist,
                 isDarkTheme = isDarkTheme,
@@ -825,14 +826,12 @@ fun PlaylistScreenPreviewContent(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Затемнение
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f))
         )
 
-        // Нижняя панель с треками
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -854,7 +853,6 @@ fun PlaylistScreenPreviewContent(
     }
 }
 
-// Оставьте mockTracks без изменений
 val mockTracks = listOf(
     Track(
         id = 1,
@@ -909,3 +907,147 @@ val mockTracks = listOf(
         country = "UK"
     )
 )
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(
+    showBackground = true,
+    name = "Playlist Screen with Menu - Light",
+    showSystemUi = true,
+    heightDp = 800,
+    widthDp = 360
+)
+@Composable
+fun PlaylistScreenWithMenuPreview() {
+    AppTheme(darkTheme = false) {
+        PlaylistScreenWithMenuContent()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaylistScreenWithMenuContent(
+    isEmpty: Boolean = false,
+    isDarkTheme: Boolean = false,
+    backgroundColor: Color = if (isDarkTheme) AppColors.Black else AppColors.White
+) {
+    val mockPlaylist = if (!isEmpty) {
+        Playlist(
+            id = 1,
+            title = "Мой любимый плейлист",
+            description = "Лучшие треки для хорошего настроения",
+            coverUri = null,
+            tracksCount = mockTracks,
+            trackCount = mockTracks.size
+        )
+    } else {
+        Playlist(
+            id = 1,
+            title = "Пустой плейлист",
+            description = "Здесь пока нет треков",
+            coverUri = null,
+            tracksCount = emptyList(),
+            trackCount = 0
+        )
+    }
+
+    val mockResourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.zero_minutes -> "0 минут"
+            R.string.empty_playlist_message -> "В плейлисте пока нет треков"
+            R.string.share -> "Поделиться"
+            R.string.edit_information -> "Редактировать информацию"
+            R.string.delete_playlist -> "Удалить плейлист"
+            else -> "Preview String"
+        }
+
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_playlist_title -> String.format("Удалить плейлист \"%s\"?", args[0])
+            R.string.delete_track_title -> String.format("Удалить трек \"%s\" из плейлиста?", args[0])
+            else -> "Preview String"
+        }
+
+        override fun getQuantityString(
+            resId: Int, quantity: Int, vararg args: Any
+        ): String = when (resId) {
+            R.plurals.tracks_count -> {
+                val count = args[0] as Int
+                when {
+                    count % 10 == 1 && count % 100 != 11 -> "$count трек"
+                    count % 10 in 2..4 && (count % 100 !in 12..14) -> "$count трека"
+                    else -> "$count треков"
+                }
+            }
+            R.plurals.tracks_minutes -> {
+                val minutes = args[0] as Long
+                when {
+                    minutes % 10 == 1L && minutes % 100 != 11L -> "$minutes минута"
+                    minutes % 10 in 2..4 && (minutes % 100 !in 12..14) -> "$minutes минуты"
+                    else -> "$minutes минут"
+                }
+            }
+            else -> "Preview"
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            PlaylistHeader(
+                playlist = mockPlaylist,
+                isDarkTheme = isDarkTheme,
+                onBackClick = {}
+            )
+
+            PlaylistInfo(
+                playlist = mockPlaylist,
+                trackCount = mockPlaylist.trackCount,
+                totalDurationMinutes = if (!isEmpty) 45 else 0,
+                isDarkTheme = isDarkTheme,
+                onShareClick = {},
+                onMenuClick = {},
+                resourceProvider = mockResourceProvider
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.4f)
+                .align(Alignment.BottomCenter)
+                .background(
+                    color = if (isDarkTheme) AppColors.Black else Color.White,
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                )
+        ) {
+            TrackBottomSheet(
+                tracks = if (!isEmpty) mockTracks else emptyList(),
+                onTrackClick = {},
+                onTrackLongClick = {},
+                isDarkTheme = isDarkTheme,
+                resourceProvider = mockResourceProvider
+            )
+        }
+
+        PlaylistMenuSheet(
+            playlist = mockPlaylist,
+            onDismiss = {},
+            onShareClick = {},
+            onEditClick = {},
+            onDeleteClick = {},
+            isDarkTheme = isDarkTheme,
+            resourceProvider = mockResourceProvider
+        )
+    }
+}
