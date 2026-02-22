@@ -121,7 +121,7 @@ fun PlaylistScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(if (isDarkTheme) AppColors.Black else AppColors.White),
+                    .background(AppColors.White),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = AppColors.Blue)
@@ -130,7 +130,7 @@ fun PlaylistScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(if (isDarkTheme) AppColors.Black else AppColors.White)
+                    .background(AppColors.White)
             ) {
                 Column(
                     modifier = Modifier.fillMaxSize()
@@ -298,7 +298,7 @@ fun PlaylistHeader(
             Icon(
                 painter = painterResource(R.drawable.back),
                 contentDescription = stringResource(R.string.back),
-                tint = if (isDarkTheme) Color.White else Color.Black
+                tint = Color.Black
             )
         }
     }
@@ -320,18 +320,21 @@ fun PlaylistInfo(
             .padding(horizontal = 16.dp)
     ) {
         Text(
+            modifier = Modifier.padding(vertical = 4.dp).padding(top = 20.dp),
             text = playlist.title,
             fontSize = 24.sp,
             fontFamily = AppTextStyles.PlaylistTitle.fontFamily,
-            color = if (isDarkTheme) Color.White else Color.Black
+            color = AppColors.Black
         )
 
         if (!playlist.description.isNullOrBlank()) {
             Text(
+                modifier = Modifier.padding(vertical = 4.dp).padding(bottom = 4.dp),
+
                 text = playlist.description,
                 fontSize = 18.sp,
                 fontFamily = AppTextStyles.PlaylistText.fontFamily,
-                color = if (isDarkTheme) Color.White else AppColors.Gray
+                color = AppColors.Black
             )
         }
 
@@ -348,7 +351,7 @@ fun PlaylistInfo(
                 },
                 fontSize = 18.sp,
                 fontFamily = AppTextStyles.PlaylistText.fontFamily,
-                color = if (isDarkTheme) Color.White else AppColors.Gray
+                color = AppColors.Black
             )
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -357,7 +360,7 @@ fun PlaylistInfo(
                 modifier = Modifier
                     .size(4.dp)
                     .background(
-                        color = if (isDarkTheme) Color.White else AppColors.Gray,
+                        color = AppColors.Black,
                         shape = RoundedCornerShape(2.dp)
                     )
             )
@@ -370,12 +373,12 @@ fun PlaylistInfo(
                 ),
                 fontSize = 18.sp,
                 fontFamily = AppTextStyles.PlaylistText.fontFamily,
-                color = if (isDarkTheme) Color.White else AppColors.Gray
+                color = AppColors.Black
             )
         }
 
         Row(
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier.padding(top = 16.dp)
         ) {
             IconButton(
                 onClick = onShareClick, modifier = Modifier.size(24.dp)
@@ -383,7 +386,7 @@ fun PlaylistInfo(
                 Icon(
                     painter = painterResource(R.drawable.share),
                     contentDescription = null,
-                    tint = if (isDarkTheme) Color.White else AppColors.Gray
+                    tint = AppColors.Black
                 )
             }
 
@@ -395,7 +398,7 @@ fun PlaylistInfo(
                 Icon(
                     painter = painterResource(R.drawable.playlist_hamburger),
                     contentDescription = null,
-                    tint = if (isDarkTheme) Color.White else AppColors.Gray
+                    tint = AppColors.Black
                 )
             }
         }
@@ -422,7 +425,8 @@ fun TrackBottomSheet(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 8.dp)
+                    .padding(bottom = 20.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
                 Box(
@@ -684,53 +688,58 @@ fun MenuItem(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, name = "Playlist Screen Light")
+@Preview(showBackground = true, name = "Playlist Screen Full - Light", showSystemUi = true)
 @Composable
-fun PlaylistScreenLightPreview() {
+fun PlaylistScreenFullLightPreview() {
     AppTheme(darkTheme = false) {
-        PlaylistScreenPreview(
+        PlaylistScreenPreviewContent(
+            isEmpty = false,
             isDarkTheme = false
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, name = "Playlist Screen Dark")
+@Preview(showBackground = true, name = "Playlist Screen Full - Dark", showSystemUi = true)
 @Composable
-fun PlaylistScreenDarkPreview() {
+fun PlaylistScreenFullDarkPreview() {
     AppTheme(darkTheme = true) {
-        PlaylistScreenPreview(
+        PlaylistScreenPreviewContent(
+            isEmpty = false,
             isDarkTheme = true
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, name = "Playlist Screen Empty Light")
+@Preview(showBackground = true, name = "Playlist Screen Empty - Light", showSystemUi = true)
 @Composable
 fun PlaylistScreenEmptyLightPreview() {
     AppTheme(darkTheme = false) {
-        PlaylistScreenPreview(
-            isEmpty = true, isDarkTheme = false
+        PlaylistScreenPreviewContent(
+            isEmpty = true,
+            isDarkTheme = false
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true, name = "Playlist Screen Empty Dark")
+@Preview(showBackground = true, name = "Playlist Screen Empty - Dark", showSystemUi = true)
 @Composable
 fun PlaylistScreenEmptyDarkPreview() {
     AppTheme(darkTheme = true) {
-        PlaylistScreenPreview(
-            isEmpty = true, isDarkTheme = true
+        PlaylistScreenPreviewContent(
+            isEmpty = true,
+            isDarkTheme = true
         )
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlaylistScreenPreview(
-    isEmpty: Boolean = false, isDarkTheme: Boolean = false
+fun PlaylistScreenPreviewContent(
+    isEmpty: Boolean = false,
+    isDarkTheme: Boolean = false
 ) {
     val mockPlaylist = if (!isEmpty) {
         Playlist(
@@ -752,16 +761,56 @@ fun PlaylistScreenPreview(
         )
     }
 
+    val mockResourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.zero_minutes -> "0 минут"
+            R.string.empty_playlist_message -> "В плейлисте пока нет треков"
+            else -> "Preview String"
+        }
+
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_playlist_title -> String.format("Удалить трек \"%s\" из плейлиста?", args[0])
+            else -> "Preview String"
+        }
+
+        override fun getQuantityString(
+            resId: Int, quantity: Int, vararg args: Any
+        ): String = when (resId) {
+            R.plurals.tracks_count -> {
+                val count = args[0] as Int
+                when {
+                    count % 10 == 1 && count % 100 != 11 -> "$count трек"
+                    count % 10 in 2..4 && (count % 100 !in 12..14) -> "$count трека"
+                    else -> "$count треков"
+                }
+            }
+            R.plurals.tracks_minutes -> {
+                val minutes = args[0] as Long
+                when {
+                    minutes % 10 == 1L && minutes % 100 != 11L -> "$minutes минута"
+                    minutes % 10 in 2..4 && (minutes % 100 !in 12..14) -> "$minutes минуты"
+                    else -> "$minutes минут"
+                }
+            }
+            else -> "Preview"
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(if (isDarkTheme) AppColors.Black else AppColors.White)
+            .background(AppColors.White)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
+
+            // Контент плейлиста
             PlaylistHeader(
-                playlist = mockPlaylist, isDarkTheme = isDarkTheme, onBackClick = {})
+                playlist = mockPlaylist,
+                isDarkTheme = isDarkTheme,
+                onBackClick = {}
+            )
 
             PlaylistInfo(
                 playlist = mockPlaylist,
@@ -770,38 +819,42 @@ fun PlaylistScreenPreview(
                 isDarkTheme = isDarkTheme,
                 onShareClick = {},
                 onMenuClick = {},
-                resourceProvider = object : ResourceProvider {
-                    override fun getString(resId: Int): String = "Preview String"
-                    override fun getString(resId: Int, vararg args: Any): String = "Preview String"
-                    override fun getQuantityString(
-                        resId: Int, quantity: Int, vararg args: Any
-                    ): String = when (resId) {
-                        R.plurals.tracks_count -> "$quantity треков"
-                        R.plurals.tracks_minutes -> "$quantity минут"
-                        else -> "Preview"
-                    }
-                })
+                resourceProvider = mockResourceProvider
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
-        TrackBottomSheet(
-            tracks = if (!isEmpty) mockTracks else emptyList(),
-            onTrackClick = {},
-            onTrackLongClick = {},
-            isDarkTheme = isDarkTheme,
-            resourceProvider = object : ResourceProvider {
-                override fun getString(resId: Int): String = "Preview String"
-                override fun getString(resId: Int, vararg args: Any): String = "Preview String"
-                override fun getQuantityString(
-                    resId: Int, quantity: Int, vararg args: Any
-                ): String = when (resId) {
-                    R.plurals.tracks_count -> "$quantity треков"
-                    R.plurals.tracks_minutes -> "$quantity минут"
-                    else -> "Preview"
-                }
-            })
+        // Затемнение
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+        )
+
+        // Нижняя панель с треками
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.4f)
+                .align(Alignment.BottomCenter)
+                .background(
+                    color = if (isDarkTheme) AppColors.Black else Color.White,
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                )
+        ) {
+            TrackBottomSheet(
+                tracks = if (!isEmpty) mockTracks else emptyList(),
+                onTrackClick = {},
+                onTrackLongClick = {},
+                isDarkTheme = isDarkTheme,
+                resourceProvider = mockResourceProvider
+            )
+        }
     }
 }
 
+// Оставьте mockTracks без изменений
 val mockTracks = listOf(
     Track(
         id = 1,
@@ -809,43 +862,46 @@ val mockTracks = listOf(
         trackName = "Bohemian Rhapsody",
         artistsName = "Queen",
         trackTimeMillis = 354000,
-        artworkUrl100 = "",
+        artworkUrl100 = "https://example.com/image.jpg",
         previewUrl = null,
         collectionName = "A Night at the Opera",
         releaseDate = "1975-10-31",
         primaryGenreName = "Rock",
         country = "UK"
-    ), Track(
+    ),
+    Track(
         id = 2,
         trackId = 2,
         trackName = "Imagine",
         artistsName = "John Lennon",
         trackTimeMillis = 183000,
-        artworkUrl100 = "",
+        artworkUrl100 = "https://example.com/image2.jpg",
         previewUrl = null,
         collectionName = "Imagine",
         releaseDate = "1971-09-09",
         primaryGenreName = "Rock",
         country = "UK"
-    ), Track(
+    ),
+    Track(
         id = 3,
         trackId = 3,
         trackName = "Hotel California",
         artistsName = "Eagles",
         trackTimeMillis = 390000,
-        artworkUrl100 = "",
+        artworkUrl100 = "https://example.com/image3.jpg",
         previewUrl = null,
         collectionName = "Hotel California",
         releaseDate = "1976-12-08",
         primaryGenreName = "Rock",
         country = "USA"
-    ), Track(
+    ),
+    Track(
         id = 4,
         trackId = 4,
         trackName = "Stairway to Heaven",
         artistsName = "Led Zeppelin",
         trackTimeMillis = 482000,
-        artworkUrl100 = "",
+        artworkUrl100 = "https://example.com/image4.jpg",
         previewUrl = null,
         collectionName = "Led Zeppelin IV",
         releaseDate = "1971-11-08",
