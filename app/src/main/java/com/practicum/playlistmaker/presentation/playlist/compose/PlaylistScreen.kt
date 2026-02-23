@@ -70,8 +70,6 @@ import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import java.io.File
 import kotlin.math.abs
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistScreen(
     viewModel: PlaylistViewModel,
@@ -89,6 +87,10 @@ fun PlaylistScreen(
     val isDarkTheme = isDarkTheme()
     var showMenuDialog by remember { mutableStateOf(false) }
 
+    // Состояния для диалогов
+    var showDeleteTrackDialog by remember { mutableStateOf(false) }
+    var trackToDelete by remember { mutableStateOf<Track?>(null) }
+    var showDeletePlaylistDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(playlistId) {
         viewModel.setPlaylistId(playlistId)
@@ -101,16 +103,11 @@ fun PlaylistScreen(
                 is PlaylistUiEvent.NavigateToPlayer -> onNavigateToPlayer(event.track)
                 is PlaylistUiEvent.NavigateToEditPlaylist -> onNavigateToEditPlaylist(event.playlistId)
                 is PlaylistUiEvent.ShowDeleteTrackDialog -> {
-                    onShowDeleteTrackDialog(event.track) {
-                        viewModel.confirmDeleteTrack()
-                    }
+                    trackToDelete = event.track
+                    showDeleteTrackDialog = true
                 }
                 PlaylistUiEvent.ShowDeletePlaylistDialog -> {
-                    state.playlist?.let { playlist ->
-                        onShowDeletePlaylistDialog(playlist.title) {
-                            viewModel.confirmDeletePlaylist()
-                        }
-                    }
+                    showDeletePlaylistDialog = true
                 }
                 is PlaylistUiEvent.ShowToast -> onShowToast(event.message)
                 is PlaylistUiEvent.SharePlaylist -> onShareText(event.text)
@@ -183,7 +180,6 @@ fun PlaylistScreen(
                     resourceProvider = resourceProvider
                 )
 
-
                 if (showMenuDialog) {
                     Box(
                         modifier = Modifier
@@ -204,9 +200,36 @@ fun PlaylistScreen(
                         },
                         onDeleteClick = {
                             showMenuDialog = false
-                            viewModel.onDeletePlaylistClick()
+                            showDeletePlaylistDialog = true
                         },
                         isDarkTheme = isDarkTheme,
+                        resourceProvider = resourceProvider
+                    )
+                }
+
+                // Диалог подтверждения удаления трека
+                if (showDeleteTrackDialog && trackToDelete != null) {
+                    DeleteTrackDialog(
+                        track = trackToDelete!!,
+                        onDismiss = { showDeleteTrackDialog = false },
+                        onConfirm = {
+                            viewModel.confirmDeleteTrack()
+                            showDeleteTrackDialog = false
+                            trackToDelete = null
+                        },
+                        resourceProvider = resourceProvider
+                    )
+                }
+
+                // Диалог подтверждения удаления плейлиста
+                if (showDeletePlaylistDialog && state.playlist != null) {
+                    DeletePlaylistDialog(
+                        playlistName = state.playlist!!.title,
+                        onDismiss = { showDeletePlaylistDialog = false },
+                        onConfirm = {
+                            viewModel.confirmDeletePlaylist()
+                            showDeletePlaylistDialog = false
+                        },
                         resourceProvider = resourceProvider
                     )
                 }
@@ -214,7 +237,6 @@ fun PlaylistScreen(
         }
     }
 }
-
 @Composable
 fun CustomBottomSheet(
     tracks: List<Track>,
@@ -725,3 +747,368 @@ private val previewTracks = listOf(
         country = "UK"
     )
 )
+
+
+@Composable
+fun DeleteTrackDialog(
+    track: Track,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    resourceProvider: ResourceProvider
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(4.dp),
+        title = {
+            Text(
+                text = resourceProvider.getString(R.string.delete_track_title),
+                style = AppTextStyles.BottomSheetTitle
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onConfirm
+            ) {
+                Text(resourceProvider.getString(R.string.yes))
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onDismiss
+            ) {
+                Text(resourceProvider.getString(R.string.no))
+            }
+        }
+    )
+}
+
+@Composable
+fun DeletePlaylistDialog(
+    playlistName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    resourceProvider: ResourceProvider
+) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(4.dp),
+        title = {
+            Text(
+                text = resourceProvider.getString(R.string.delete_playlist_title, playlistName),
+                style = AppTextStyles.BottomSheetTitle
+            )
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onConfirm
+            ) {
+                Text(resourceProvider.getString(R.string.yes))
+            }
+        },
+        dismissButton = {
+            androidx.compose.material3.TextButton(
+                onClick = onDismiss
+            ) {
+                Text(resourceProvider.getString(R.string.no))
+            }
+        }
+    )
+}
+
+@Preview(
+    name = "Delete Track Dialog - Light",
+    showBackground = true,
+    backgroundColor = 0xFFFFFFFF,
+    heightDp = 300,
+    widthDp = 360
+)
+@Composable
+fun DeleteTrackDialogLightPreview() {
+    val track = Track(
+        id = 1,
+        trackId = 1,
+        trackName = "Bohemian Rhapsody",
+        artistsName = "Queen",
+        trackTimeMillis = 354000,
+        artworkUrl100 = "",
+        previewUrl = null,
+        collectionName = "A Night at the Opera",
+        releaseDate = "1975-10-31",
+        primaryGenreName = "Rock",
+        country = "UK"
+    )
+
+    val resourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек"
+            R.string.yes -> "Да"
+            R.string.no -> "Нет"
+            else -> "Строка $resId"
+        }
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
+            else -> "Строка $resId"
+        }
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+    }
+
+    AppTheme(darkTheme = false) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            DeleteTrackDialog(
+                track = track,
+                onDismiss = {},
+                onConfirm = {},
+                resourceProvider = resourceProvider
+            )
+        }
+    }
+}
+
+@Preview(
+    name = "Delete Track Dialog - Dark",
+    showBackground = true,
+    backgroundColor = 0xFF1A1B22,
+    heightDp = 300,
+    widthDp = 360
+)
+@Composable
+fun DeleteTrackDialogDarkPreview() {
+    val track = Track(
+        id = 1,
+        trackId = 1,
+        trackName = "Bohemian Rhapsody",
+        artistsName = "Queen",
+        trackTimeMillis = 354000,
+        artworkUrl100 = "",
+        previewUrl = null,
+        collectionName = "A Night at the Opera",
+        releaseDate = "1975-10-31",
+        primaryGenreName = "Rock",
+        country = "UK"
+    )
+
+    val resourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек"
+            R.string.yes -> "Да"
+            R.string.no -> "Нет"
+            else -> "Строка $resId"
+        }
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
+            else -> "Строка $resId"
+        }
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+    }
+
+    AppTheme(darkTheme = true) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.Black)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            DeleteTrackDialog(
+                track = track,
+                onDismiss = {},
+                onConfirm = {},
+                resourceProvider = resourceProvider
+            )
+        }
+    }
+}
+
+@Preview(
+    name = "Delete Playlist Dialog - Light",
+    showBackground = true,
+    backgroundColor = 0xFFFFFFFF,
+    heightDp = 300,
+    widthDp = 360
+)
+@Composable
+fun DeletePlaylistDialogLightPreview() {
+    val resourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.delete_playlist_title -> "Удалить плейлист"
+            R.string.yes -> "Да"
+            R.string.no -> "Нет"
+            else -> "Строка $resId"
+        }
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
+            else -> "Строка $resId"
+        }
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+    }
+
+    AppTheme(darkTheme = false) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            DeletePlaylistDialog(
+                playlistName = "Мой любимый плейлист",
+                onDismiss = {},
+                onConfirm = {},
+                resourceProvider = resourceProvider
+            )
+        }
+    }
+}
+
+@Preview(
+    name = "Delete Playlist Dialog - Dark",
+    showBackground = true,
+    backgroundColor = 0xFF1A1B22,
+    heightDp = 300,
+    widthDp = 360
+)
+@Composable
+fun DeletePlaylistDialogDarkPreview() {
+    val resourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.delete_playlist_title -> "Удалить плейлист"
+            R.string.yes -> "Да"
+            R.string.no -> "Нет"
+            else -> "Строка $resId"
+        }
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
+            else -> "Строка $resId"
+        }
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+    }
+
+    AppTheme(darkTheme = true) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(AppColors.Black)
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            DeletePlaylistDialog(
+                playlistName = "Мой любимый плейлист",
+                onDismiss = {},
+                onConfirm = {},
+                resourceProvider = resourceProvider
+            )
+        }
+    }
+}
+
+// Комбинированный превью для всех диалогов сразу
+@Preview(
+    name = "All Dialogs Preview",
+    showBackground = true,
+    heightDp = 800,
+    widthDp = 400
+)
+@Composable
+fun AllDialogsPreview() {
+    val track = Track(
+        id = 1,
+        trackId = 1,
+        trackName = "Bohemian Rhapsody",
+        artistsName = "Queen",
+        trackTimeMillis = 354000,
+        artworkUrl100 = "",
+        previewUrl = null,
+        collectionName = "A Night at the Opera",
+        releaseDate = "1975-10-31",
+        primaryGenreName = "Rock",
+        country = "UK"
+    )
+
+    val resourceProvider = object : ResourceProvider {
+        override fun getString(resId: Int): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек"
+            R.string.delete_playlist_title -> "Удалить плейлист"
+            R.string.yes -> "Да"
+            R.string.no -> "Нет"
+            else -> "Строка $resId"
+        }
+        override fun getString(resId: Int, vararg args: Any): String = when (resId) {
+            R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
+            R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
+            else -> "Строка $resId"
+        }
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+    }
+
+    Column {
+        AppTheme(darkTheme = false) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Light Theme",
+                    style = AppTextStyles.ActivityTitle,
+                    color = AppColors.Black,
+                    modifier = Modifier.padding(8.dp)
+                )
+
+                DeleteTrackDialog(
+                    track = track,
+                    onDismiss = {},
+                    onConfirm = {},
+                    resourceProvider = resourceProvider
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                DeletePlaylistDialog(
+                    playlistName = "Мой любимый плейлист",
+                    onDismiss = {},
+                    onConfirm = {},
+                    resourceProvider = resourceProvider
+                )
+            }
+        }
+
+        AppTheme(darkTheme = true) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(AppColors.Black)
+                    .padding(8.dp)
+            ) {
+                Text(
+                    text = "Dark Theme",
+                    style = AppTextStyles.ActivityTitle,
+                    color = AppColors.White,
+                    modifier = Modifier.padding(8.dp)
+                )
+
+                DeleteTrackDialog(
+                    track = track,
+                    onDismiss = {},
+                    onConfirm = {},
+                    resourceProvider = resourceProvider
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                DeletePlaylistDialog(
+                    playlistName = "Мой любимый плейлист",
+                    onDismiss = {},
+                    onConfirm = {},
+                    resourceProvider = resourceProvider
+                )
+            }
+        }
+    }
+}
