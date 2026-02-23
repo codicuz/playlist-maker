@@ -1,5 +1,6 @@
 package com.practicum.playlistmaker.presentation.player.compose
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -90,6 +92,7 @@ fun AudioPlayerScreen(
 
     LaunchedEffect(trackId) {
         if (trackId != null) {
+            viewModel.loadTrack(trackId)
         }
     }
 
@@ -154,8 +157,10 @@ fun AudioPlayerScreen(
         )
 
         if (showBottomSheet) {
-            PlaylistSelectionSheet(
+            PlaylistBottomSheet(
                 playlists = playlists,
+                addTrackStatus = addTrackStatus,
+                isDarkTheme = isDarkTheme,
                 resourceProvider = resourceProvider,
                 onPlaylistClick = { playlist ->
                     state.track?.let { track ->
@@ -405,7 +410,6 @@ fun DetailRow(
         )
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistBottomSheet(
@@ -418,7 +422,7 @@ fun PlaylistBottomSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
+        skipPartiallyExpanded = false // Изменено на false, чтобы можно было разворачивать
     )
 
     ModalBottomSheet(
@@ -435,18 +439,19 @@ fun PlaylistBottomSheet(
                 Box(
                     modifier = Modifier
                         .width(50.dp)
-                        .height(12.dp)
-                        .padding(top = 8.dp)
+                        .height(4.dp) // Уменьшена высота для более аккуратного вида
                         .background(
                             color = if (isDarkTheme) Color.White else AppColors.LightGray,
                             shape = RoundedCornerShape(2.dp)
                         )
                 )
             }
-        }) {
+        }
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .fillMaxHeight()
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -455,15 +460,14 @@ fun PlaylistBottomSheet(
                 style = AppTextStyles.BottomSheetTitle,
                 color = if (isDarkTheme) Color.White else Color.Black,
                 modifier = Modifier
-                    .padding(bottom = 28.dp)
-                    .padding(top = 30.dp)
+                    .padding(bottom = 32.dp)
+                    .padding(top = 32.dp)
             )
 
             Button(
                 onClick = onCreateNewClick,
                 modifier = Modifier
-                    .wrapContentWidth()
-                    .height(36.dp),
+                    .height(42.dp),
                 shape = RoundedCornerShape(54.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isDarkTheme) AppColors.White else AppColors.Black,
@@ -472,27 +476,30 @@ fun PlaylistBottomSheet(
             ) {
                 Text(
                     text = resourceProvider.getString(R.string.new_playlist),
-                    fontSize = 14.sp
+                    fontSize = 16.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (playlists.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp)
+                        .weight(1f)
                 ) {
                     items(playlists) { playlist ->
                         PlaylistBottomSheetItem(
                             playlist = playlist,
                             isDarkTheme = isDarkTheme,
                             resourceProvider = resourceProvider,
-                            onClick = { onPlaylistClick(playlist) })
+                            onClick = { onPlaylistClick(playlist) }
+                        )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

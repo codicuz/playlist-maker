@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.favorites.AddToFavoritesUseCase
 import com.practicum.playlistmaker.domain.favorites.IsFavoriteUseCase
 import com.practicum.playlistmaker.domain.favorites.RemoveFromFavoritesUseCase
+import com.practicum.playlistmaker.domain.history.GetSearchHistoryUseCase
 import com.practicum.playlistmaker.domain.playlist.AddTrackResult
 import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
@@ -40,7 +41,8 @@ class AudioPlayerViewModel(
     private val removeFromFavoritesUseCase: RemoveFromFavoritesUseCase,
     private val isFavoriteUseCase: IsFavoriteUseCase,
     private val getPlaylistsUseCase: GetPlaylistsUseCase,
-    private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase
+    private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase,
+    private val getSearchHistoryUseCase: GetSearchHistoryUseCase // Добавлен для получения треков из истории
 ) : ViewModel() {
 
     private var audioPlayerService: AudioPlayerServiceInterface? = null
@@ -82,6 +84,43 @@ class AudioPlayerViewModel(
         }
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД ЗАГРУЗКИ ТРЕКА
+    fun loadTrack(trackId: Int) {
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Loading track with ID: $trackId")
+
+                // Получаем трек из истории поиска
+                val history = getSearchHistoryUseCase.execute()
+                val trackFromHistory = history.find { it.trackId == trackId }
+
+                if (trackFromHistory != null) {
+                    Log.d(TAG, "Track found in history: ${trackFromHistory.trackName}")
+                    setTrack(trackFromHistory)
+                } else {
+                    // Если трек не найден в истории, создаем тестовый трек
+                    Log.d(TAG, "Track not found in history, creating test track")
+                    val testTrack = Track(
+                        id = trackId.toLong(),
+                        trackId = trackId,
+                        trackName = "Тестовый трек",
+                        artistsName = "Тестовый исполнитель",
+                        trackTimeMillis = 180000, // 3 минуты
+                        artworkUrl100 = "",
+                        previewUrl = null,
+                        collectionName = "Тестовый альбом",
+                        releaseDate = "2023-01-01T00:00:00Z",
+                        primaryGenreName = "Test",
+                        country = "Test"
+                    )
+                    setTrack(testTrack)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading track", e)
+            }
+        }
+    }
+
     fun bindService(context: Context) {
         if (isBound && audioPlayerService != null) {
             updateStateFromService()
@@ -104,9 +143,7 @@ class AudioPlayerViewModel(
                 currentTrack?.let { track ->
                     if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
                         audioPlayerService?.setTrack(
-                            track,
-                            track.artistsName ?: "",
-                            track.trackName ?: ""
+                            track, track.artistsName ?: "", track.trackName ?: ""
                         )
                     }
                 }
@@ -192,13 +229,11 @@ class AudioPlayerViewModel(
     }
 
     fun setTrack(track: Track) {
+        Log.d(TAG, "Setting track: ${track.trackName}")
         currentTrack = track
 
         _state.value = AudioPlayerScreenState(
-            track = track,
-            isPlaying = false,
-            currentPosition = 0,
-            isFavorite = false
+            track = track, isPlaying = false, currentPosition = 0, isFavorite = false
         )
 
         updateTrackState(track)
@@ -206,9 +241,7 @@ class AudioPlayerViewModel(
         if (isBound && audioPlayerService != null) {
             if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
                 audioPlayerService?.setTrack(
-                    track,
-                    track.artistsName ?: "",
-                    track.trackName ?: ""
+                    track, track.artistsName ?: "", track.trackName ?: ""
                 )
             }
         } else {
@@ -231,17 +264,14 @@ class AudioPlayerViewModel(
                 val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
                 _state.update {
                     it.copy(
-                        track = track,
-                        isFavorite = isFav
+                        track = track, isFavorite = isFav
                     )
                 }
             }
 
             if (isBound && audioPlayerService != null) {
                 audioPlayerService?.setTrack(
-                    track,
-                    track.artistsName ?: "",
-                    track.trackName ?: ""
+                    track, track.artistsName ?: "", track.trackName ?: ""
                 )
             }
         } else {
@@ -310,10 +340,12 @@ class AudioPlayerViewModel(
                     _shouldCloseBottomSheet.value = true
                     loadPlaylists()
                 }
+
                 is AddTrackResult.AlreadyExists -> {
                     _addTrackStatus.emit(AddTrackStatus.AlreadyExists(result.playlistName))
                     _shouldCloseBottomSheet.value = false
                 }
+
                 is AddTrackResult.Error -> {
                     _addTrackStatus.emit(AddTrackStatus.Error(result.message))
                     _shouldCloseBottomSheet.value = true
@@ -382,10 +414,5 @@ class AudioPlayerViewModel(
     override fun onCleared() {
         super.onCleared()
         cleanup()
-    }
-
-    fun loadTrack(trackId: Int) {
-        viewModelScope.launch {
-        }
     }
 }

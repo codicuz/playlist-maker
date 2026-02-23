@@ -18,7 +18,13 @@ val presentationModule = module {
     viewModel { MediaViewModel() }
     viewModel { FavoritesViewModel(get()) }
     viewModel { PlaylistsViewModel(get()) }
-    viewModel { AudioPlayerViewModel(get(), get(), get(), get(), get()) }
+
+    viewModel {
+        AudioPlayerViewModel(
+            get(), get(), get(), get(), get(), get()
+        )
+    }
+
     viewModel { NewPlaylistViewModel(get()) }
     viewModel { PlaylistViewModel(get(), get(), get(), get(), get()) }
     viewModel { EditPlaylistViewModel(get(), get(), get()) }

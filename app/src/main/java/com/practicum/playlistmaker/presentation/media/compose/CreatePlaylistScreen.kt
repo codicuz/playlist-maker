@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -79,14 +80,33 @@ fun CreatePlaylistScreen(
     val context = LocalContext.current
     val isDarkTheme = isDarkTheme()
 
-    var showPermissionDialog by remember { mutableStateOf(false) }
-
     val pickMediaLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(), onResult = { uri ->
             uri?.let {
                 viewModel.onCoverSelected(it)
             }
         })
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pickMediaLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        }
+    }
+
+    fun handleCoverClick() {
+        if (PermissionUtils.hasGalleryPermission(context)) {
+            pickMediaLauncher.launch(
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+            )
+        } else {
+            permissionLauncher.launch(PermissionUtils.getGalleryPermission())
+        }
+    }
+
 
     LaunchedEffect(state.success) {
         if (state.success) {
@@ -138,15 +158,7 @@ fun CreatePlaylistScreen(
                     state = state,
                     onTitleChanged = { viewModel.onTitleChanged(it) },
                     onDescriptionChanged = { viewModel.onDescriptionChanged(it) },
-                    onCoverClick = {
-                        if (PermissionUtils.hasGalleryPermission(context)) {
-                            pickMediaLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        } else {
-                            showPermissionDialog = true
-                        }
-                    },
+                    onCoverClick = { handleCoverClick() },
                     onSaveClick = { viewModel.save() },
                     isSaving = state.isCreating,
                     saveButtonEnabled = state.isCreateEnabled && !state.isCreating,

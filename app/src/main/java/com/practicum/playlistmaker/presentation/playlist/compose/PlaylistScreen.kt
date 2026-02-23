@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -33,18 +31,13 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -69,7 +62,7 @@ import com.practicum.playlistmaker.presentation.theme.compose.AppTheme
 import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import java.io.File
-import kotlin.math.abs
+
 @Composable
 fun PlaylistScreen(
     viewModel: PlaylistViewModel,
@@ -103,13 +96,16 @@ fun PlaylistScreen(
                 is PlaylistUiEvent.NavigateToEditPlaylist -> {
                     onNavigateToEditPlaylist(event.playlistId)
                 }
+
                 is PlaylistUiEvent.ShowDeleteTrackDialog -> {
                     trackToDelete = event.track
                     showDeleteTrackDialog = true
                 }
+
                 PlaylistUiEvent.ShowDeletePlaylistDialog -> {
                     showDeletePlaylistDialog = true
                 }
+
                 is PlaylistUiEvent.ShowToast -> onShowToast(event.message)
                 is PlaylistUiEvent.SharePlaylist -> onShareText(event.text)
                 is PlaylistUiEvent.PlaylistUpdated -> {
@@ -151,8 +147,7 @@ fun PlaylistScreen(
                     PlaylistHeader(
                         playlist = state.playlist,
                         isDarkTheme = isDarkTheme,
-                        onBackClick = { viewModel.onBackClick() }
-                    )
+                        onBackClick = { viewModel.onBackClick() })
 
                     state.playlist?.let { playlist ->
                         PlaylistInfo(
@@ -186,8 +181,7 @@ fun PlaylistScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
-                            .clickable { showMenuDialog = false }
-                    )
+                            .clickable { showMenuDialog = false })
                     PlaylistMenuSheet(
                         playlist = state.playlist,
                         onDismiss = { showMenuDialog = false },
@@ -236,6 +230,7 @@ fun PlaylistScreen(
         }
     }
 }
+
 @Composable
 fun CustomBottomSheet(
     tracks: List<Track>,
@@ -258,8 +253,7 @@ fun CustomBottomSheet(
         val newHeight = sheetHeight - with(density) { delta.toDp() }
 
         sheetHeight = newHeight.coerceIn(
-            collapsedHeight,
-            expandedHeight
+            collapsedHeight, expandedHeight
         )
     }
 
@@ -273,21 +267,14 @@ fun CustomBottomSheet(
                 .height(sheetHeight)
                 .align(Alignment.BottomCenter)
                 .draggable(
-                    orientation = Orientation.Vertical,
-                    state = draggableState,
-                    onDragStopped = {
-                        sheetHeight =
-                            if (sheetHeight > screenHeight / 2)
-                                expandedHeight
-                            else
-                                collapsedHeight
-                    }
-                )
+                    orientation = Orientation.Vertical, state = draggableState, onDragStopped = {
+                        sheetHeight = if (sheetHeight > screenHeight / 2) expandedHeight
+                        else collapsedHeight
+                    })
                 .background(
                     color = if (isDarkTheme) AppColors.Black else Color.White,
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-                )
-        ) {
+                )) {
 
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -311,8 +298,7 @@ fun CustomBottomSheet(
 
                 if (tracks.isEmpty()) {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = resourceProvider.getString(R.string.empty_playlist_message),
@@ -340,37 +326,29 @@ fun CustomBottomSheet(
 
 @Composable
 fun PlaylistHeader(
-    playlist: Playlist?,
-    isDarkTheme: Boolean,
-    onBackClick: () -> Unit
+    playlist: Playlist?, isDarkTheme: Boolean, onBackClick: () -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(360.dp)
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(playlist?.coverUri?.let {
-                    try {
-                        val file = File(it)
-                        if (file.exists()) file else R.drawable.ic_no_artwork_image
-                    } catch (e: Exception) {
-                        R.drawable.ic_no_artwork_image
-                    }
-                } ?: R.drawable.ic_no_artwork_image)
-                .crossfade(true)
-                .build(),
+        AsyncImage(model = ImageRequest.Builder(LocalContext.current).data(playlist?.coverUri?.let {
+                try {
+                    val file = File(it)
+                    if (file.exists()) file else R.drawable.ic_no_artwork_image
+                } catch (e: Exception) {
+                    R.drawable.ic_no_artwork_image
+                }
+            } ?: R.drawable.ic_no_artwork_image).crossfade(true).build(),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
             placeholder = painterResource(R.drawable.ic_no_artwork_image),
-            error = painterResource(R.drawable.ic_no_artwork_image)
-        )
+            error = painterResource(R.drawable.ic_no_artwork_image))
 
         IconButton(
-            onClick = onBackClick,
-            modifier = Modifier
+            onClick = onBackClick, modifier = Modifier
                 .padding(start = 4.dp, top = 4.dp)
                 .size(48.dp)
         ) {
@@ -438,8 +416,7 @@ fun PlaylistInfo(
                 modifier = Modifier
                     .size(4.dp)
                     .background(
-                        color = AppColors.Black,
-                        shape = RoundedCornerShape(2.dp)
+                        color = AppColors.Black, shape = RoundedCornerShape(2.dp)
                     )
             )
 
@@ -459,8 +436,7 @@ fun PlaylistInfo(
             modifier = Modifier.padding(top = 16.dp)
         ) {
             IconButton(
-                onClick = onShareClick,
-                modifier = Modifier.size(24.dp)
+                onClick = onShareClick, modifier = Modifier.size(24.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.share),
@@ -472,8 +448,7 @@ fun PlaylistInfo(
             Spacer(modifier = Modifier.width(16.dp))
 
             IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(24.dp)
+                onClick = onMenuClick, modifier = Modifier.size(24.dp)
             ) {
                 Icon(
                     painter = painterResource(R.drawable.playlist_hamburger),
@@ -487,10 +462,7 @@ fun PlaylistInfo(
 
 @Composable
 fun TrackItem(
-    track: Track,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    isDarkTheme: Boolean
+    track: Track, onClick: () -> Unit, onLongClick: () -> Unit, isDarkTheme: Boolean
 ) {
     Row(
         modifier = Modifier
@@ -499,11 +471,9 @@ fun TrackItem(
                 onClick = onClick,
                 onLongClick = onLongClick,
                 indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
+                interactionSource = remember { MutableInteractionSource() })
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
+        verticalAlignment = Alignment.CenterVertically) {
         AsyncImage(
             model = track.artworkUrl100,
             contentDescription = null,
@@ -608,8 +578,7 @@ fun PlaylistMenuSheet(
                         shape = RoundedCornerShape(2.dp)
                     )
             )
-        }
-    ) {
+        }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -625,24 +594,21 @@ fun PlaylistMenuSheet(
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(pl.coverUri?.let {
-                                try {
-                                    val file = File(it)
-                                    if (file.exists()) file else R.drawable.ic_no_artwork_image
-                                } catch (e: Exception) {
-                                    R.drawable.ic_no_artwork_image
-                                }
-                            } ?: R.drawable.ic_no_artwork_image)
-                            .crossfade(true)
-                            .build(),
+                        .data(pl.coverUri?.let {
+                            try {
+                                val file = File(it)
+                                if (file.exists()) file else R.drawable.ic_no_artwork_image
+                            } catch (e: Exception) {
+                                R.drawable.ic_no_artwork_image
+                            }
+                        } ?: R.drawable.ic_no_artwork_image).crossfade(true).build(),
                         contentDescription = null,
                         modifier = Modifier
                             .size(45.dp)
                             .clip(RoundedCornerShape(2.dp)),
                         contentScale = ContentScale.Crop,
                         placeholder = painterResource(R.drawable.ic_no_artwork_image),
-                        error = painterResource(R.drawable.ic_no_artwork_image)
-                    )
+                        error = painterResource(R.drawable.ic_no_artwork_image))
 
                     Spacer(modifier = Modifier.width(13.dp))
 
@@ -671,30 +637,24 @@ fun PlaylistMenuSheet(
             Spacer(modifier = Modifier.height(8.dp))
 
             MenuItem(
-                text = resourceProvider.getString(R.string.share),
-                onClick = {
+                text = resourceProvider.getString(R.string.share), onClick = {
                     onDismiss()
                     onShareClick()
-                },
-                isDarkTheme = isDarkTheme
+                }, isDarkTheme = isDarkTheme
             )
 
             MenuItem(
-                text = resourceProvider.getString(R.string.edit_information),
-                onClick = {
+                text = resourceProvider.getString(R.string.edit_information), onClick = {
                     onDismiss()
                     onEditClick()
-                },
-                isDarkTheme = isDarkTheme
+                }, isDarkTheme = isDarkTheme
             )
 
             MenuItem(
-                text = resourceProvider.getString(R.string.delete_playlist),
-                onClick = {
+                text = resourceProvider.getString(R.string.delete_playlist), onClick = {
                     onDismiss()
                     onDeleteClick()
-                },
-                isDarkTheme = isDarkTheme
+                }, isDarkTheme = isDarkTheme
             )
         }
     }
@@ -702,9 +662,7 @@ fun PlaylistMenuSheet(
 
 @Composable
 fun MenuItem(
-    text: String,
-    onClick: () -> Unit,
-    isDarkTheme: Boolean
+    text: String, onClick: () -> Unit, isDarkTheme: Boolean
 ) {
     Text(
         text = text,
@@ -714,8 +672,7 @@ fun MenuItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 21.dp)
-    )
+            .padding(horizontal = 16.dp, vertical = 21.dp))
 }
 
 private val previewTracks = listOf(
@@ -731,8 +688,7 @@ private val previewTracks = listOf(
         releaseDate = "1975-10-31",
         primaryGenreName = "Rock",
         country = "UK"
-    ),
-    Track(
+    ), Track(
         id = 2,
         trackId = 2,
         trackName = "Imagine",
@@ -750,35 +706,33 @@ private val previewTracks = listOf(
 
 @Composable
 fun DeleteTrackDialog(
-    track: Track,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    resourceProvider: ResourceProvider
+    track: Track, onDismiss: () -> Unit, onConfirm: () -> Unit, resourceProvider: ResourceProvider
 ) {
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(4.dp),
+        containerColor = AppColors.White,
         title = {
             Text(
                 text = resourceProvider.getString(R.string.delete_track_title),
-                style = AppTextStyles.BottomSheetTitle
+                style = AppTextStyles.BottomSheetTitle,
+                color = AppColors.Black
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = onConfirm
             ) {
-                Text(resourceProvider.getString(R.string.yes))
+                Text(resourceProvider.getString(R.string.yes), color = AppColors.Blue)
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(
                 onClick = onDismiss
             ) {
-                Text(resourceProvider.getString(R.string.no))
+                Text(resourceProvider.getString(R.string.no), color = AppColors.Blue)
             }
-        }
-    )
+        })
 }
 
 @Composable
@@ -791,27 +745,28 @@ fun DeletePlaylistDialog(
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(4.dp),
+        containerColor = AppColors.White,
         title = {
             Text(
                 text = resourceProvider.getString(R.string.delete_playlist_title, playlistName),
-                style = AppTextStyles.BottomSheetTitle
+                style = AppTextStyles.BottomSheetTitle,
+                color = AppColors.Black
             )
         },
         confirmButton = {
             androidx.compose.material3.TextButton(
                 onClick = onConfirm
             ) {
-                Text(resourceProvider.getString(R.string.yes))
+                Text(resourceProvider.getString(R.string.yes), color = AppColors.Blue)
             }
         },
         dismissButton = {
             androidx.compose.material3.TextButton(
                 onClick = onDismiss
             ) {
-                Text(resourceProvider.getString(R.string.no))
+                Text(resourceProvider.getString(R.string.no), color = AppColors.Blue)
             }
-        }
-    )
+        })
 }
 
 @Preview(
@@ -844,11 +799,14 @@ fun DeleteTrackDialogLightPreview() {
             R.string.no -> "Нет"
             else -> "Строка $resId"
         }
+
         override fun getString(resId: Int, vararg args: Any): String = when (resId) {
             R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
             else -> "Строка $resId"
         }
-        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String =
+            "Количество: $quantity"
     }
 
     AppTheme(darkTheme = false) {
@@ -899,11 +857,14 @@ fun DeleteTrackDialogDarkPreview() {
             R.string.no -> "Нет"
             else -> "Строка $resId"
         }
+
         override fun getString(resId: Int, vararg args: Any): String = when (resId) {
             R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
             else -> "Строка $resId"
         }
-        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String =
+            "Количество: $quantity"
     }
 
     AppTheme(darkTheme = true) {
@@ -940,11 +901,14 @@ fun DeletePlaylistDialogLightPreview() {
             R.string.no -> "Нет"
             else -> "Строка $resId"
         }
+
         override fun getString(resId: Int, vararg args: Any): String = when (resId) {
             R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
             else -> "Строка $resId"
         }
-        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String =
+            "Количество: $quantity"
     }
 
     AppTheme(darkTheme = false) {
@@ -981,11 +945,14 @@ fun DeletePlaylistDialogDarkPreview() {
             R.string.no -> "Нет"
             else -> "Строка $resId"
         }
+
         override fun getString(resId: Int, vararg args: Any): String = when (resId) {
             R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
             else -> "Строка $resId"
         }
-        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String =
+            "Количество: $quantity"
     }
 
     AppTheme(darkTheme = true) {
@@ -1007,10 +974,7 @@ fun DeletePlaylistDialogDarkPreview() {
 }
 
 @Preview(
-    name = "All Dialogs Preview",
-    showBackground = true,
-    heightDp = 800,
-    widthDp = 400
+    name = "All Dialogs Preview", showBackground = true, heightDp = 800, widthDp = 400
 )
 @Composable
 fun AllDialogsPreview() {
@@ -1036,12 +1000,15 @@ fun AllDialogsPreview() {
             R.string.no -> "Нет"
             else -> "Строка $resId"
         }
+
         override fun getString(resId: Int, vararg args: Any): String = when (resId) {
             R.string.delete_track_title -> "Удалить трек \"${args[0]}\"?"
             R.string.delete_playlist_title -> "Удалить плейлист \"${args[0]}\"?"
             else -> "Строка $resId"
         }
-        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String = "Количество: $quantity"
+
+        override fun getQuantityString(resId: Int, quantity: Int, vararg args: Any): String =
+            "Количество: $quantity"
     }
 
     Column {
