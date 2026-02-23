@@ -1,13 +1,28 @@
 package com.practicum.playlistmaker.presentation.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.presentation.media.EditPlaylistViewModel
 import com.practicum.playlistmaker.presentation.media.NewPlaylistViewModel
 import com.practicum.playlistmaker.presentation.media.compose.CreatePlaylistScreen
@@ -18,13 +33,14 @@ import com.practicum.playlistmaker.presentation.playlist.PlaylistViewModel
 import com.practicum.playlistmaker.presentation.playlist.compose.PlaylistScreen
 import com.practicum.playlistmaker.presentation.search.compose.SearchScreen
 import com.practicum.playlistmaker.presentation.settings.compose.SettingsScreen
+import com.practicum.playlistmaker.presentation.theme.compose.AppColors
+import com.practicum.playlistmaker.presentation.theme.compose.AppTextStyles
 import com.practicum.playlistmaker.presentation.util.AndroidResourceProvider
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 @Composable
 fun NavGraph(
-    navController: NavHostController, startDestination: String = Screen.Search.route
+    navController: NavHostController, startDestination: String = Screen.Media.route
 ) {
     val context = LocalContext.current
 
@@ -39,23 +55,18 @@ fun NavGraph(
         }
 
         composable(Screen.Media.route) {
-            MediaScreen(
-                viewModel = koinViewModel(),
-                onPlaylistClick = { playlistId ->
-                    navController.navigate(Screen.Playlist.passPlaylistId(playlistId))
-                },
-                onCreatePlaylistClick = {
-                    navController.navigate(Screen.NewPlaylist.route)
-                },
-                onTrackClick = { track ->
-                    navController.navigate(Screen.Player.passTrackId(track.trackId ?: 0))
-                })
+            MediaScreen(viewModel = koinViewModel(), onPlaylistClick = { playlistId ->
+                navController.navigate(Screen.Playlist.passPlaylistId(playlistId))
+            }, onCreatePlaylistClick = {
+                navController.navigate(Screen.NewPlaylist.route)
+            }, onTrackClick = { track ->
+                navController.navigate(Screen.Player.passTrackId(track.trackId ?: 0))
+            })
         }
 
         composable(Screen.Settings.route) {
             SettingsScreen(
-                viewModel = koinViewModel(),
-                onNavigateBack = {
+                viewModel = koinViewModel(), onNavigateBack = {
                     navController.popBackStack()
                 })
         }
@@ -78,12 +89,31 @@ fun NavGraph(
 
         composable(Screen.NewPlaylist.route) {
             val viewModel: NewPlaylistViewModel = koinViewModel()
-            CreatePlaylistScreen(
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onPlaylistCreated = { title ->
+            val state by viewModel.state.collectAsStateWithLifecycle()
+            var showExitDialog by remember { mutableStateOf(false) }
+
+            fun checkUnsavedChanges(): Boolean {
+                return state.title.isNotBlank() || state.description.isNotBlank() || state.coverUri != null
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                CreatePlaylistScreen(viewModel = viewModel, onNavigateBack = {
+                    if (checkUnsavedChanges()) {
+                        showExitDialog = true
+                    } else {
+                        navController.popBackStack()
+                    }
+                }, onPlaylistCreated = { title ->
                     navController.popBackStack()
                 })
+
+                if (showExitDialog) {
+                    ExitConfirmationDialog(onConfirm = {
+                        showExitDialog = false
+                        navController.popBackStack()
+                    }, onDismiss = { showExitDialog = false })
+                }
+            }
         }
 
         composable(
@@ -93,6 +123,15 @@ fun NavGraph(
             val playlistId = backStackEntry.arguments?.getLong("playlistId") ?: 0L
             val viewModel: PlaylistViewModel = koinViewModel()
             val resourceProvider = AndroidResourceProvider(context)
+
+            val refreshTrigger = backStackEntry.savedStateHandle.get<Boolean>("refresh") ?: false
+
+            LaunchedEffect(refreshTrigger) {
+                if (refreshTrigger) {
+                    viewModel.loadPlaylist()
+                    backStackEntry.savedStateHandle.set("refresh", false)
+                }
+            }
 
             PlaylistScreen(
                 viewModel = viewModel,
@@ -105,10 +144,17 @@ fun NavGraph(
                     navController.navigate(Screen.EditPlaylist.passPlaylistId(id))
                 },
                 onShareText = { text -> shareText(context, text) },
-                onShowDeleteTrackDialog = { track, onConfirm -> /* диалог */ },
-                onShowDeletePlaylistDialog = { playlistName, onConfirm -> /* диалог */ },
-                onShowToast = { message -> /* тост */ },
-                resourceProvider = resourceProvider)
+                onShowDeleteTrackDialog = { track, onConfirm ->
+                },
+                onShowDeletePlaylistDialog = { playlistName, onConfirm ->
+                },
+                onShowToast = { message ->
+                    android.widget.Toast.makeText(
+                        context, message, android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                },
+                resourceProvider = resourceProvider
+            )
         }
 
         composable(
@@ -124,12 +170,47 @@ fun NavGraph(
 
             CreatePlaylistScreen(
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onPlaylistCreated = { title ->
+                onNavigateBack = {
                     navController.popBackStack()
-                })
+                },
+                onPlaylistCreated = { title ->
+                    navController.previousBackStackEntry?.savedStateHandle?.set("refresh", true)
+                    navController.popBackStack()
+                }
+            )
         }
     }
+}
+
+@Composable
+fun ExitConfirmationDialog(
+    onConfirm: () -> Unit, onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(4.dp),
+        containerColor = AppColors.White,
+        title = {
+            Text(
+                text = stringResource(R.string.abort_create_playlist),
+                style = AppTextStyles.BottomSheetTitle,
+                color = AppColors.Black
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm
+            ) {
+                Text(stringResource(R.string.finish_btn))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text(stringResource(R.string.cancel_btn))
+            }
+        })
 }
 
 private fun shareText(context: android.content.Context, text: String) {

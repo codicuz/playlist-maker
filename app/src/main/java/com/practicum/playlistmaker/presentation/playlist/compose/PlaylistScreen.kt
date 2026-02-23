@@ -100,7 +100,9 @@ fun PlaylistScreen(
             when (event) {
                 PlaylistUiEvent.NavigateBack -> onNavigateBack()
                 is PlaylistUiEvent.NavigateToPlayer -> onNavigateToPlayer(event.track)
-                is PlaylistUiEvent.NavigateToEditPlaylist -> onNavigateToEditPlaylist(event.playlistId)
+                is PlaylistUiEvent.NavigateToEditPlaylist -> {
+                    onNavigateToEditPlaylist(event.playlistId)
+                }
                 is PlaylistUiEvent.ShowDeleteTrackDialog -> {
                     trackToDelete = event.track
                     showDeleteTrackDialog = true
