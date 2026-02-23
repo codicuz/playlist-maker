@@ -309,7 +309,7 @@ private fun startSafe(intent: Intent, context: android.content.Context) {
 
 @Preview
 @Composable
-fun SettingsScreenLightPreview() {
+private fun SettingsScreenLightPreview() {
     AppTheme(darkTheme = false) {
         SettingsContent(
             isDarkMode = false,
@@ -323,7 +323,7 @@ fun SettingsScreenLightPreview() {
 
 @Preview
 @Composable
-fun SettingsScreenDarkPreview() {
+private fun SettingsScreenDarkPreview() {
     SettingsContent(
         isDarkMode = true,
         onThemeSwitch = {},

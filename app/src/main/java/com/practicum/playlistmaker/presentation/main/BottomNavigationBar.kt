@@ -102,7 +102,7 @@ data class BottomNavItem(
     name = "Bottom Navigation", showBackground = true
 )
 @Composable
-fun BottomNavigationBarCombinedPreview() {
+private fun BottomNavigationBarCombinedPreview() {
     Column {
         AppTheme(darkTheme = false) {
             BottomNavigationBarRow(

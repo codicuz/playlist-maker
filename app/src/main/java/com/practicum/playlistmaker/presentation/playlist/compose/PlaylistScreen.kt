@@ -777,7 +777,7 @@ fun DeletePlaylistDialog(
     widthDp = 360
 )
 @Composable
-fun DeleteTrackDialogLightPreview() {
+private fun DeleteTrackDialogLightPreview() {
     val track = Track(
         id = 1,
         trackId = 1,
@@ -835,7 +835,7 @@ fun DeleteTrackDialogLightPreview() {
     widthDp = 360
 )
 @Composable
-fun DeleteTrackDialogDarkPreview() {
+private fun DeleteTrackDialogDarkPreview() {
     val track = Track(
         id = 1,
         trackId = 1,
@@ -893,7 +893,7 @@ fun DeleteTrackDialogDarkPreview() {
     widthDp = 360
 )
 @Composable
-fun DeletePlaylistDialogLightPreview() {
+private fun DeletePlaylistDialogLightPreview() {
     val resourceProvider = object : ResourceProvider {
         override fun getString(resId: Int): String = when (resId) {
             R.string.delete_playlist_title -> "Удалить плейлист"
@@ -937,7 +937,7 @@ fun DeletePlaylistDialogLightPreview() {
     widthDp = 360
 )
 @Composable
-fun DeletePlaylistDialogDarkPreview() {
+private fun DeletePlaylistDialogDarkPreview() {
     val resourceProvider = object : ResourceProvider {
         override fun getString(resId: Int): String = when (resId) {
             R.string.delete_playlist_title -> "Удалить плейлист"
@@ -977,7 +977,7 @@ fun DeletePlaylistDialogDarkPreview() {
     name = "All Dialogs Preview", showBackground = true, heightDp = 800, widthDp = 400
 )
 @Composable
-fun AllDialogsPreview() {
+private fun AllDialogsPreview() {
     val track = Track(
         id = 1,
         trackId = 1,

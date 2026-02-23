@@ -100,7 +100,7 @@ fun FavoritesContent(
 
 @Preview(showBackground = true, name = "Favorites Tab Empty Preview")
 @Composable
-fun FavoritesTabEmptyPreview() {
+private fun FavoritesTabEmptyPreview() {
     AppTheme(darkTheme = false) {
         FavoritesContent(
             tracks = emptyList(), onTrackClick = {})
@@ -109,7 +109,7 @@ fun FavoritesTabEmptyPreview() {
 
 @Preview(showBackground = true, name = "Favorites Tab Empty Preview")
 @Composable
-fun FavoritesTabEmptyPreviewDark() {
+private fun FavoritesTabEmptyPreviewDark() {
     AppTheme(darkTheme = true) {
         FavoritesContent(
             tracks = emptyList(), onTrackClick = {})
@@ -118,7 +118,7 @@ fun FavoritesTabEmptyPreviewDark() {
 
 @Preview(showBackground = true, name = "Favorites Tab With Tracks Preview")
 @Composable
-fun FavoritesTabWithTracksPreview() {
+private fun FavoritesTabWithTracksPreview() {
     AppTheme {
         FavoritesContent(
             tracks = listOf(
@@ -141,7 +141,7 @@ fun FavoritesTabWithTracksPreview() {
 
 @Preview(showBackground = true, name = "Favorites Tab Dark Preview")
 @Composable
-fun FavoritesTabDarkPreview() {
+private fun FavoritesTabDarkPreview() {
     AppTheme(darkTheme = true) {
         FavoritesContent(
             tracks = listOf(

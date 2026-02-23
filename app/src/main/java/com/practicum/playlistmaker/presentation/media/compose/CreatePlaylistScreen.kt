@@ -369,7 +369,7 @@ fun PlaylistCoverImage(
 
 @Preview(showBackground = true, name = "New Playlist - Light")
 @Composable
-fun NewPlaylistLightPreview() {
+private fun NewPlaylistLightPreview() {
     AppTheme(darkTheme = false) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(),
@@ -386,7 +386,7 @@ fun NewPlaylistLightPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - Light")
 @Composable
-fun NewPlaylistLightPreviewSbTrue() {
+private fun NewPlaylistLightPreviewSbTrue() {
     AppTheme(darkTheme = false) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(),
@@ -403,7 +403,7 @@ fun NewPlaylistLightPreviewSbTrue() {
 
 @Preview(showBackground = true, name = "New Playlist - Dark")
 @Composable
-fun NewPlaylistDarkPreview() {
+private fun NewPlaylistDarkPreview() {
     AppTheme(darkTheme = true) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(),
@@ -420,7 +420,7 @@ fun NewPlaylistDarkPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - With Cover Light")
 @Composable
-fun NewPlaylistWithCoverLightPreview() {
+private fun NewPlaylistWithCoverLightPreview() {
     AppTheme(darkTheme = false) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(
@@ -443,7 +443,7 @@ fun NewPlaylistWithCoverLightPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - With Cover Dark")
 @Composable
-fun NewPlaylistWithCoverDarkPreview() {
+private fun NewPlaylistWithCoverDarkPreview() {
     AppTheme(darkTheme = true) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(
@@ -466,7 +466,7 @@ fun NewPlaylistWithCoverDarkPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - Filled Light")
 @Composable
-fun NewPlaylistFilledLightPreview() {
+private fun NewPlaylistFilledLightPreview() {
     AppTheme(darkTheme = false) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(
@@ -489,7 +489,7 @@ fun NewPlaylistFilledLightPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - Filled Dark")
 @Composable
-fun NewPlaylistFilledDarkPreview() {
+private fun NewPlaylistFilledDarkPreview() {
     AppTheme(darkTheme = true) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(
@@ -512,7 +512,7 @@ fun NewPlaylistFilledDarkPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - Saving Light")
 @Composable
-fun NewPlaylistSavingLightPreview() {
+private fun NewPlaylistSavingLightPreview() {
     AppTheme(darkTheme = false) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(
@@ -535,7 +535,7 @@ fun NewPlaylistSavingLightPreview() {
 
 @Preview(showBackground = true, name = "New Playlist - Saving Dark")
 @Composable
-fun NewPlaylistSavingDarkPreview() {
+private fun NewPlaylistSavingDarkPreview() {
     AppTheme(darkTheme = true) {
         CreatePlaylistContent(
             state = com.practicum.playlistmaker.presentation.media.BasePlaylistScreenState(

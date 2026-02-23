@@ -388,7 +388,7 @@ fun ErrorPlaceholder(onRetry: () -> Unit) {
 
 @Preview(showBackground = true, name = "Search Screen - Empty")
 @Composable
-fun SearchScreenEmptyPreview() {
+private fun SearchScreenEmptyPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
@@ -411,7 +411,7 @@ fun SearchScreenEmptyPreview() {
 
 @Preview(showBackground = true, name = "Search Screen - With Results")
 @Composable
-fun SearchScreenWithResultsPreview() {
+private fun SearchScreenWithResultsPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
@@ -456,7 +456,7 @@ fun SearchScreenWithResultsPreview() {
 
 @Preview(showBackground = true, name = "Search Screen - Loading")
 @Composable
-fun SearchScreenLoadingPreview() {
+private fun SearchScreenLoadingPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
@@ -479,7 +479,7 @@ fun SearchScreenLoadingPreview() {
 
 @Preview(showBackground = true, name = "Search Screen - Error")
 @Composable
-fun SearchScreenErrorPreview() {
+private fun SearchScreenErrorPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
@@ -502,7 +502,7 @@ fun SearchScreenErrorPreview() {
 
 @Preview(showBackground = true, name = "Search Screen - History")
 @Composable
-fun SearchScreenHistoryPreview() {
+private fun SearchScreenHistoryPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
@@ -547,7 +547,7 @@ fun SearchScreenHistoryPreview() {
 
 @Preview(showBackground = true, name = "Track Item")
 @Composable
-fun TrackItemPreview() {
+private fun TrackItemPreview() {
     AppTheme {
         TrackItem(
             track = Track(
@@ -569,7 +569,7 @@ fun TrackItemPreview() {
 
 @Preview(showBackground = true, name = "Search History")
 @Composable
-fun SearchHistoryPreview() {
+private fun SearchHistoryPreview() {
     AppTheme {
         SearchHistory(
             history = listOf(
@@ -604,7 +604,7 @@ fun SearchHistoryPreview() {
 
 @Preview(showBackground = true, name = "Empty Placeholder")
 @Composable
-fun EmptyPlaceholderPreview() {
+private fun EmptyPlaceholderPreview() {
     AppTheme {
         EmptySearchPlaceholder()
     }
@@ -612,7 +612,7 @@ fun EmptyPlaceholderPreview() {
 
 @Preview(showBackground = true, name = "Error Placeholder")
 @Composable
-fun ErrorPlaceholderPreview() {
+private fun ErrorPlaceholderPreview() {
     AppTheme {
         ErrorPlaceholder(
             onRetry = {})
@@ -621,7 +621,7 @@ fun ErrorPlaceholderPreview() {
 
 @Preview(showBackground = true, name = "Track List")
 @Composable
-fun TrackListPreview() {
+private fun TrackListPreview() {
     AppTheme {
         TrackList(
             tracks = listOf(
@@ -656,7 +656,7 @@ fun TrackListPreview() {
 
 @Preview(showBackground = true, name = "Search Content - Light")
 @Composable
-fun SearchContentLightPreview() {
+private fun SearchContentLightPreview() {
     AppTheme(darkTheme = false) {
         SearchContent(
             state = SearchScreenState(
@@ -689,7 +689,7 @@ fun SearchContentLightPreview() {
 
 @Preview(showBackground = true, name = "Search Content - Dark")
 @Composable
-fun SearchContentDarkPreview() {
+private fun SearchContentDarkPreview() {
     AppTheme(darkTheme = true) {
         SearchContent(
             state = SearchScreenState(

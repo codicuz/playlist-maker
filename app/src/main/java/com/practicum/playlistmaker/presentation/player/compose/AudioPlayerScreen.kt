@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -96,6 +97,12 @@ fun AudioPlayerScreen(
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
+    val configuration = LocalConfiguration.current
+
+    LaunchedEffect(configuration.orientation) {
+        viewModel.onConfigurationChange()
+    }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -128,6 +135,7 @@ fun AudioPlayerScreen(
 
     DisposableEffect(Unit) {
         onDispose {
+            viewModel.onConfigurationChangeFinished()
             viewModel.unbindService(context)
         }
     }
@@ -611,7 +619,7 @@ private fun formatTime(ms: Int): String {
 
 @Preview(showBackground = true, name = "Audio Player Light")
 @Composable
-fun AudioPlayerScreenLightPreview() {
+private fun AudioPlayerScreenLightPreview() {
     val track = Track(
         id = 1,
         trackId = 1,
@@ -650,7 +658,7 @@ fun AudioPlayerScreenLightPreview() {
 
 @Preview(showBackground = true, name = "Audio Player Dark")
 @Composable
-fun AudioPlayerScreenDarkPreview() {
+private fun AudioPlayerScreenDarkPreview() {
     val track = Track(
         id = 1,
         trackId = 1,

@@ -20,7 +20,7 @@ import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
     widthDp = 360
 )
 @Composable
-fun MediaScreenLightPreview() {
+private fun MediaScreenLightPreview() {
     AppTheme(darkTheme = false) {
         Box(
             modifier = Modifier
@@ -42,7 +42,7 @@ fun MediaScreenLightPreview() {
     widthDp = 360
 )
 @Composable
-fun MediaScreenDarkPreview() {
+private fun MediaScreenDarkPreview() {
     AppTheme(darkTheme = true) {
         Box(
             modifier = Modifier

@@ -66,6 +66,16 @@ class AudioPlayerViewModel(
     private var pendingStartPlayer = false
     private var pollJob: Job? = null
 
+    private var isConfigurationChange = false
+
+    fun onConfigurationChange() {
+        isConfigurationChange = true
+    }
+
+    fun onConfigurationChangeFinished() {
+        isConfigurationChange = false
+    }
+
     init {
         loadPlaylists()
         viewModelScope.launch {
@@ -352,7 +362,15 @@ class AudioPlayerViewModel(
     }
 
     override fun onCleared() {
+        if (!isConfigurationChange) {
+            cleanup()
+        } else {
+            stopPolling()
+            audioPlayerService = null
+            isBound = false
+            serviceConnection = null
+            pendingStartPlayer = false
+        }
         super.onCleared()
-        cleanup()
     }
 }

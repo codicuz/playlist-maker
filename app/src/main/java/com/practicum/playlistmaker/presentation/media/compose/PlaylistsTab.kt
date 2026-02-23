@@ -204,7 +204,7 @@ fun PlaylistGridItem(
 
 @Preview(showBackground = true, name = "Playlists Tab - Empty", showSystemUi = false)
 @Composable
-fun PlaylistsTabEmptyPreview() {
+private fun PlaylistsTabEmptyPreview() {
     AppTheme {
         PlaylistsContent(playlists = emptyList(), onPlaylistClick = {}, onCreatePlaylistClick = {})
     }
@@ -212,7 +212,7 @@ fun PlaylistsTabEmptyPreview() {
 
 @Preview(showBackground = true, name = "Playlists Tab - Empty", showSystemUi = false)
 @Composable
-fun PlaylistsTabEmptyPreviewDark() {
+private fun PlaylistsTabEmptyPreviewDark() {
     AppTheme(darkTheme = true) {
         PlaylistsContent(playlists = emptyList(), onPlaylistClick = {}, onCreatePlaylistClick = {})
     }
@@ -220,7 +220,7 @@ fun PlaylistsTabEmptyPreviewDark() {
 
 @Preview(showBackground = true, name = "Playlists Tab - With Items")
 @Composable
-fun PlaylistsTabWithItemsPreview() {
+private fun PlaylistsTabWithItemsPreview() {
     AppTheme {
         PlaylistsContent(
             playlists = listOf(
@@ -245,7 +245,7 @@ fun PlaylistsTabWithItemsPreview() {
 
 @Preview(showBackground = true, name = "Playlists Tab - With Items")
 @Composable
-fun PlaylistsTabWithItemsPreviewDark() {
+private fun PlaylistsTabWithItemsPreviewDark() {
     AppTheme(darkTheme = true) {
         PlaylistsContent(
             playlists = listOf(
