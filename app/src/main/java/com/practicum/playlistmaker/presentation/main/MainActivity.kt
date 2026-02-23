@@ -74,7 +74,7 @@ fun MainScreen() {
                 .padding(paddingValues)
         ) {
             NavGraph(
-                navController = navController, startDestination = Screen.Search.route
+                navController = navController, startDestination = Screen.Media.route
             )
         }
     }

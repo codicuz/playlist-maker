@@ -67,7 +67,6 @@ fun NavGraph(
             val trackId = backStackEntry.arguments?.getInt("trackId") ?: 0
             val viewModel: AudioPlayerViewModel = koinViewModel()
 
-            // Убрали resourceProvider из параметров
             AudioPlayerScreen(
                 viewModel = viewModel,
                 trackId = trackId,
@@ -119,7 +118,6 @@ fun NavGraph(
             val playlistId = backStackEntry.arguments?.getLong("playlistId") ?: 0L
             val viewModel: EditPlaylistViewModel = koinViewModel()
 
-            // Загружаем плейлист при входе на экран
             LaunchedEffect(playlistId) {
                 viewModel.loadPlaylist(playlistId)
             }

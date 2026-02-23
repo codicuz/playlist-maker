@@ -74,7 +74,6 @@ fun AudioPlayerScreen(
     onCreatePlaylistClick: () -> Unit
 ) {
     val context = LocalContext.current
-    // Создаем ResourceProvider внутри функции
     val resourceProvider = remember(context) {
         AndroidResourceProvider(context)
     }
@@ -89,11 +88,8 @@ fun AudioPlayerScreen(
     val isDarkTheme = isDarkTheme()
     var showBottomSheet by remember { mutableStateOf(false) }
 
-    // Загружаем трек при изменении trackId
     LaunchedEffect(trackId) {
         if (trackId != null) {
-            // Здесь должен быть метод для загрузки трека по ID
-            // viewModel.loadTrack(trackId)
         }
     }
 
@@ -175,8 +171,6 @@ fun AudioPlayerScreen(
         }
     }
 }
-
-// Остальной код без изменений...
 
 @Composable
 fun AudioPlayerContent(

@@ -386,9 +386,6 @@ class AudioPlayerViewModel(
 
     fun loadTrack(trackId: Int) {
         viewModelScope.launch {
-            // Здесь должен быть useCase для получения трека по ID
-            // Например: val track = getTrackByIdUseCase.execute(trackId)
-            // setTrack(track)
         }
     }
 }

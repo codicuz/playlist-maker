@@ -87,7 +87,6 @@ fun PlaylistScreen(
     val isDarkTheme = isDarkTheme()
     var showMenuDialog by remember { mutableStateOf(false) }
 
-    // Состояния для диалогов
     var showDeleteTrackDialog by remember { mutableStateOf(false) }
     var trackToDelete by remember { mutableStateOf<Track?>(null) }
     var showDeletePlaylistDialog by remember { mutableStateOf(false) }
@@ -207,7 +206,6 @@ fun PlaylistScreen(
                     )
                 }
 
-                // Диалог подтверждения удаления трека
                 if (showDeleteTrackDialog && trackToDelete != null) {
                     DeleteTrackDialog(
                         track = trackToDelete!!,
@@ -221,7 +219,6 @@ fun PlaylistScreen(
                     )
                 }
 
-                // Диалог подтверждения удаления плейлиста
                 if (showDeletePlaylistDialog && state.playlist != null) {
                     DeletePlaylistDialog(
                         playlistName = state.playlist!!.title,
@@ -1007,7 +1004,6 @@ fun DeletePlaylistDialogDarkPreview() {
     }
 }
 
-// Комбинированный превью для всех диалогов сразу
 @Preview(
     name = "All Dialogs Preview",
     showBackground = true,
