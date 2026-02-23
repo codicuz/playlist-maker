@@ -1,6 +1,5 @@
 package com.practicum.playlistmaker.presentation.player.compose
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -27,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,6 +34,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,12 +47,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -67,7 +68,6 @@ import com.practicum.playlistmaker.presentation.util.AndroidResourceProvider
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPlayerScreen(
     viewModel: AudioPlayerViewModel,
@@ -76,6 +76,7 @@ fun AudioPlayerScreen(
     onCreatePlaylistClick: () -> Unit
 ) {
     val context = LocalContext.current
+    LocalLifecycleOwner.current
     val resourceProvider = remember(context) {
         AndroidResourceProvider(context)
     }
@@ -90,15 +91,24 @@ fun AudioPlayerScreen(
     val isDarkTheme = isDarkTheme()
     var showBottomSheet by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        viewModel.bindService(context)
+    }
+
     LaunchedEffect(trackId) {
         if (trackId != null) {
             viewModel.loadTrack(trackId)
         }
     }
 
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.unbindService(context)
+        }
+    }
+
     LaunchedEffect(addTrackStatus) {
-        val status = addTrackStatus
-        when (status) {
+        when (val status = addTrackStatus) {
             is AddTrackStatus.Success -> {
                 Toast.makeText(
                     context,
@@ -107,20 +117,24 @@ fun AudioPlayerScreen(
                 ).show()
                 viewModel.resetAddTrackStatus()
             }
+
             is AddTrackStatus.AlreadyExists -> {
                 Toast.makeText(
                     context,
-                    resourceProvider.getString(R.string.allready_exists_in_playlist, status.playlistName),
+                    resourceProvider.getString(
+                        R.string.allready_exists_in_playlist,
+                        status.playlistName
+                    ),
                     Toast.LENGTH_SHORT
                 ).show()
                 viewModel.resetAddTrackStatus()
             }
+
             is AddTrackStatus.Error -> {
-                Toast.makeText(
-                    context, status.message, Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(context, status.message, Toast.LENGTH_SHORT).show()
                 viewModel.resetAddTrackStatus()
             }
+
             else -> {}
         }
     }
@@ -137,24 +151,29 @@ fun AudioPlayerScreen(
             .fillMaxSize()
             .background(if (isDarkTheme) AppColors.Black else AppColors.White)
     ) {
-        AudioPlayerContent(
-            track = state.track,
-            isPlaying = state.isPlaying,
-            currentPosition = state.currentPosition,
-            isFavorite = state.isFavorite,
-            isDarkTheme = isDarkTheme,
-            resourceProvider = resourceProvider,
-            onBackClick = onNavigateBack,
-            onPlayPauseClick = {
-                if (state.isPlaying) {
-                    viewModel.pausePlayer()
-                } else {
-                    viewModel.startPlayer()
-                }
-            },
-            onFavoriteClick = { viewModel.toggleFavorite() },
-            onAddToPlaylistClick = { showBottomSheet = true }
-        )
+        if (state.track == null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = AppColors.Blue)
+            }
+        } else {
+            AudioPlayerContent(
+                track = state.track,
+                isPlaying = state.isPlaying,
+                currentPosition = state.currentPosition,
+                isFavorite = state.isFavorite,
+                isDarkTheme = isDarkTheme,
+                resourceProvider = resourceProvider,
+                onBackClick = onNavigateBack,
+                onPlayPauseClick = {
+                    if (state.isPlaying) {
+                        viewModel.pausePlayer()
+                    } else {
+                        viewModel.startPlayer()
+                    }
+                },
+                onFavoriteClick = { viewModel.toggleFavorite() },
+                onAddToPlaylistClick = { showBottomSheet = true })
+        }
 
         if (showBottomSheet) {
             PlaylistBottomSheet(
@@ -171,8 +190,7 @@ fun AudioPlayerScreen(
                     showBottomSheet = false
                     onCreatePlaylistClick()
                 },
-                onDismiss = { showBottomSheet = false }
-            )
+                onDismiss = { showBottomSheet = false })
         }
     }
 }
@@ -262,7 +280,7 @@ fun AudioPlayerContent(
                         Icon(
                             painter = painterResource(R.drawable.btn_aud_add_track),
                             contentDescription = resourceProvider.getString(R.string.add_to_playlist),
-                            tint = if (isDarkTheme) AppColors.White else AppColors.Black,
+                            tint = AppColors.White,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -273,8 +291,9 @@ fun AudioPlayerContent(
                         .size(100.dp)
                         .align(Alignment.Center)
                         .clickable { onPlayPauseClick() }, contentAlignment = Alignment.Center
+
                 ) {
-                    Image(
+                    Icon(
                         painter = painterResource(
                             if (isPlaying) R.drawable.btn_aud_pause
                             else R.drawable.btn_aud_play
@@ -283,7 +302,8 @@ fun AudioPlayerContent(
                             resourceProvider.getString(R.string.pause)
                         else
                             resourceProvider.getString(R.string.play),
-                        modifier = Modifier.size(100.dp)
+                        modifier = Modifier.size(100.dp),
+                        tint = if (isDarkTheme) AppColors.White else AppColors.Black
                     )
                 }
 
@@ -325,9 +345,7 @@ fun AudioPlayerContent(
             Spacer(modifier = Modifier.height(28.dp))
 
             TrackDetails(
-                track = track,
-                isDarkTheme = isDarkTheme,
-                resourceProvider = resourceProvider
+                track = track, isDarkTheme = isDarkTheme, resourceProvider = resourceProvider
             )
         }
     }
@@ -335,9 +353,7 @@ fun AudioPlayerContent(
 
 @Composable
 fun TrackDetails(
-    track: Track,
-    isDarkTheme: Boolean,
-    resourceProvider: ResourceProvider
+    track: Track, isDarkTheme: Boolean, resourceProvider: ResourceProvider
 ) {
     val textColor = if (isDarkTheme) AppColors.White else AppColors.Black
     val valueColor = if (isDarkTheme) AppColors.White else AppColors.Gray
@@ -410,6 +426,7 @@ fun DetailRow(
         )
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistBottomSheet(
@@ -422,7 +439,7 @@ fun PlaylistBottomSheet(
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false // Изменено на false, чтобы можно было разворачивать
+        skipPartiallyExpanded = false
     )
 
     ModalBottomSheet(
@@ -439,15 +456,14 @@ fun PlaylistBottomSheet(
                 Box(
                     modifier = Modifier
                         .width(50.dp)
-                        .height(4.dp) // Уменьшена высота для более аккуратного вида
+                        .height(4.dp)
                         .background(
                             color = if (isDarkTheme) Color.White else AppColors.LightGray,
                             shape = RoundedCornerShape(2.dp)
                         )
                 )
             }
-        }
-    ) {
+        }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -466,8 +482,7 @@ fun PlaylistBottomSheet(
 
             Button(
                 onClick = onCreateNewClick,
-                modifier = Modifier
-                    .height(42.dp),
+                modifier = Modifier.height(42.dp),
                 shape = RoundedCornerShape(54.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isDarkTheme) AppColors.White else AppColors.Black,
@@ -475,8 +490,7 @@ fun PlaylistBottomSheet(
                 )
             ) {
                 Text(
-                    text = resourceProvider.getString(R.string.new_playlist),
-                    fontSize = 16.sp
+                    text = resourceProvider.getString(R.string.new_playlist), fontSize = 16.sp
                 )
             }
 
@@ -493,8 +507,7 @@ fun PlaylistBottomSheet(
                             playlist = playlist,
                             isDarkTheme = isDarkTheme,
                             resourceProvider = resourceProvider,
-                            onClick = { onPlaylistClick(playlist) }
-                        )
+                            onClick = { onPlaylistClick(playlist) })
                     }
                 }
             }
@@ -517,7 +530,7 @@ fun PlaylistBottomSheetItem(
     LaunchedEffect(playlist.coverUri) {
         imageModel = if (!playlist.coverUri.isNullOrEmpty()) {
             try {
-                val file = java.io.File(playlist.coverUri)
+                val file = File(playlist.coverUri)
                 if (file.exists()) file else R.drawable.ic_no_artwork_image
             } catch (e: Exception) {
                 R.drawable.ic_no_artwork_image

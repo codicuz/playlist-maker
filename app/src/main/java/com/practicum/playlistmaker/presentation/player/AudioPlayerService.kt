@@ -102,9 +102,11 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
 
             mediaPlayer.setOnCompletionListener {
                 stopUpdatingProgress()
-                _state.postValue(_state.value?.copy(
-                    isPlaying = false, currentPosition = 0, isCompleted = true
-                ))
+                _state.postValue(
+                    _state.value?.copy(
+                        isPlaying = false, currentPosition = 0, isCompleted = true
+                    )
+                )
                 stopForegroundMode()
             }
 
@@ -130,12 +132,14 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         this.trackTitle = trackTitle
         this.currentTrack = track
 
-        _state.value = _state.value?.copy(
-            currentTrack = track,
-            isPlaying = false,
-            currentPosition = 0,
-            isPrepared = false,
-            isCompleted = false
+        _state.postValue(
+            PlayerState(
+                currentTrack = track,
+                isPlaying = false,
+                currentPosition = 0,
+                isPrepared = false,
+                isCompleted = false
+            )
         )
 
         track.previewUrl?.let { previewUrl ->
@@ -146,6 +150,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.prepareAsync()
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting track", e)
+                _state.postValue(_state.value?.copy(isPrepared = false))
             }
         }
     }
@@ -153,23 +158,19 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     override fun play() {
         try {
             if (_state.value?.isPrepared != true) {
+                Log.d(TAG, "Player not prepared yet")
                 return
             }
 
-            val isCurrentlyPlaying = try {
-                mediaPlayer.isPlaying
-            } catch (e: IllegalStateException) {
-                false
-            }
-
-            if (!isCurrentlyPlaying) {
+            if (!mediaPlayer.isPlaying) {
                 if (_state.value?.isCompleted == true) {
                     mediaPlayer.seekTo(0)
-                    _state.value = _state.value?.copy(isCompleted = false)
+                    _state.postValue(_state.value?.copy(isCompleted = false))
                 }
                 mediaPlayer.start()
-                _state.value = _state.value?.copy(isPlaying = true)
+                _state.postValue(_state.value?.copy(isPlaying = true))
                 startUpdatingProgress()
+                startForegroundMode()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in play()", e)
@@ -178,17 +179,11 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
 
     override fun pause() {
         try {
-            val isCurrentlyPlaying = try {
-                mediaPlayer.isPlaying
-            } catch (e: IllegalStateException) {
-                Log.e(TAG, "Error checking isPlaying", e)
-                false
-            }
-
-            if (isCurrentlyPlaying) {
+            if (mediaPlayer.isPlaying) {
                 mediaPlayer.pause()
-                _state.value = _state.value?.copy(isPlaying = false)
+                _state.postValue(_state.value?.copy(isPlaying = false))
                 stopUpdatingProgress()
+                stopForegroundMode()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in pause()", e)
@@ -264,17 +259,14 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             .setContentText("$artistName - $trackTitle")
             .setSmallIcon(android.R.drawable.ic_media_play).setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setOngoing(true)
-            .setColorized(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setColorized(true)
             .build()
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                getString(R.string.playing_track), NotificationManager.IMPORTANCE_LOW
+                CHANNEL_ID, getString(R.string.playing_track), NotificationManager.IMPORTANCE_LOW
             ).apply {
                 setSound(null, null)
                 enableLights(false)

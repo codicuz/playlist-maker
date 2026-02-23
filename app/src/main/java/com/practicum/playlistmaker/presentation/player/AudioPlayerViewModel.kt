@@ -42,7 +42,7 @@ class AudioPlayerViewModel(
     private val isFavoriteUseCase: IsFavoriteUseCase,
     private val getPlaylistsUseCase: GetPlaylistsUseCase,
     private val addTrackToPlaylistUseCase: AddTrackToPlaylistUseCase,
-    private val getSearchHistoryUseCase: GetSearchHistoryUseCase // Добавлен для получения треков из истории
+    private val getSearchHistoryUseCase: GetSearchHistoryUseCase
 ) : ViewModel() {
 
     private var audioPlayerService: AudioPlayerServiceInterface? = null
@@ -84,13 +84,11 @@ class AudioPlayerViewModel(
         }
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД ЗАГРУЗКИ ТРЕКА
     fun loadTrack(trackId: Int) {
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Loading track with ID: $trackId")
 
-                // Получаем трек из истории поиска
                 val history = getSearchHistoryUseCase.execute()
                 val trackFromHistory = history.find { it.trackId == trackId }
 
@@ -98,14 +96,13 @@ class AudioPlayerViewModel(
                     Log.d(TAG, "Track found in history: ${trackFromHistory.trackName}")
                     setTrack(trackFromHistory)
                 } else {
-                    // Если трек не найден в истории, создаем тестовый трек
                     Log.d(TAG, "Track not found in history, creating test track")
                     val testTrack = Track(
                         id = trackId.toLong(),
                         trackId = trackId,
                         trackName = "Тестовый трек",
                         artistsName = "Тестовый исполнитель",
-                        trackTimeMillis = 180000, // 3 минуты
+                        trackTimeMillis = 180000,
                         artworkUrl100 = "",
                         previewUrl = null,
                         collectionName = "Тестовый альбом",
@@ -197,11 +194,12 @@ class AudioPlayerViewModel(
         audioPlayerService?.let { service ->
             try {
                 val serviceState = service.getState().value
-                _state.update { currentState ->
-                    currentState.copy(
-                        isPlaying = serviceState?.isPlaying ?: false,
-                        currentPosition = serviceState?.currentPosition ?: 0
-                    )
+                serviceState?.let { state ->
+                    _state.update { currentState ->
+                        currentState.copy(
+                            isPlaying = state.isPlaying, currentPosition = state.currentPosition
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating state from service", e)
@@ -232,18 +230,21 @@ class AudioPlayerViewModel(
         Log.d(TAG, "Setting track: ${track.trackName}")
         currentTrack = track
 
-        _state.value = AudioPlayerScreenState(
-            track = track, isPlaying = false, currentPosition = 0, isFavorite = false
-        )
+        _state.update {
+            AudioPlayerScreenState(
+                track = track, isPlaying = false, currentPosition = 0, isFavorite = false
+            )
+        }
 
-        updateTrackState(track)
+        viewModelScope.launch {
+            val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
+            _state.update { it.copy(isFavorite = isFav) }
+        }
 
         if (isBound && audioPlayerService != null) {
-            if (audioPlayerService?.getCurrentTrackId() != track.trackId) {
-                audioPlayerService?.setTrack(
-                    track, track.artistsName ?: "", track.trackName ?: ""
-                )
-            }
+            audioPlayerService?.setTrack(
+                track, track.artistsName ?: "", track.trackName ?: ""
+            )
         } else {
             Log.d(TAG, "Service not ready, track will be set when connected")
         }
@@ -280,7 +281,7 @@ class AudioPlayerViewModel(
     }
 
     fun startPlayer() {
-        if (audioPlayerService == null) {
+        if (!isServiceReady()) {
             Log.e(TAG, "Cannot start player - service is null")
             pendingStartPlayer = true
             return
@@ -289,6 +290,8 @@ class AudioPlayerViewModel(
         try {
             audioPlayerService?.play()
             pendingStartPlayer = false
+
+            updateStateFromService()
         } catch (e: Exception) {
             Log.e(TAG, "Error starting player", e)
             pendingStartPlayer = true
@@ -296,15 +299,16 @@ class AudioPlayerViewModel(
     }
 
     fun pausePlayer() {
-        if (audioPlayerService == null) {
+        if (!isServiceReady()) {
             Log.e(TAG, "Cannot pause player - service is null")
-            pendingStartPlayer = false
             return
         }
 
         try {
             audioPlayerService?.pause()
             pendingStartPlayer = false
+
+            updateStateFromService()
         } catch (e: Exception) {
             Log.e(TAG, "Error pausing player", e)
         }
