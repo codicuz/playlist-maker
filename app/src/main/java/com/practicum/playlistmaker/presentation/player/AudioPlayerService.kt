@@ -32,12 +32,12 @@ interface AudioPlayerServiceInterface {
     fun play()
     fun pause()
     fun getState(): LiveData<PlayerState>
-    fun startForegroundMode()
-    fun stopForegroundMode()
     fun isPlaying(): Boolean
     fun getCurrentTrackId(): Int?
     fun isPrepared(): Boolean
     fun reset()
+    fun setAppInForeground(isForeground: Boolean)
+    fun setPlayerScreenActive(isActive: Boolean)
 }
 
 data class PlayerState(
@@ -60,6 +60,8 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private var artistName: String = ""
     private var trackTitle: String = ""
     private var isForeground = false
+    private var isAppInForeground = true
+    private var isPlayerScreenActive = true // Добавляем флаг активности экрана плеера
 
     companion object {
         private const val NOTIFICATION_ID = 1001
@@ -74,6 +76,34 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         super.onCreate()
         createNotificationChannel()
         initMediaPlayer()
+    }
+
+    override fun setAppInForeground(isForeground: Boolean) {
+        isAppInForeground = isForeground
+        Log.d(
+            TAG,
+            "App in foreground: $isForeground, Player screen active: $isPlayerScreenActive, isPlaying: ${_state.value?.isPlaying}"
+        )
+
+        updateForegroundState()
+    }
+
+    override fun setPlayerScreenActive(isActive: Boolean) {
+        isPlayerScreenActive = isActive
+        Log.d(TAG, "Player screen active: $isActive")
+
+        updateForegroundState()
+    }
+
+    private fun updateForegroundState() {
+        val shouldBeForeground =
+            !isAppInForeground && !isPlayerScreenActive && _state.value?.isPlaying == true
+
+        if (shouldBeForeground && !isForeground) {
+            startForegroundMode()
+        } else if (!shouldBeForeground && isForeground) {
+            stopForegroundMode()
+        }
     }
 
     override fun reset() {
@@ -107,7 +137,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                         isPlaying = false, currentPosition = 0, isCompleted = true
                     )
                 )
-                stopForegroundMode()
+                updateForegroundState()
             }
 
         } catch (e: Exception) {
@@ -170,7 +200,8 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.start()
                 _state.postValue(_state.value?.copy(isPlaying = true))
                 startUpdatingProgress()
-                startForegroundMode()
+
+                updateForegroundState()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in play()", e)
@@ -183,7 +214,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.pause()
                 _state.postValue(_state.value?.copy(isPlaying = false))
                 stopUpdatingProgress()
-                stopForegroundMode()
+                updateForegroundState()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in pause()", e)
@@ -204,47 +235,49 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
 
     override fun isPrepared(): Boolean = _state.value?.isPrepared == true
 
-    override fun startForegroundMode() {
-        if (_state.value?.isPlaying == true && !isForeground) {
-            try {
-                val notification = createNotification()
+    private fun startForegroundMode() {
+        if (isForeground) return
 
-                when {
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-                        startForeground(
-                            NOTIFICATION_ID,
-                            notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                        )
-                    }
+        try {
+            val notification = createNotification()
 
-                    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                        startForeground(
-                            NOTIFICATION_ID,
-                            notification,
-                            ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                        )
-                    }
-
-                    else -> {
-                        startForeground(NOTIFICATION_ID, notification)
-                    }
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
                 }
-                isForeground = true
-            } catch (e: Exception) {
-                Log.e(TAG, "Error starting foreground", e)
+
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                    startForeground(
+                        NOTIFICATION_ID,
+                        notification,
+                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                    )
+                }
+
+                else -> {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
             }
+            isForeground = true
+            Log.d(TAG, "Foreground mode started")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error starting foreground", e)
         }
     }
 
-    override fun stopForegroundMode() {
-        if (isForeground) {
-            try {
-                stopForeground(true)
-                isForeground = false
-            } catch (e: Exception) {
-                Log.e(TAG, "Error stopping foreground", e)
-            }
+    private fun stopForegroundMode() {
+        if (!isForeground) return
+
+        try {
+            stopForeground(true)
+            isForeground = false
+            Log.d(TAG, "Foreground mode stopped")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping foreground", e)
         }
     }
 

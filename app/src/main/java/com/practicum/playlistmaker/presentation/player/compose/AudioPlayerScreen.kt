@@ -52,8 +52,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.practicum.playlistmaker.R
@@ -90,6 +93,38 @@ fun AudioPlayerScreen(
 
     val isDarkTheme = isDarkTheme()
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        // При создании экрана - он активен
+        viewModel.setPlayerScreenActive(true)
+
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    // Приложение свернуто
+                    viewModel.setAppInForeground(false)
+                    // Экран все еще существует, но не виден
+                    viewModel.setPlayerScreenActive(false)
+                }
+                Lifecycle.Event.ON_RESUME -> {
+                    // Приложение развернуто
+                    viewModel.setAppInForeground(true)
+                    // Экран снова активен
+                    viewModel.setPlayerScreenActive(true)
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        onDispose {
+            // Экран уничтожен (пользователь ушел)
+            viewModel.setPlayerScreenActive(false)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.bindService(context)

@@ -62,18 +62,11 @@ class AudioPlayerViewModel(
     private var currentTrack: Track? = null
     private var isBound = false
     private var serviceConnection: ServiceConnection? = null
-    private var wasInBackground = false
     private var pendingStartPlayer = false
     private var pollJob: Job? = null
 
-    private var isConfigurationChange = false
-
     init {
         loadPlaylists()
-    }
-
-    fun onConfigurationChange() {
-        isConfigurationChange = true
     }
 
     private fun loadPlaylists() {
@@ -183,13 +176,9 @@ class AudioPlayerViewModel(
         }
     }
 
-    fun stopAndUnbindService(context: Context) {
-        audioPlayerService?.pause()
-        audioPlayerService?.reset()
-        audioPlayerService?.stopForegroundMode()
-        unbindService(context)
+    fun setPlayerScreenActive(isActive: Boolean) {
+        audioPlayerService?.setPlayerScreenActive(isActive)
     }
-
     private fun updateStateFromService() {
         audioPlayerService?.let { service ->
             try {
@@ -197,7 +186,8 @@ class AudioPlayerViewModel(
                 serviceState?.let { state ->
                     _state.update { currentState ->
                         currentState.copy(
-                            isPlaying = state.isPlaying, currentPosition = state.currentPosition
+                            isPlaying = state.isPlaying,
+                            currentPosition = state.currentPosition
                         )
                     }
                 }
@@ -232,7 +222,10 @@ class AudioPlayerViewModel(
 
         _state.update {
             AudioPlayerScreenState(
-                track = track, isPlaying = false, currentPosition = 0, isFavorite = false
+                track = track,
+                isPlaying = false,
+                currentPosition = 0,
+                isFavorite = false
             )
         }
 
@@ -250,36 +243,6 @@ class AudioPlayerViewModel(
         }
     }
 
-    private fun updateTrackState(track: Track) {
-        viewModelScope.launch {
-            val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
-            _state.update { it.copy(isFavorite = isFav) }
-        }
-    }
-
-    fun updateTrackIfNeeded(track: Track) {
-        if (currentTrack?.trackId != track.trackId) {
-            currentTrack = track
-
-            viewModelScope.launch {
-                val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
-                _state.update {
-                    it.copy(
-                        track = track, isFavorite = isFav
-                    )
-                }
-            }
-
-            if (isBound && audioPlayerService != null) {
-                audioPlayerService?.setTrack(
-                    track, track.artistsName ?: "", track.trackName ?: ""
-                )
-            }
-        } else {
-            updateStateFromService()
-        }
-    }
-
     fun startPlayer() {
         if (!isServiceReady()) {
             Log.e(TAG, "Cannot start player - service is null")
@@ -290,7 +253,6 @@ class AudioPlayerViewModel(
         try {
             audioPlayerService?.play()
             pendingStartPlayer = false
-
             updateStateFromService()
         } catch (e: Exception) {
             Log.e(TAG, "Error starting player", e)
@@ -307,7 +269,6 @@ class AudioPlayerViewModel(
         try {
             audioPlayerService?.pause()
             pendingStartPlayer = false
-
             updateStateFromService()
         } catch (e: Exception) {
             Log.e(TAG, "Error pausing player", e)
@@ -358,6 +319,10 @@ class AudioPlayerViewModel(
         }
     }
 
+    fun setAppInForeground(isForeground: Boolean) {
+        audioPlayerService?.setAppInForeground(isForeground)
+    }
+
     fun resetShouldCloseBottomSheet() {
         _shouldCloseBottomSheet.value = null
     }
@@ -368,47 +333,12 @@ class AudioPlayerViewModel(
         }
     }
 
-    fun startForegroundMode() {
-        try {
-            audioPlayerService?.startForegroundMode()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting foreground", e)
-        }
-    }
-
-    fun stopForegroundMode() {
-        try {
-            audioPlayerService?.stopForegroundMode()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error stopping foreground", e)
-        }
-    }
-
     fun cleanup() {
         stopPolling()
         audioPlayerService = null
         isBound = false
         serviceConnection = null
         pendingStartPlayer = false
-    }
-
-    fun onAppBackgrounded() {
-        wasInBackground = true
-        if (_state.value.isPlaying && !isConfigurationChange) {
-            startForegroundMode()
-        }
-    }
-
-    fun onConfigurationChangeFinished() {
-        isConfigurationChange = false
-    }
-
-
-    fun onAppForegrounded() {
-        if (wasInBackground) {
-            stopForegroundMode()
-            wasInBackground = false
-        }
     }
 
     fun isServiceReady(): Boolean {
