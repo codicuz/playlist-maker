@@ -109,4 +109,14 @@
     <string name="error_deleteing">Ошибка удаления: %1$s</string>
     <string name="saving">Сохранение</string>
     <string name="playing_track">Воспроизведение музыки</string>
+    <string name="nothing_found">Ничего не нашлось</string>
+    <string name="update_btn">Обновить</string>
+    <string name="you_searched">Вы искали</string>
+    <string name="back">Назад</string>
+    <string name="add_cover">Добавить обложку</string>
+    <string name="add_to_playlist">Добавить в плейлист</string>
+    <string name="add_to_favorites">Добавить в избранное</string>
+    <string name="play">Воспроизвести</string>
+    <string name="pause">Пауза</string>
+    <string name="aud_album">Альбом</string>
 </resources>

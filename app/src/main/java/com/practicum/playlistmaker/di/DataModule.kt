@@ -43,23 +43,18 @@ val dataModule = module {
         )
     }
 
-    // File Manager for playlist covers
     single { CoverFileManager(get()) }
 
-    // Theme
     single<ThemeRepository> {
         ThemeRepositoryImpl(get(named(Qualifiers.SETTINGS_PREFS)), get<Application>())
     }
 
-    // History
     single<SearchHistoryRepository> {
         SearchHistoryRepositorImpl(get(named(Qualifiers.SEARCH_PREFS)), get())
     }
 
-    // Gson
     single { Gson() }
 
-    // Retrofit
     single {
         Retrofit.Builder().baseUrl("https://itunes.apple.com")
             .addConverterFactory(GsonConverterFactory.create()).build()
@@ -67,10 +62,8 @@ val dataModule = module {
     single { get<Retrofit>().create(ITunesApi::class.java) }
     single<NetworkClient> { RetrofitNetworkClient(get()) }
 
-    // Tracks
     single<TracksRepository> { TracksRepositoryImpl(get()) }
 
-    // Favorites
     single {
         Room.databaseBuilder(
             get(), AppDatabase::class.java, "playlist_maker_db"
@@ -81,7 +74,6 @@ val dataModule = module {
 
     single<FavoritesRepository> { FavoritesRepositoryImpl(get()) }
 
-    // Playlist
     single<NewPlaylistRepository> {
         NewPlaylistRepositoryImpl(
             playlistDao = get<AppDatabase>().playlistDao(),
@@ -94,7 +86,5 @@ val dataModule = module {
 
     single<PlaylistTracksRepository> { PlaylistTracksRepositoryImpl(get()) }
 
-    // Resource Provider
     factory<ResourceProvider> { AndroidResourceProvider(get()) }
-
 }

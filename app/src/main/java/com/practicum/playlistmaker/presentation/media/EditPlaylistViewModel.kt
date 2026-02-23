@@ -7,7 +7,6 @@ import com.practicum.playlistmaker.domain.playlist.GetPlaylistByIdUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
 import kotlinx.coroutines.launch
-import java.io.File
 
 class EditPlaylistViewModel(
     private val getPlaylistByIdUseCase: GetPlaylistByIdUseCase,

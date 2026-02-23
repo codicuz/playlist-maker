@@ -9,30 +9,30 @@ import com.practicum.playlistmaker.data.storage.SharedPrefs
 import com.practicum.playlistmaker.domain.theme.ThemeRepository
 
 class ThemeRepositoryImpl(
-    private val sharedPreferences: SharedPreferences, private val app: Application
+    private val sharedPreferences: SharedPreferences,
+    private val app: Application
 ) : ThemeRepository {
 
     private val themeKey = SharedPrefs.DARK_MODE_KEY
 
     override fun isDarkMode(): Boolean {
-        if (sharedPreferences.contains(themeKey)) {
-            return sharedPreferences.getBoolean(themeKey, false)
+        return if (sharedPreferences.contains(themeKey)) {
+            sharedPreferences.getBoolean(themeKey, false)
+        } else {
+            val uiMode = app.resources.configuration.uiMode
+            val systemDarkMode =
+                (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            sharedPreferences.edit {
+                putBoolean(themeKey, systemDarkMode)
+            }
+            systemDarkMode
         }
-        val uiMode = app.resources.configuration.uiMode
-        val systemDarkMode =
-            (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-        sharedPreferences.edit {
-            putBoolean(themeKey, systemDarkMode)
-        }
-
-        return systemDarkMode
     }
 
     override fun switchTheme(darkMode: Boolean) {
         sharedPreferences.edit {
             putBoolean(themeKey, darkMode)
         }
-
         applyThemeInternal(darkMode)
     }
 
