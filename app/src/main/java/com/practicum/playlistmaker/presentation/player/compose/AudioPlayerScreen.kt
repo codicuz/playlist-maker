@@ -100,18 +100,18 @@ fun AudioPlayerScreen(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> {
-                    viewModel.setAppInForeground(true)
                     viewModel.setPlayerScreenActive(true)
                 }
                 Lifecycle.Event.ON_PAUSE -> {
-                    viewModel.setAppInForeground(false)
                     viewModel.setPlayerScreenActive(false)
                 }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
+
         onDispose {
+            viewModel.setPlayerScreenActive(false)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

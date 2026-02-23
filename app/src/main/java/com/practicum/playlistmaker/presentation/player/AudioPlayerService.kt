@@ -94,6 +94,8 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private fun updateForegroundState(state: PlayerState) {
         val shouldBeForeground = !isAppInForeground && state.isPlaying && !state.isCompleted
 
+//        Log.d(TAG, "updateForegroundState: isAppInForeground=$isAppInForeground, isPlaying=${state.isPlaying}, isCompleted=${state.isCompleted}, shouldBeForeground=$shouldBeForeground, isForeground=$isForeground")
+
         if (shouldBeForeground && !isForeground) {
             startForegroundMode()
         } else if (!shouldBeForeground && isForeground) {

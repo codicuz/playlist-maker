@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
+import com.practicum.playlistmaker.presentation.AppStateManager
 import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
 import com.practicum.playlistmaker.presentation.settings.SingleLiveEvent
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,6 +41,10 @@ class ThemeViewModel(
 
     fun onShareAppClicked() {
         _uiEvent.value = SettingsUiEvent.ShareApp
+    }
+
+    fun setAppInForeground(isForeground: Boolean) {
+        AppStateManager.setAppInForeground(isForeground)
     }
 
     fun resetUiEvent() {

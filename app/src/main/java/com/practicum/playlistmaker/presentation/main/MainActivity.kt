@@ -45,7 +45,20 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onPause() {
+        super.onPause()
+        themeViewModel.setAppInForeground(false)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        themeViewModel.setAppInForeground(true)
+    }
 }
+
+
+
 
 @Composable
 fun MainScreen() {

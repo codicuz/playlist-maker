@@ -17,6 +17,7 @@ import com.practicum.playlistmaker.domain.playlist.AddTrackToPlaylistUseCase
 import com.practicum.playlistmaker.domain.playlist.GetPlaylistsUseCase
 import com.practicum.playlistmaker.domain.playlist.Playlist
 import com.practicum.playlistmaker.domain.track.Track
+import com.practicum.playlistmaker.presentation.AppStateManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -67,6 +68,11 @@ class AudioPlayerViewModel(
 
     init {
         loadPlaylists()
+        viewModelScope.launch {
+            AppStateManager.isAppInForeground.collect { isForeground ->
+                audioPlayerService?.setAppInForeground(isForeground)
+            }
+        }
     }
 
     private fun loadPlaylists() {
