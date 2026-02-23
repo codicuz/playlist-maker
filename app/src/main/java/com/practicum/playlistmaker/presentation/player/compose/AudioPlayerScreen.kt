@@ -97,31 +97,21 @@ fun AudioPlayerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner) {
-        // При создании экрана - он активен
-        viewModel.setPlayerScreenActive(true)
-
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_PAUSE -> {
-                    // Приложение свернуто
-                    viewModel.setAppInForeground(false)
-                    // Экран все еще существует, но не виден
-                    viewModel.setPlayerScreenActive(false)
-                }
                 Lifecycle.Event.ON_RESUME -> {
-                    // Приложение развернуто
                     viewModel.setAppInForeground(true)
-                    // Экран снова активен
                     viewModel.setPlayerScreenActive(true)
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    viewModel.setAppInForeground(false)
+                    viewModel.setPlayerScreenActive(false)
                 }
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-
         onDispose {
-            // Экран уничтожен (пользователь ушел)
-            viewModel.setPlayerScreenActive(false)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

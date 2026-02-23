@@ -1,6 +1,5 @@
 package com.practicum.playlistmaker.presentation.player
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -61,7 +60,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     private var trackTitle: String = ""
     private var isForeground = false
     private var isAppInForeground = true
-    private var isPlayerScreenActive = true // Добавляем флаг активности экрана плеера
+    private var isPlayerScreenActive = true
 
     companion object {
         private const val NOTIFICATION_ID = 1001
@@ -76,28 +75,24 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         super.onCreate()
         createNotificationChannel()
         initMediaPlayer()
+
+        _state.observeForever { state ->
+            updateForegroundState(state)
+        }
     }
 
     override fun setAppInForeground(isForeground: Boolean) {
         isAppInForeground = isForeground
-        Log.d(
-            TAG,
-            "App in foreground: $isForeground, Player screen active: $isPlayerScreenActive, isPlaying: ${_state.value?.isPlaying}"
-        )
-
-        updateForegroundState()
+        _state.value?.let { updateForegroundState(it) }
     }
 
     override fun setPlayerScreenActive(isActive: Boolean) {
         isPlayerScreenActive = isActive
-        Log.d(TAG, "Player screen active: $isActive")
-
-        updateForegroundState()
+        _state.value?.let { updateForegroundState(it) }
     }
 
-    private fun updateForegroundState() {
-        val shouldBeForeground =
-            !isAppInForeground && !isPlayerScreenActive && _state.value?.isPlaying == true
+    private fun updateForegroundState(state: PlayerState) {
+        val shouldBeForeground = !isAppInForeground && state.isPlaying && !state.isCompleted
 
         if (shouldBeForeground && !isForeground) {
             startForegroundMode()
@@ -111,8 +106,10 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             if (_state.value?.isPrepared == true) {
                 mediaPlayer.seekTo(0)
             }
-            _state.value = _state.value?.copy(
-                currentPosition = 0, isPlaying = false, isCompleted = false
+            _state.postValue(
+                _state.value?.copy(
+                    currentPosition = 0, isPlaying = false, isCompleted = false
+                )
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error resetting player", e)
@@ -131,13 +128,13 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
             }
 
             mediaPlayer.setOnCompletionListener {
+                Log.d(TAG, "Track completed")
                 stopUpdatingProgress()
                 _state.postValue(
                     _state.value?.copy(
                         isPlaying = false, currentPosition = 0, isCompleted = true
                     )
                 )
-                updateForegroundState()
             }
 
         } catch (e: Exception) {
@@ -157,19 +154,18 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     }
 
     override fun setTrack(track: Track, artistName: String, trackTitle: String) {
-
         this.artistName = artistName
         this.trackTitle = trackTitle
         this.currentTrack = track
 
-        _state.postValue(
-            PlayerState(
-                currentTrack = track,
-                isPlaying = false,
-                currentPosition = 0,
-                isPrepared = false,
-                isCompleted = false
-            )
+        Log.d(TAG, "setTrack: ${track.trackName}")
+
+        _state.value = PlayerState(
+            currentTrack = track,
+            isPlaying = false,
+            currentPosition = 0,
+            isPrepared = false,
+            isCompleted = false
         )
 
         track.previewUrl?.let { previewUrl ->
@@ -180,28 +176,28 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.prepareAsync()
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting track", e)
-                _state.postValue(_state.value?.copy(isPrepared = false))
+                _state.value = _state.value?.copy(isPrepared = false)
             }
         }
     }
 
+
+
     override fun play() {
         try {
-            if (_state.value?.isPrepared != true) {
-                Log.d(TAG, "Player not prepared yet")
-                return
-            }
+            if (_state.value?.isPrepared != true) return
 
             if (!mediaPlayer.isPlaying) {
                 if (_state.value?.isCompleted == true) {
                     mediaPlayer.seekTo(0)
-                    _state.postValue(_state.value?.copy(isCompleted = false))
+                    _state.value = _state.value?.copy(
+                        isCompleted = false,
+                        currentPosition = 0
+                    )
                 }
                 mediaPlayer.start()
-                _state.postValue(_state.value?.copy(isPlaying = true))
+                _state.value = _state.value?.copy(isPlaying = true)
                 startUpdatingProgress()
-
-                updateForegroundState()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in play()", e)
@@ -214,54 +210,43 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 mediaPlayer.pause()
                 _state.postValue(_state.value?.copy(isPlaying = false))
                 stopUpdatingProgress()
-                updateForegroundState()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in pause()", e)
         }
     }
 
-    override fun isPlaying(): Boolean {
-        return try {
-            if (_state.value?.isPrepared == true) {
-                mediaPlayer.isPlaying
-            } else false
-        } catch (e: IllegalStateException) {
-            false
-        }
-    }
-
+    override fun isPlaying(): Boolean = mediaPlayer.isPlaying
     override fun getCurrentTrackId(): Int? = currentTrack?.trackId
-
     override fun isPrepared(): Boolean = _state.value?.isPrepared == true
 
     private fun startForegroundMode() {
         if (isForeground) return
 
         try {
-            val notification = createNotification()
+            val intent = packageManager.getLaunchIntentForPackage(packageName)
+            val pendingIntent = PendingIntent.getActivity(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
 
-            when {
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                    )
-                }
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText("$artistName - $trackTitle")
+                .setSmallIcon(android.R.drawable.ic_media_play).setContentIntent(pendingIntent)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true)
+                .setColorized(true).build()
 
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
-                    )
-                }
-
-                else -> {
-                    startForeground(NOTIFICATION_ID, notification)
-                }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIFICATION_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+                )
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
             }
+
             isForeground = true
             Log.d(TAG, "Foreground mode started")
         } catch (e: Exception) {
@@ -271,7 +256,6 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
 
     private fun stopForegroundMode() {
         if (!isForeground) return
-
         try {
             stopForeground(true)
             isForeground = false
@@ -279,21 +263,6 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping foreground", e)
         }
-    }
-
-    private fun createNotification(): Notification {
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(getString(R.string.app_name))
-            .setContentText("$artistName - $trackTitle")
-            .setSmallIcon(android.R.drawable.ic_media_play).setContentIntent(pendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setColorized(true)
-            .build()
     }
 
     private fun createNotificationChannel() {
@@ -306,7 +275,6 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
                 enableVibration(false)
                 setShowBadge(false)
             }
-
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
         }
@@ -316,17 +284,13 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
         stopUpdatingProgress()
         updateProgressJob = CoroutineScope(Dispatchers.Main).launch {
             while (isActive) {
-                try {
-                    if (_state.value?.isPlaying == true) {
-                        val position = try {
-                            mediaPlayer.currentPosition
-                        } catch (e: IllegalStateException) {
-                            _state.value?.currentPosition ?: 0
-                        }
-                        _state.value = _state.value?.copy(currentPosition = position)
+                if (_state.value?.isPlaying == true) {
+                    val position = try {
+                        mediaPlayer.currentPosition
+                    } catch (e: IllegalStateException) {
+                        _state.value?.currentPosition ?: 0
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error updating progress", e)
+                    _state.postValue(_state.value?.copy(currentPosition = position))
                 }
                 delay(300)
             }
@@ -341,9 +305,7 @@ class AudioPlayerService : Service(), AudioPlayerServiceInterface {
     override fun onDestroy() {
         stopUpdatingProgress()
         try {
-            if (mediaPlayer.isPlaying) {
-                mediaPlayer.stop()
-            }
+            if (mediaPlayer.isPlaying) mediaPlayer.stop()
             mediaPlayer.release()
         } catch (e: Exception) {
             Log.e(TAG, "Error releasing media player", e)
