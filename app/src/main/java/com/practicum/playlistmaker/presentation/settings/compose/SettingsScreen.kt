@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.presentation.theme.ThemeViewModel
 import com.practicum.playlistmaker.presentation.theme.compose.AppColors
@@ -49,8 +49,8 @@ fun SettingsScreen(
     viewModel: ThemeViewModel = koinViewModel(), onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val state by viewModel.state.observeAsState()
-    val isDarkMode = state?.isDarkMode ?: isSystemInDarkTheme()
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val isDarkMode = state.isDarkMode
 
     viewModel.uiEvent.observeAsState().value?.let { event ->
         when (event) {
@@ -78,16 +78,14 @@ fun SettingsScreen(
         }
     }
 
-    AppTheme(darkTheme = isDarkMode) {
-        SettingsContent(
-            isDarkMode = isDarkMode,
-            onThemeSwitch = { viewModel.switchTheme(it) },
-            onPracticumOfferClick = { viewModel.onPracticumOfferClicked() },
-            onSendToHelpdeskClick = { viewModel.onSendToHelpdeskClicked() },
-            onShareAppClick = { viewModel.onShareAppClicked() },
-            onBackClick = onNavigateBack
-        )
-    }
+    SettingsContent(
+        isDarkMode = isDarkMode,
+        onThemeSwitch = { viewModel.switchTheme(it) },
+        onPracticumOfferClick = { viewModel.onPracticumOfferClicked() },
+        onSendToHelpdeskClick = { viewModel.onSendToHelpdeskClicked() },
+        onShareAppClick = { viewModel.onShareAppClicked() },
+        onBackClick = onNavigateBack
+    )
 }
 
 @Composable
@@ -178,8 +176,8 @@ fun SettingsSwitchItem(
 ) {
     Row(
         modifier = modifier.clickable(
-            indication = null,
-            interactionSource = remember { MutableInteractionSource() }) { onCheckedChange(!checked) },
+        indication = null,
+        interactionSource = remember { MutableInteractionSource() }) { onCheckedChange(!checked) },
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

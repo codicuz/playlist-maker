@@ -1,25 +1,42 @@
 package com.practicum.playlistmaker.presentation.search.compose
 
-import android.view.View
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -31,37 +48,36 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.isVisible
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.practicum.playlistmaker.R
 import com.practicum.playlistmaker.domain.track.Track
 import com.practicum.playlistmaker.presentation.search.SearchScreenState
 import com.practicum.playlistmaker.presentation.search.SearchViewModel
-import com.practicum.playlistmaker.presentation.theme.compose.*
+import com.practicum.playlistmaker.presentation.theme.compose.AppColors
+import com.practicum.playlistmaker.presentation.theme.compose.AppTextStyles
+import com.practicum.playlistmaker.presentation.theme.compose.AppTheme
+import com.practicum.playlistmaker.presentation.theme.compose.ClearHistoryButton
+import com.practicum.playlistmaker.presentation.theme.compose.NoInternetButton
+import com.practicum.playlistmaker.presentation.theme.compose.TrackItem
+import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
 import kotlinx.coroutines.delay
 
 @Composable
 fun SearchScreen(
-    viewModel: SearchViewModel,
-    onTrackClick: (Track) -> Unit
+    viewModel: SearchViewModel, onTrackClick: (Track) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    AppTheme {
-        SearchContent(
-            state = state,
-            onQueryChanged = { query -> viewModel.onQueryChanged(query) },
-            onSearchDone = { query -> viewModel.onSearchDone(query) },
-            onTrackClick = onTrackClick,
-            onClearHistory = { viewModel.clearHistory() },
-            onAddToHistory = { track -> viewModel.addTrackToHistory(track) },
-            onClearSearchResults = { viewModel.clearSearchResults() },
-            onLoadHistory = { viewModel.loadHistory() },
-            onTrackClicked = { track, openPlayer -> viewModel.onTrackClicked(track, openPlayer) }
-        )
-    }
+    SearchContent(
+        state = state,
+        onQueryChanged = { query -> viewModel.onQueryChanged(query) },
+        onSearchDone = { query -> viewModel.onSearchDone(query) },
+        onTrackClick = onTrackClick,
+        onClearHistory = { viewModel.clearHistory() },
+        onAddToHistory = { track -> viewModel.addTrackToHistory(track) },
+        onClearSearchResults = { viewModel.clearSearchResults() },
+        onLoadHistory = { viewModel.loadHistory() },
+        onTrackClicked = { track, openPlayer -> viewModel.onTrackClicked(track, openPlayer) })
 }
 
 @Composable
@@ -80,7 +96,7 @@ fun SearchContent(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val isDarkTheme = MaterialTheme.colorScheme.background == AppColors.Black
-    val view = LocalView.current
+    LocalView.current
 
     var query by rememberSaveable { mutableStateOf("") }
     var isSearchFocused by remember { mutableStateOf(false) }
@@ -100,15 +116,6 @@ fun SearchContent(
         }
     }
 
-    LaunchedEffect(view) {
-        ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
-            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-            val bottomNav = v.rootView.findViewById<View>(R.id.bottomNavigationView)
-            bottomNav?.isVisible = !isImeVisible
-            insets
-        }
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -116,8 +123,7 @@ fun SearchContent(
             .clickable {
                 focusManager.clearFocus()
                 keyboardController?.hide()
-            }
-    ) {
+            }) {
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -132,35 +138,28 @@ fun SearchContent(
             )
 
             SearchBar(
-                query = query,
-                onQueryChange = { newQuery ->
-                    query = newQuery
-                    onQueryChanged(newQuery)
-                },
-                onSearchDone = {
-                    if (query.isNotBlank()) {
-                        onSearchDone(query)
-                        keyboardController?.hide()
-                        focusManager.clearFocus()
-                        hasSearchExecuted = true
-                    }
-                },
-                onClearClick = {
-                    query = ""
-                    onQueryChanged("")
-                    onClearSearchResults()
+                query = query, onQueryChange = { newQuery ->
+                query = newQuery
+                onQueryChanged(newQuery)
+            }, onSearchDone = {
+                if (query.isNotBlank()) {
+                    onSearchDone(query)
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                    hasSearchExecuted = true
+                }
+            }, onClearClick = {
+                query = ""
+                onQueryChanged("")
+                onClearSearchResults()
+                onLoadHistory()
+                hasSearchExecuted = false
+            }, isFocused = isSearchFocused, onFocusChange = { focused ->
+                isSearchFocused = focused
+                if (focused) {
                     onLoadHistory()
-                    hasSearchExecuted = false
-                },
-                isFocused = isSearchFocused,
-                onFocusChange = { focused ->
-                    isSearchFocused = focused
-                    if (focused) {
-                        onLoadHistory()
-                    }
-                },
-                focusRequester = focusRequester,
-                modifier = Modifier.fillMaxWidth()
+                }
+            }, focusRequester = focusRequester, modifier = Modifier.fillMaxWidth()
             )
 
             Box(
@@ -170,29 +169,26 @@ fun SearchContent(
             ) {
                 when {
                     state.isLoading -> CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center).size(48.dp),
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(48.dp),
                         color = AppColors.Blue
                     )
 
                     state.isError -> ErrorPlaceholder(
-                        onRetry = { if (query.isNotBlank()) onSearchDone(query) }
-                    )
+                        onRetry = { if (query.isNotBlank()) onSearchDone(query) })
 
                     isSearchFocused && !hasSearchExecuted && state.history.isNotEmpty() -> SearchHistory(
-                        history = state.history,
-                        onTrackClick = { track ->
+                        history = state.history, onTrackClick = { track ->
                             onAddToHistory(track)
                             onTrackClick(track)
-                        },
-                        onClearHistory = onClearHistory
+                        }, onClearHistory = onClearHistory
                     )
 
                     state.tracks.isNotEmpty() -> TrackList(
-                        tracks = state.tracks,
-                        onTrackClick = { track ->
+                        tracks = state.tracks, onTrackClick = { track ->
                             onTrackClicked(track, onTrackClick)
-                        }
-                    )
+                        })
 
                     hasSearchExecuted && state.tracks.isEmpty() && !state.isLoading -> EmptySearchPlaceholder()
                 }
@@ -229,13 +225,10 @@ fun SearchBar(
                 )
                 .focusRequester(focusRequester)
                 .onFocusChanged { onFocusChange(it.isFocused) }
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
+                .padding(horizontal = 8.dp), contentAlignment = Alignment.CenterStart) {
 
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
                     painter = painterResource(R.drawable.search),
@@ -247,8 +240,7 @@ fun SearchBar(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.CenterStart
+                    modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart
                 ) {
 
                     BasicTextField(
@@ -264,8 +256,7 @@ fun SearchBar(
                             imeAction = ImeAction.Done
                         ),
                         keyboardActions = KeyboardActions(
-                            onDone = { onSearchDone() }
-                        )
+                            onDone = { onSearchDone() })
                     )
 
                     if (query.isEmpty()) {
@@ -296,12 +287,10 @@ fun SearchBar(
 
 @Composable
 fun TrackList(
-    tracks: List<Track>,
-    onTrackClick: (Track) -> Unit
+    tracks: List<Track>, onTrackClick: (Track) -> Unit
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(tracks) { track ->
             TrackItem(track = track, onClick = { onTrackClick(track) })
@@ -311,14 +300,14 @@ fun TrackList(
 
 @Composable
 fun SearchHistory(
-    history: List<Track>,
-    onTrackClick: (Track) -> Unit,
-    onClearHistory: () -> Unit
+    history: List<Track>, onTrackClick: (Track) -> Unit, onClearHistory: () -> Unit
 ) {
     val isDarkTheme = MaterialTheme.colorScheme.background == AppColors.Black
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(bottom = 32.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -332,8 +321,7 @@ fun SearchHistory(
         )
 
         LazyColumn(
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            modifier = Modifier.weight(1f), contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(history) { track ->
                 TrackItem(track = track, onClick = { onTrackClick(track) })
@@ -341,8 +329,7 @@ fun SearchHistory(
         }
 
         ClearHistoryButton(
-            onClick = onClearHistory,
-            text = stringResource(R.string.clear_history)
+            onClick = onClearHistory, text = stringResource(R.string.clear_history)
         )
     }
 }
@@ -394,8 +381,7 @@ fun ErrorPlaceholder(onRetry: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         NoInternetButton(
-            onClick = onRetry,
-            text = stringResource(R.string.update_btn)
+            onClick = onRetry, text = stringResource(R.string.update_btn)
         )
     }
 }
@@ -406,12 +392,12 @@ fun SearchScreenEmptyPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
-                tracks = emptyList(),
-                history = emptyList(),
-                isError = false,
-                hasSearched = false,
-                isLoading = false
-            ),
+            tracks = emptyList(),
+            history = emptyList(),
+            isError = false,
+            hasSearched = false,
+            isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -419,8 +405,7 @@ fun SearchScreenEmptyPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -430,39 +415,34 @@ fun SearchScreenWithResultsPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
-                tracks = listOf(
-                    Track(
-                        id = 1,
-                        trackId = 1,
-                        trackName = "Bohemian Rhapsody",
-                        artistsName = "Queen",
-                        trackTimeMillis = 354000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    ),
-                    Track(
-                        id = 2,
-                        trackId = 2,
-                        trackName = "Imagine",
-                        artistsName = "John Lennon",
-                        trackTimeMillis = 183000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    )
-                ),
-                history = emptyList(),
-                isError = false,
-                hasSearched = true,
-                isLoading = false
-            ),
+            tracks = listOf(
+                Track(
+                    id = 1,
+                    trackId = 1,
+                    trackName = "Bohemian Rhapsody",
+                    artistsName = "Queen",
+                    trackTimeMillis = 354000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                ), Track(
+                    id = 2,
+                    trackId = 2,
+                    trackName = "Imagine",
+                    artistsName = "John Lennon",
+                    trackTimeMillis = 183000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                )
+            ), history = emptyList(), isError = false, hasSearched = true, isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -470,8 +450,7 @@ fun SearchScreenWithResultsPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -481,12 +460,12 @@ fun SearchScreenLoadingPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
-                tracks = emptyList(),
-                history = emptyList(),
-                isError = false,
-                hasSearched = false,
-                isLoading = true
-            ),
+            tracks = emptyList(),
+            history = emptyList(),
+            isError = false,
+            hasSearched = false,
+            isLoading = true
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -494,8 +473,7 @@ fun SearchScreenLoadingPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -505,12 +483,12 @@ fun SearchScreenErrorPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
-                tracks = emptyList(),
-                history = emptyList(),
-                isError = true,
-                hasSearched = true,
-                isLoading = false
-            ),
+            tracks = emptyList(),
+            history = emptyList(),
+            isError = true,
+            hasSearched = true,
+            isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -518,8 +496,7 @@ fun SearchScreenErrorPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -529,39 +506,34 @@ fun SearchScreenHistoryPreview() {
     AppTheme {
         SearchContent(
             state = SearchScreenState(
-                tracks = emptyList(),
-                history = listOf(
-                    Track(
-                        id = 1,
-                        trackId = 1,
-                        trackName = "Bohemian Rhapsody",
-                        artistsName = "Queen",
-                        trackTimeMillis = 354000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    ),
-                    Track(
-                        id = 2,
-                        trackId = 2,
-                        trackName = "Imagine",
-                        artistsName = "John Lennon",
-                        trackTimeMillis = 183000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    )
-                ),
-                isError = false,
-                hasSearched = false,
-                isLoading = false
-            ),
+            tracks = emptyList(), history = listOf(
+                Track(
+                    id = 1,
+                    trackId = 1,
+                    trackName = "Bohemian Rhapsody",
+                    artistsName = "Queen",
+                    trackTimeMillis = 354000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                ), Track(
+                    id = 2,
+                    trackId = 2,
+                    trackName = "Imagine",
+                    artistsName = "John Lennon",
+                    trackTimeMillis = 183000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                )
+            ), isError = false, hasSearched = false, isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -569,8 +541,7 @@ fun SearchScreenHistoryPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -591,9 +562,7 @@ fun TrackItemPreview() {
                 releaseDate = "",
                 primaryGenreName = "",
                 country = ""
-            ),
-            onClick = {}
-        )
+            ), onClick = {})
     }
 }
 
@@ -604,36 +573,32 @@ fun SearchHistoryPreview() {
     AppTheme {
         SearchHistory(
             history = listOf(
-                Track(
-                    id = 1,
-                    trackId = 1,
-                    trackName = "Bohemian Rhapsody",
-                    artistsName = "Queen",
-                    trackTimeMillis = 354000,
-                    artworkUrl100 = "",
-                    previewUrl = null,
-                    collectionName = "",
-                    releaseDate = "",
-                    primaryGenreName = "",
-                    country = ""
-                ),
-                Track(
-                    id = 2,
-                    trackId = 2,
-                    trackName = "Imagine",
-                    artistsName = "John Lennon",
-                    trackTimeMillis = 183000,
-                    artworkUrl100 = "",
-                    previewUrl = null,
-                    collectionName = "",
-                    releaseDate = "",
-                    primaryGenreName = "",
-                    country = ""
-                )
-            ),
-            onTrackClick = {},
-            onClearHistory = {}
-        )
+            Track(
+                id = 1,
+                trackId = 1,
+                trackName = "Bohemian Rhapsody",
+                artistsName = "Queen",
+                trackTimeMillis = 354000,
+                artworkUrl100 = "",
+                previewUrl = null,
+                collectionName = "",
+                releaseDate = "",
+                primaryGenreName = "",
+                country = ""
+            ), Track(
+                id = 2,
+                trackId = 2,
+                trackName = "Imagine",
+                artistsName = "John Lennon",
+                trackTimeMillis = 183000,
+                artworkUrl100 = "",
+                previewUrl = null,
+                collectionName = "",
+                releaseDate = "",
+                primaryGenreName = "",
+                country = ""
+            )
+        ), onTrackClick = {}, onClearHistory = {})
     }
 }
 
@@ -650,8 +615,7 @@ fun EmptyPlaceholderPreview() {
 fun ErrorPlaceholderPreview() {
     AppTheme {
         ErrorPlaceholder(
-            onRetry = {}
-        )
+            onRetry = {})
     }
 }
 
@@ -673,8 +637,7 @@ fun TrackListPreview() {
                     releaseDate = "",
                     primaryGenreName = "",
                     country = ""
-                ),
-                Track(
+                ), Track(
                     id = 2,
                     trackId = 2,
                     trackName = "Imagine",
@@ -687,9 +650,7 @@ fun TrackListPreview() {
                     primaryGenreName = "",
                     country = ""
                 )
-            ),
-            onTrackClick = {}
-        )
+            ), onTrackClick = {})
     }
 }
 
@@ -699,26 +660,22 @@ fun SearchContentLightPreview() {
     AppTheme(darkTheme = false) {
         SearchContent(
             state = SearchScreenState(
-                tracks = listOf(
-                    Track(
-                        id = 1,
-                        trackId = 1,
-                        trackName = "Bohemian Rhapsody",
-                        artistsName = "Queen",
-                        trackTimeMillis = 354000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    )
-                ),
-                history = emptyList(),
-                isError = false,
-                hasSearched = true,
-                isLoading = false
-            ),
+            tracks = listOf(
+                Track(
+                    id = 1,
+                    trackId = 1,
+                    trackName = "Bohemian Rhapsody",
+                    artistsName = "Queen",
+                    trackTimeMillis = 354000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                )
+            ), history = emptyList(), isError = false, hasSearched = true, isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -726,8 +683,7 @@ fun SearchContentLightPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }
 
@@ -737,26 +693,22 @@ fun SearchContentDarkPreview() {
     AppTheme(darkTheme = true) {
         SearchContent(
             state = SearchScreenState(
-                tracks = listOf(
-                    Track(
-                        id = 1,
-                        trackId = 1,
-                        trackName = "Bohemian Rhapsody",
-                        artistsName = "Queen",
-                        trackTimeMillis = 354000,
-                        artworkUrl100 = "",
-                        previewUrl = null,
-                        collectionName = "",
-                        releaseDate = "",
-                        primaryGenreName = "",
-                        country = ""
-                    )
-                ),
-                history = emptyList(),
-                isError = false,
-                hasSearched = true,
-                isLoading = false
-            ),
+            tracks = listOf(
+                Track(
+                    id = 1,
+                    trackId = 1,
+                    trackName = "Bohemian Rhapsody",
+                    artistsName = "Queen",
+                    trackTimeMillis = 354000,
+                    artworkUrl100 = "",
+                    previewUrl = null,
+                    collectionName = "",
+                    releaseDate = "",
+                    primaryGenreName = "",
+                    country = ""
+                )
+            ), history = emptyList(), isError = false, hasSearched = true, isLoading = false
+        ),
             onQueryChanged = {},
             onSearchDone = {},
             onTrackClick = {},
@@ -764,7 +716,6 @@ fun SearchContentDarkPreview() {
             onAddToHistory = {},
             onClearSearchResults = {},
             onLoadHistory = {},
-            onTrackClicked = { _, _ -> }
-        )
+            onTrackClicked = { _, _ -> })
     }
 }

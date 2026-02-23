@@ -1,31 +1,33 @@
 package com.practicum.playlistmaker.presentation.theme
 
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.practicum.playlistmaker.domain.theme.GetThemeUseCase
 import com.practicum.playlistmaker.domain.theme.SwitchThemeUseCase
 import com.practicum.playlistmaker.presentation.settings.SettingsUiEvent
 import com.practicum.playlistmaker.presentation.settings.SingleLiveEvent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class ThemeViewModel(
     private val switchThemeUseCase: SwitchThemeUseCase,
     private val getThemeUseCase: GetThemeUseCase
 ) : ViewModel() {
 
-    private val _state = MutableLiveData(ThemeScreenState())
-    val state: LiveData<ThemeScreenState> = _state
+    private val _state = MutableStateFlow(ThemeScreenState(isDarkMode = getThemeUseCase.execute()))
+    val state: StateFlow<ThemeScreenState> = _state.asStateFlow()
 
     private val _uiEvent = SingleLiveEvent<SettingsUiEvent?>()
     val uiEvent: LiveData<SettingsUiEvent?> = _uiEvent
 
-    init {
-        _state.value = ThemeScreenState(isDarkMode = getThemeUseCase.execute())
-    }
-
     fun switchTheme(darkMode: Boolean) {
-        switchThemeUseCase.execute(darkMode)
-        _state.value = _state.value?.copy(isDarkMode = darkMode)
+        viewModelScope.launch {
+            switchThemeUseCase.execute(darkMode)
+            _state.value = _state.value.copy(isDarkMode = darkMode)
+        }
     }
 
     fun onPracticumOfferClicked() {

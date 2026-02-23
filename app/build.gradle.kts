@@ -83,8 +83,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.runtime.livedata)
-    implementation(libs.androidx.navigation.compose.v277)
-    implementation(libs.androidx.lifecycle.viewmodel.compose.v270)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
     implementation(libs.coil.compose)
@@ -92,6 +90,8 @@ dependencies {
 
     implementation(libs.koin.android.v356)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.androidx.navigation.compose.v297)
+
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

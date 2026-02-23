@@ -23,7 +23,6 @@ import com.practicum.playlistmaker.presentation.media.MediaTab
 import com.practicum.playlistmaker.presentation.media.MediaViewModel
 import com.practicum.playlistmaker.presentation.theme.compose.AppColors
 import com.practicum.playlistmaker.presentation.theme.compose.AppTextStyles
-import com.practicum.playlistmaker.presentation.theme.compose.AppTheme
 import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -37,14 +36,13 @@ fun MediaScreen(
 ) {
     val tabs by viewModel.tabs.collectAsStateWithLifecycle()
 
-    AppTheme {
-        MediaContent(
-            tabs = tabs,
-            onPlaylistClick = onPlaylistClick,
-            onCreatePlaylistClick = onCreatePlaylistClick,
-            onTrackClick = onTrackClick
-        )
-    }
+
+    MediaContent(
+        tabs = tabs,
+        onPlaylistClick = onPlaylistClick,
+        onCreatePlaylistClick = onCreatePlaylistClick,
+        onTrackClick = onTrackClick
+    )
 }
 
 @Composable

@@ -223,12 +223,10 @@ class AudioPlayerViewModel(
         }
     }
 
-    // НОВЫЙ МЕТОД для обновления трека без сброса состояния
     fun updateTrackIfNeeded(track: Track) {
         if (currentTrack?.trackId != track.trackId) {
             currentTrack = track
 
-            // Запускаем корутину для получения статуса избранного
             viewModelScope.launch {
                 val isFav = track.trackId?.let { isFavoriteUseCase.execute(it) } ?: false
                 _state.update {
@@ -247,7 +245,6 @@ class AudioPlayerViewModel(
                 )
             }
         } else {
-            // Если тот же трек, просто обновляем состояние из сервиса
             updateStateFromService()
         }
     }
@@ -361,7 +358,6 @@ class AudioPlayerViewModel(
 
     fun onAppBackgrounded() {
         wasInBackground = true
-        // Запускаем foreground ТОЛЬКО если приложение реально сворачивают, а не поворачивают
         if (_state.value.isPlaying && !isConfigurationChange) {
             startForegroundMode()
         }
@@ -386,5 +382,13 @@ class AudioPlayerViewModel(
     override fun onCleared() {
         super.onCleared()
         cleanup()
+    }
+
+    fun loadTrack(trackId: Int) {
+        viewModelScope.launch {
+            // Здесь должен быть useCase для получения трека по ID
+            // Например: val track = getTrackByIdUseCase.execute(trackId)
+            // setTrack(track)
+        }
     }
 }

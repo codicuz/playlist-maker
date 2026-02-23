@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -60,18 +61,24 @@ import com.practicum.playlistmaker.presentation.theme.compose.AppColors
 import com.practicum.playlistmaker.presentation.theme.compose.AppTextStyles
 import com.practicum.playlistmaker.presentation.theme.compose.AppTheme
 import com.practicum.playlistmaker.presentation.theme.compose.isDarkTheme
+import com.practicum.playlistmaker.presentation.util.AndroidResourceProvider
 import com.practicum.playlistmaker.presentation.util.ResourceProvider
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AudioPlayerScreen(
     viewModel: AudioPlayerViewModel,
-    resourceProvider: ResourceProvider,
     trackId: Int?,
     onNavigateBack: () -> Unit,
     onCreatePlaylistClick: () -> Unit
 ) {
     val context = LocalContext.current
+    // Создаем ResourceProvider внутри функции
+    val resourceProvider = remember(context) {
+        AndroidResourceProvider(context)
+    }
+
     val state by viewModel.state.collectAsStateWithLifecycle()
     val addTrackStatus by viewModel.addTrackStatus.collectAsStateWithLifecycle(initialValue = null)
     val playlists by viewModel.playlists.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -81,6 +88,14 @@ fun AudioPlayerScreen(
 
     val isDarkTheme = isDarkTheme()
     var showBottomSheet by remember { mutableStateOf(false) }
+
+    // Загружаем трек при изменении trackId
+    LaunchedEffect(trackId) {
+        if (trackId != null) {
+            // Здесь должен быть метод для загрузки трека по ID
+            // viewModel.loadTrack(trackId)
+        }
+    }
 
     LaunchedEffect(addTrackStatus) {
         val status = addTrackStatus
@@ -118,61 +133,50 @@ fun AudioPlayerScreen(
         }
     }
 
-    AppTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(if (isDarkTheme) AppColors.Black else AppColors.White)
-        ) {
-            AudioPlayerContent(
-                track = state.track,
-                isPlaying = state.isPlaying,
-                currentPosition = state.currentPosition,
-                isFavorite = state.isFavorite,
-                isDarkTheme = isDarkTheme,
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(if (isDarkTheme) AppColors.Black else AppColors.White)
+    ) {
+        AudioPlayerContent(
+            track = state.track,
+            isPlaying = state.isPlaying,
+            currentPosition = state.currentPosition,
+            isFavorite = state.isFavorite,
+            isDarkTheme = isDarkTheme,
+            resourceProvider = resourceProvider,
+            onBackClick = onNavigateBack,
+            onPlayPauseClick = {
+                if (state.isPlaying) {
+                    viewModel.pausePlayer()
+                } else {
+                    viewModel.startPlayer()
+                }
+            },
+            onFavoriteClick = { viewModel.toggleFavorite() },
+            onAddToPlaylistClick = { showBottomSheet = true }
+        )
+
+        if (showBottomSheet) {
+            PlaylistSelectionSheet(
+                playlists = playlists,
                 resourceProvider = resourceProvider,
-                onBackClick = onNavigateBack,
-                onPlayPauseClick = {
-                    if (state.isPlaying) {
-                        viewModel.pausePlayer()
-                    } else {
-                        viewModel.startPlayer()
+                onPlaylistClick = { playlist ->
+                    state.track?.let { track ->
+                        viewModel.addTrackToPlaylist(playlist, track)
                     }
                 },
-                onFavoriteClick = { viewModel.toggleFavorite() },
-                onAddToPlaylistClick = { showBottomSheet = true }
+                onCreateNewClick = {
+                    showBottomSheet = false
+                    onCreatePlaylistClick()
+                },
+                onDismiss = { showBottomSheet = false }
             )
-
-            if (showBottomSheet) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.5f))
-                        .clickable { showBottomSheet = false }
-                )
-            }
-
-            if (showBottomSheet) {
-                PlaylistBottomSheet(
-                    playlists = playlists,
-                    addTrackStatus = addTrackStatus,
-                    isDarkTheme = isDarkTheme,
-                    resourceProvider = resourceProvider,
-                    onPlaylistClick = { playlist ->
-                        state.track?.let { track ->
-                            viewModel.addTrackToPlaylist(playlist, track)
-                        }
-                    },
-                    onCreateNewClick = {
-                        showBottomSheet = false
-                        onCreatePlaylistClick()
-                    },
-                    onDismiss = { showBottomSheet = false }
-                )
-            }
         }
     }
 }
+
+// Остальной код без изменений...
 
 @Composable
 fun AudioPlayerContent(
