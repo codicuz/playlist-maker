@@ -1,5 +1,6 @@
 package com.practicum.playlistmaker.presentation.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -96,22 +97,37 @@ fun NavGraph(
                 return state.title.isNotBlank() || state.description.isNotBlank() || state.coverUri != null
             }
 
+            BackHandler(enabled = true) {
+                if (checkUnsavedChanges()) {
+                    showExitDialog = true
+                } else {
+                    navController.popBackStack()
+                }
+            }
+
             Box(modifier = Modifier.fillMaxSize()) {
-                CreatePlaylistScreen(viewModel = viewModel, onNavigateBack = {
-                    if (checkUnsavedChanges()) {
-                        showExitDialog = true
-                    } else {
+                CreatePlaylistScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = {
+                        if (checkUnsavedChanges()) {
+                            showExitDialog = true
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
+                    onPlaylistCreated = { title ->
                         navController.popBackStack()
                     }
-                }, onPlaylistCreated = { title ->
-                    navController.popBackStack()
-                })
+                )
 
                 if (showExitDialog) {
-                    ExitConfirmationDialog(onConfirm = {
-                        showExitDialog = false
-                        navController.popBackStack()
-                    }, onDismiss = { showExitDialog = false })
+                    ExitConfirmationDialog(
+                        onConfirm = {
+                            showExitDialog = false
+                            navController.popBackStack()
+                        },
+                        onDismiss = { showExitDialog = false }
+                    )
                 }
             }
         }
